@@ -167,6 +167,30 @@ def render_admin_panel() -> None:
     except Exception as exc:  # noqa: BLE001
         st.caption(f"Chat moderation unavailable: {exc}")
 
+    st.markdown("##### Community board moderation")
+    st.caption("Remove member trading-idea posts (text + images).")
+    try:
+        from community import count_posts, delete_post, list_posts_admin
+
+        st.metric("Community posts", count_posts())
+        posts = list_posts_admin(limit=25)
+        if not posts:
+            st.caption("No community posts.")
+        else:
+            for p in posts:
+                cols = st.columns([4, 1])
+                with cols[0]:
+                    st.markdown(
+                        f"**{p.title}** · {p.display_name} · `{p.created_at}`  \n"
+                        f"{(p.body or '')[:160]}"
+                    )
+                with cols[1]:
+                    if st.button("Delete", key=f"adm_del_post_{p.id}"):
+                        delete_post(p.id, email, as_admin=True)
+                        st.rerun()
+    except Exception as exc:  # noqa: BLE001
+        st.caption(f"Community moderation unavailable: {exc}")
+
     st.markdown("##### Journal capacity")
     st.caption(
         f"Per-member journal limit is currently **{journal_max_entries()}** entries. "

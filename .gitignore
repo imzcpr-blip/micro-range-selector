@@ -19,6 +19,7 @@ data/users.db
 data/subscribers.csv
 data/*.db
 data/*.csv
+data/community_uploads/
 
 # OS / editor
 .DS_Store
