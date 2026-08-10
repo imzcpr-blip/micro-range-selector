@@ -85,10 +85,8 @@ def heartbeat(email: str, display_name: str) -> None:
             (sid, email, display_name, now),
         )
         # prune stale rows
-        con.execute(
-            "DELETE FROM presence WHERE last_seen < ?",
-            (_utc_now() - timedelta(minutes=30)).strftime("%Y-%m-%d %H:%M:%S UTC"),
-        )
+        cutoff = (_utc_now() - timedelta(minutes=30)).strftime("%Y-%m-%d %H:%M:%S UTC")
+        con.execute("DELETE FROM presence WHERE last_seen < ?", (cutoff,))
         con.commit()
 
 
