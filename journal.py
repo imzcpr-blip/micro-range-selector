@@ -4,11 +4,18 @@ Per-user Trading Journal for CPRP Session Micro Selector.
 Notes are stored in SQLite (data/users.db) keyed by login email so members
 can review past sessions. Shown side-by-side with the Quick Reference on
 the Session Selector page.
+
+When a user's journal reaches JOURNAL_MAX_ENTRIES, new saves are blocked
+until they export (email file / image / spreadsheet CSV) and optionally
+free space by clearing entries.
 """
 
 from __future__ import annotations
 
+import csv
+import io
 import sqlite3
+import textwrap
 from dataclasses import dataclass
 from datetime import date, datetime, timezone
 from pathlib import Path
@@ -20,6 +27,9 @@ from auth import DATA_DIR, DB_PATH, current_display_name, current_user_email
 
 MICROS = ["", "MES", "MNQ", "MYM", "SIT OUT", "Multiple", "Other"]
 RESULTS = ["", "Open", "Win", "Loss", "Scratch", "No trade", "Lesson only"]
+
+# Soft capacity per user — when full, prompt to export session notes
+JOURNAL_MAX_ENTRIES = 50
 
 
 @dataclass
@@ -189,6 +199,161 @@ def count_entries(email: str) -> int:
     return int(row[0] or 0) if row else 0
 
 
+def journal_max_entries() -> int:
+    """Optional override via secrets: [journal] max_entries = 50"""
+    try:
+        raw = st.secrets.get("journal", {}).get("max_entries", JOURNAL_MAX_ENTRIES)
+        n = int(raw)
+        return max(5, min(n, 500))
+    except Exception:
+        return JOURNAL_MAX_ENTRIES
+
+
+def is_journal_full(email: str) -> bool:
+    return count_entries(email) >= journal_max_entries()
+
+
+def journal_slots_remaining(email: str) -> int:
+    return max(0, journal_max_entries() - count_entries(email))
+
+
+def clear_all_entries(email: str) -> int:
+    """Delete all journal entries for a user. Returns number removed."""
+    with _conn() as con:
+        cur = con.execute(
+            "DELETE FROM journal_entries WHERE email = ?",
+            (email.lower().strip(),),
+        )
+        con.commit()
+        return int(cur.rowcount or 0)
+
+
+def clear_oldest_entries(email: str, keep: int | None = None) -> int:
+    """
+    Delete oldest entries so at most `keep` remain (default half of max).
+    Returns number removed.
+    """
+    email = email.lower().strip()
+    keep = journal_max_entries() // 2 if keep is None else max(0, int(keep))
+    entries = list_entries(email, limit=10_000)
+    if len(entries) <= keep:
+        return 0
+    # list_entries is newest-first; drop the oldest beyond `keep`
+    to_delete = entries[keep:]
+    n = 0
+    with _conn() as con:
+        for e in to_delete:
+            cur = con.execute(
+                "DELETE FROM journal_entries WHERE id = ? AND email = ?",
+                (e.id, email),
+            )
+            n += int(cur.rowcount or 0)
+        con.commit()
+    return n
+
+
+def export_entries_csv(email: str) -> tuple[bytes, str]:
+    """Spreadsheet-ready CSV of all session notes for this user."""
+    entries = list_entries(email, limit=10_000)
+    buf = io.StringIO()
+    writer = csv.writer(buf)
+    writer.writerow(
+        [
+            "id",
+            "session_date",
+            "title",
+            "micro",
+            "result",
+            "notes",
+            "lessons",
+            "created_at",
+            "updated_at",
+        ]
+    )
+    for e in entries:
+        writer.writerow(
+            [
+                e.id,
+                e.session_date,
+                e.title,
+                e.micro,
+                e.result,
+                e.notes,
+                e.lessons,
+                e.created_at,
+                e.updated_at,
+            ]
+        )
+    stamp = date.today().isoformat()
+    filename = f"CPRP_Trading_Journal_{stamp}.csv"
+    # UTF-8 BOM helps Excel open CSV cleanly
+    data = ("\ufeff" + buf.getvalue()).encode("utf-8")
+    return data, filename
+
+
+def export_entries_image(email: str, display_name: str = "") -> tuple[bytes, str]:
+    """
+    Simple PNG summary image of session notes (downloadable).
+    Uses Pillow when available; otherwise a minimal PPM→PNG fallback is not used —
+    Pillow is required (listed in requirements).
+    """
+    from PIL import Image, ImageDraw, ImageFont
+
+    entries = list_entries(email, limit=10_000)
+    display_name = display_name or email
+    max_w = 1100
+    line_h = 18
+    margin = 28
+    # Build text lines
+    lines: list[str] = [
+        "CPRP Trading Journal — Session Notes Export",
+        f"Member: {display_name}  |  Email: {email}",
+        f"Exported: {_utc_now()}  |  Entries: {len(entries)}",
+        "—",
+    ]
+    if not entries:
+        lines.append("(No journal entries.)")
+    for e in entries:
+        lines.append(f"[{e.session_date}] {e.title}  ·  {e.micro or '—'}  ·  {e.result or '—'}")
+        if e.notes:
+            for part in textwrap.wrap(f"Notes: {e.notes}", width=100):
+                lines.append(f"  {part}")
+        if e.lessons:
+            for part in textwrap.wrap(f"Lessons: {e.lessons}", width=100):
+                lines.append(f"  {part}")
+        lines.append("")
+
+    # Cap very long exports for image size
+    max_lines = 120
+    if len(lines) > max_lines:
+        lines = lines[: max_lines - 1] + [f"… ({len(entries)} entries total — use CSV for full export)"]
+
+    height = margin * 2 + line_h * len(lines) + 20
+    height = max(height, 400)
+    img = Image.new("RGB", (max_w, height), color=(15, 23, 42))
+    draw = ImageDraw.Draw(img)
+    try:
+        font = ImageFont.truetype("arial.ttf", 14)
+        font_bold = ImageFont.truetype("arialbd.ttf", 16)
+    except Exception:
+        font = ImageFont.load_default()
+        font_bold = font
+
+    y = margin
+    for i, line in enumerate(lines):
+        f = font_bold if i < 3 else font
+        color = (226, 232, 240) if i >= 3 else (148, 163, 184)
+        if i == 0:
+            color = (96, 165, 250)
+        draw.text((margin, y), line, fill=color, font=f)
+        y += line_h
+
+    out = io.BytesIO()
+    img.save(out, format="PNG", optimize=True)
+    stamp = date.today().isoformat()
+    return out.getvalue(), f"CPRP_Trading_Journal_{stamp}.png"
+
+
 def _parse_date(value) -> date:
     if isinstance(value, date) and not isinstance(value, datetime):
         return value
@@ -198,6 +363,154 @@ def _parse_date(value) -> date:
         return date.fromisoformat(str(value)[:10])
     except Exception:
         return date.today()
+
+
+def render_journal_full_export_prompt(*, key_prefix: str = "jfull") -> None:
+    """
+    Shown when the user's journal has reached capacity.
+    Offers export to email, image download, or spreadsheet CSV.
+    """
+    email = current_user_email()
+    if not email:
+        return
+
+    n = count_entries(email)
+    max_n = journal_max_entries()
+    display = current_display_name() or email
+
+    st.warning(
+        f"**Your Trading Journal is full** ({n} / {max_n} session notes).  \n"
+        "New notes can’t be saved until you free space.  \n\n"
+        "**Would you like to export your session notes first?**  \n"
+        "Choose any option below — then you can clear space and keep journaling."
+    )
+
+    st.markdown(
+        """
+**Export options**
+1. **Email** — send a downloadable file to your login email  
+2. **Image** — download a simple PNG summary of your notes  
+3. **Spreadsheet** — download a CSV you can open in Excel / Google Sheets  
+"""
+    )
+
+    tab_email, tab_image, tab_sheet = st.tabs(
+        ["📧 Email file", "🖼️ Image download", "📊 Spreadsheet (CSV)"]
+    )
+
+    # Shared export payloads
+    csv_bytes, csv_name = export_entries_csv(email)
+    try:
+        img_bytes, img_name = export_entries_image(email, display)
+        img_ok = True
+        img_err = ""
+    except Exception as exc:  # noqa: BLE001
+        img_bytes, img_name = b"", ""
+        img_ok = False
+        img_err = str(exc)
+
+    with tab_email:
+        st.caption(
+            f"We’ll email **{email}** a file attachment with your full journal. "
+            "Requires app email (SMTP) to be configured by the site owner."
+        )
+        fmt = st.radio(
+            "Attachment format",
+            ["Spreadsheet (CSV)", "Image (PNG)"],
+            horizontal=True,
+            key=f"{key_prefix}_email_fmt",
+        )
+        if st.button("Email my session notes", type="primary", key=f"{key_prefix}_email_btn"):
+            try:
+                from emailer import send_file_to_user
+
+                if fmt.startswith("Spreadsheet"):
+                    fb, fn, main, sub = csv_bytes, csv_name, "text", "csv"
+                else:
+                    if not img_ok:
+                        st.error(f"Could not build image export: {img_err}")
+                        return
+                    fb, fn, main, sub = img_bytes, img_name, "image", "png"
+
+                send_file_to_user(
+                    email,
+                    subject=f"[CPRP] Your Trading Journal export ({n} entries)",
+                    body=(
+                        f"Hi {display},\n\n"
+                        f"Attached is your CPRP Trading Journal export ({n} session notes).\n"
+                        f"File: {fn}\n\n"
+                        "You can download this file and keep it for your records.\n"
+                        "After saving it, return to the app to free journal space if you wish.\n\n"
+                        "— CPRP Session Micro Selector\n"
+                    ),
+                    filename=fn,
+                    file_bytes=fb,
+                    mime_main=main,
+                    mime_sub=sub,
+                )
+                st.success(f"Sent **{fn}** to **{email}**. Check your inbox (and spam folder).")
+            except Exception as exc:  # noqa: BLE001
+                st.error(
+                    f"Could not send email: {exc}  \n"
+                    "You can still use **Image download** or **Spreadsheet (CSV)** below."
+                )
+
+    with tab_image:
+        st.caption("Download a simple image summary of your session notes.")
+        if img_ok:
+            st.image(img_bytes, caption=img_name, use_container_width=True)
+            st.download_button(
+                "Download journal image (PNG)",
+                data=img_bytes,
+                file_name=img_name,
+                mime="image/png",
+                type="primary",
+                use_container_width=True,
+                key=f"{key_prefix}_img_dl",
+            )
+        else:
+            st.error(f"Image export unavailable: {img_err}")
+
+    with tab_sheet:
+        st.caption(
+            "CSV opens in Excel, Google Sheets, or Numbers — one row per session note."
+        )
+        st.download_button(
+            "Download spreadsheet file (CSV)",
+            data=csv_bytes,
+            file_name=csv_name,
+            mime="text/csv",
+            type="primary",
+            use_container_width=True,
+            key=f"{key_prefix}_csv_dl",
+        )
+        st.code(
+            "Columns: id, session_date, title, micro, result, notes, lessons, created_at, updated_at",
+            language=None,
+        )
+
+    st.markdown("---")
+    st.markdown("**Free space after exporting**")
+    st.caption("Only do this after you’ve saved your export.")
+    c1, c2 = st.columns(2)
+    with c1:
+        if st.button(
+            "Clear oldest half of entries",
+            key=f"{key_prefix}_clear_half",
+            use_container_width=True,
+        ):
+            removed = clear_oldest_entries(email)
+            st.success(f"Removed {removed} oldest entries. You can save new notes again.")
+            st.rerun()
+    with c2:
+        if st.button(
+            "Clear ALL journal entries",
+            key=f"{key_prefix}_clear_all",
+            use_container_width=True,
+        ):
+            removed = clear_all_entries(email)
+            st.warning(f"Deleted all {removed} journal entries for your account.")
+            st.rerun()
 
 
 def render_journal_composer(
@@ -215,11 +528,27 @@ def render_journal_composer(
         return
 
     display = current_display_name() or email
+    n = count_entries(email)
+    max_n = journal_max_entries()
+    remaining = journal_slots_remaining(email)
+
     st.markdown(f"**Trading Journal** · {display}")
+    st.caption(f"Storage: **{n} / {max_n}** session notes" + (f" · {remaining} free" if remaining else ""))
     if not compact:
         st.caption(
             "Log setups, results, and lessons. Notes are saved to your account "
             "so you can review past sessions."
+        )
+
+    if is_journal_full(email):
+        render_journal_full_export_prompt(key_prefix=f"{key_prefix}_full")
+        return
+
+    # Soft notice when nearing capacity
+    if remaining <= 5:
+        st.info(
+            f"Your journal is almost full ({n}/{max_n}). "
+            "When it reaches the limit you’ll be asked to export your notes."
         )
 
     with st.form(f"{key_prefix}_new_entry", clear_on_submit=True):
@@ -267,6 +596,9 @@ def render_journal_composer(
         )
 
     if saved:
+        if is_journal_full(email):
+            st.error("Journal is full. Export your notes, then free space to continue.")
+            return
         if not (notes or "").strip() and not (lessons or "").strip() and not (title or "").strip():
             st.error("Add a title, notes, or lessons before saving.")
             return
@@ -281,6 +613,9 @@ def render_journal_composer(
         )
         st.success(f"Saved journal entry #{entry_id}.")
         st.session_state[f"{key_prefix}_last_saved"] = entry_id
+        if is_journal_full(email):
+            st.warning("Your journal is now full. Export your session notes when ready.")
+            st.rerun()
 
 
 def render_journal_history(*, key_prefix: str = "jhist", show_edit: bool = True) -> None:
@@ -291,7 +626,12 @@ def render_journal_history(*, key_prefix: str = "jhist", show_edit: bool = True)
 
     entries = list_entries(email)
     total = len(entries)
-    st.markdown(f"**Past sessions** ({total})")
+    max_n = journal_max_entries()
+    st.markdown(f"**Past sessions** ({total} / {max_n})")
+
+    if is_journal_full(email):
+        with st.expander("Journal full — export options", expanded=True):
+            render_journal_full_export_prompt(key_prefix=f"{key_prefix}_histfull")
 
     if not entries:
         st.info("No journal entries yet. Save your first session notes above.")

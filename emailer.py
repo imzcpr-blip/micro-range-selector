@@ -90,3 +90,52 @@ This address was added to your CPRP tool subscriber list.
             server.ehlo()
         server.login(username, password)
         server.send_message(msg)
+
+
+def send_file_to_user(
+    to_email: str,
+    *,
+    subject: str,
+    body: str,
+    filename: str,
+    file_bytes: bytes,
+    mime_main: str = "application",
+    mime_sub: str = "octet-stream",
+) -> None:
+    """
+    Email a file attachment to a user (e.g. journal export to their login email).
+    Uses the same SMTP secrets as signup notifications.
+    """
+    smtp = _secrets_section("smtp")
+
+    host = str(smtp.get("host") or "").strip()
+    port = int(smtp.get("port") or 587)
+    username = str(smtp.get("username") or "").strip()
+    password = str(smtp.get("password") or "").strip()
+    from_email = str(smtp.get("from_email") or username).strip()
+    to_email = (to_email or "").strip()
+
+    if not (host and username and password and from_email and to_email):
+        raise RuntimeError(
+            "Email not configured. Add [smtp] credentials to Streamlit secrets to email exports."
+        )
+
+    msg = EmailMessage()
+    msg["Subject"] = subject
+    msg["From"] = from_email
+    msg["To"] = to_email
+    msg.set_content(body)
+    msg.add_attachment(
+        file_bytes,
+        maintype=mime_main,
+        subtype=mime_sub,
+        filename=filename,
+    )
+
+    with smtplib.SMTP(host, port, timeout=30) as server:
+        server.ehlo()
+        if port == 587:
+            server.starttls()
+            server.ehlo()
+        server.login(username, password)
+        server.send_message(msg)
