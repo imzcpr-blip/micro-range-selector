@@ -1,4 +1,4 @@
-"""Convert CPRP branding MP4 videos to looping GIFs for Streamlit display."""
+"""Convert CPRP branding MP4 videos to full-length looping GIFs for Streamlit."""
 
 from __future__ import annotations
 
@@ -6,17 +6,18 @@ import sys
 from pathlib import Path
 
 import imageio.v2 as imageio
-import numpy as np
 from PIL import Image
 
 ROOT = Path(__file__).resolve().parents[1]
 ASSETS = ROOT / "assets"
 
-# Target max width and FPS to keep GIF sizes reasonable for Streamlit Cloud / git push
-MAX_WIDTH = 360
-SIDEBAR_MAX_WIDTH = 200
-FPS = 6
-MAX_DURATION_SEC = 3.0  # cap long clips
+# Full clip playback (~6s sources) with smooth loop; sized for web
+MAX_WIDTH = 480
+SIDEBAR_MAX_WIDTH = 280
+FPS = 12  # smooth motion
+# No early cut: process entire source (with a safety ceiling)
+MAX_DURATION_SEC = 30.0
+COLORS = 64
 
 
 def convert_one(src: Path, dest: Path, max_width: int = MAX_WIDTH) -> None:
@@ -27,15 +28,18 @@ def convert_one(src: Path, dest: Path, max_width: int = MAX_WIDTH) -> None:
     reader = imageio.get_reader(str(src), format="ffmpeg")
     meta = reader.get_meta_data()
     src_fps = float(meta.get("fps") or 24) or 24.0
-    nframes = meta.get("nframes")
-    # duration estimate
     try:
-        duration = float(meta.get("duration") or 0) or None
+        src_duration = float(meta.get("duration") or 0) or None
     except Exception:
-        duration = None
+        src_duration = None
 
+    # Sample evenly so the whole clip is represented at target FPS
     frame_interval = max(1, int(round(src_fps / FPS)))
-    max_frames = int(FPS * MAX_DURATION_SEC)
+    # Allow full video length (+ small pad); do not truncate to 3s
+    if src_duration and src_duration > 0:
+        max_frames = int(round(src_duration * FPS)) + 2
+    else:
+        max_frames = int(FPS * MAX_DURATION_SEC)
 
     frames: list[Image.Image] = []
     for i, frame in enumerate(reader):
@@ -46,10 +50,9 @@ def convert_one(src: Path, dest: Path, max_width: int = MAX_WIDTH) -> None:
             img = img.convert("RGB")
         w, h = img.size
         if w > max_width:
-            nh = int(h * (max_width / w))
+            nh = max(1, int(h * (max_width / w)))
             img = img.resize((max_width, nh), Image.Resampling.LANCZOS)
-        # reduce colors for smaller GIF
-        frames.append(img.convert("P", palette=Image.Palette.ADAPTIVE, colors=48))
+        frames.append(img.convert("P", palette=Image.Palette.ADAPTIVE, colors=COLORS))
         if len(frames) >= max_frames:
             break
     reader.close()
@@ -58,8 +61,10 @@ def convert_one(src: Path, dest: Path, max_width: int = MAX_WIDTH) -> None:
         print(f"no frames from {src.name}")
         return
 
+    # Ensure first/last frames are similar-friendly for a clean loop when possible:
+    # keep full sequence as-is (source videos already loop-friendly).
     dest.parent.mkdir(parents=True, exist_ok=True)
-    duration_ms = int(1000 / FPS)
+    duration_ms = max(1, int(round(1000 / FPS)))
     frames[0].save(
         dest,
         save_all=True,
@@ -69,12 +74,16 @@ def convert_one(src: Path, dest: Path, max_width: int = MAX_WIDTH) -> None:
         optimize=False,
         disposal=2,
     )
-    print(f"OK {src.name} -> {dest.relative_to(ROOT)} ({dest.stat().st_size // 1024} KB, {len(frames)} frames)")
+    play_sec = len(frames) * duration_ms / 1000.0
+    print(
+        f"OK {src.name} -> {dest.relative_to(ROOT)} "
+        f"({dest.stat().st_size // 1024} KB, {len(frames)} frames, "
+        f"~{play_sec:.1f}s loop, src={src_duration or '?'}s @ {src_fps:.0f}fps)"
+    )
 
 
 def main() -> int:
     pairs = [
-        # (source mp4, dest gif, max_width)
         (ASSETS / "cprp_logo_video.mp4", ASSETS / "cprp_logo_video.gif", MAX_WIDTH),
         (ASSETS / "cprp_logo_video_alt.mp4", ASSETS / "cprp_logo_video_alt.gif", SIDEBAR_MAX_WIDTH),
         (ASSETS / "cprp_member_chat_hero.mp4", ASSETS / "cprp_member_chat_hero.gif", MAX_WIDTH),
@@ -109,7 +118,6 @@ def main() -> int:
             MAX_WIDTH,
         ),
     ]
-    # Also copy primary root from branding main if root missing source
     if not (ASSETS / "cprp_logo_video.mp4").is_file():
         main_mp4 = ASSETS / "branding" / "cprp_logo_video_main.mp4"
         if main_mp4.is_file():
