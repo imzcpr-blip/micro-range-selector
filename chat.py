@@ -236,9 +236,9 @@ def render_active_users_badge() -> None:
   border-radius:999px;padding:0.25rem 0.75rem;font-size:0.92rem;">
   <span style="
     width:0.55rem;height:0.55rem;border-radius:50%;
-    background:#22c55e;box-shadow:0 0 0 3px rgba(34,197,94,0.25);
+    background:#C9A84C;box-shadow:0 0 0 3px rgba(201,168,76,0.28);
     display:inline-block;"></span>
-  <strong style="color:#86efac;">{n}</strong>
+  <strong style="color:#E8D5A3;">{n}</strong>
   <span style="opacity:0.9;">online {label}</span>
 </div>
 """,

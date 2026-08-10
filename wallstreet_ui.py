@@ -1,8 +1,9 @@
 """
 Wall Street market theme for CPRP Streamlit app.
 
-Dark terminal / trading-desk aesthetic with bullish (green) and bearish (red)
-candlestick-styled expanders and professional page headers.
+Dark trading-desk aesthetic aligned to CPRP branding:
+  Navy (#0A1628 / #0F1B2D) + Gold (#C9A84C / #D4AF37) + Steel silver.
+Up/down panel accents stay market-readable (soft gold vs copper-rose).
 """
 
 from __future__ import annotations
@@ -12,31 +13,36 @@ from typing import Literal
 import streamlit as st
 import streamlit.components.v1 as components
 
-# Bullish = green candle, Bearish = red candle
+# Panel sides: bull = brand gold / bear = copper risk accent
 CandleSide = Literal["bull", "bear"]
+
+# CPRP brand palette (seal + candlestick logo)
+# Navy: #0A1628  #0F1B2D  #1A2744
+# Gold: #C9A84C  #D4AF37  #E8D5A3
+# Steel: #94A3B8  #C0C5CE
 
 WS_CSS = """
 <style>
 @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
 
-/* ── Base trading-desk canvas ─────────────────────────────────────────── */
+/* ── Base trading-desk canvas — CPRP navy ─────────────────────────────── */
 html, body, [data-testid="stAppViewContainer"], .stApp {
-  background: radial-gradient(1200px 600px at 10% -10%, #0b1f17 0%, transparent 50%),
-              radial-gradient(900px 500px at 100% 0%, #1a0a0a 0%, transparent 45%),
-              #05080f !important;
-  color: #e2e8f0 !important;
+  background: radial-gradient(1200px 600px at 8% -8%, rgba(201,168,76,0.08) 0%, transparent 48%),
+              radial-gradient(900px 500px at 100% 0%, rgba(26,39,68,0.65) 0%, transparent 50%),
+              #060b16 !important;
+  color: #e8edf5 !important;
   font-family: 'IBM Plex Sans', 'Segoe UI', system-ui, sans-serif !important;
 }
 
 [data-testid="stHeader"] {
-  background: rgba(5, 8, 15, 0.85) !important;
-  border-bottom: 1px solid rgba(34, 197, 94, 0.15);
+  background: rgba(6, 11, 22, 0.92) !important;
+  border-bottom: 1px solid rgba(201, 168, 76, 0.22);
 }
 
-/* ── Sidebar terminal ─────────────────────────────────────────────────── */
+/* ── Sidebar terminal — deep navy + gold edge ─────────────────────────── */
 [data-testid="stSidebar"] {
-  background: linear-gradient(180deg, #0a0f18 0%, #070b12 100%) !important;
-  border-right: 1px solid rgba(148, 163, 184, 0.12) !important;
+  background: linear-gradient(180deg, #0a1628 0%, #070e1a 55%, #060b16 100%) !important;
+  border-right: 1px solid rgba(201, 168, 76, 0.18) !important;
 }
 [data-testid="stSidebar"] * {
   font-family: 'IBM Plex Sans', system-ui, sans-serif !important;
@@ -49,46 +55,47 @@ html, body, [data-testid="stAppViewContainer"], .stApp {
   transition: background 0.15s ease, border-color 0.15s ease;
 }
 [data-testid="stSidebar"] .stRadio label:hover {
-  background: rgba(15, 23, 42, 0.9) !important;
+  background: rgba(26, 39, 68, 0.85) !important;
 }
 [data-testid="stSidebar"] .stRadio > div > label:nth-child(odd) {
-  border-left-color: #22c55e !important;
+  border-left-color: #C9A84C !important;
 }
 [data-testid="stSidebar"] .stRadio > div > label:nth-child(even) {
-  border-left-color: #ef4444 !important;
+  border-left-color: #8B9BB4 !important;
 }
 
 /* ── Typography ───────────────────────────────────────────────────────── */
 h1, h2, h3 {
   font-family: 'IBM Plex Sans', system-ui, sans-serif !important;
   letter-spacing: 0.02em !important;
-  color: #f8fafc !important;
+  color: #f4f1e8 !important;
 }
 h1 {
   font-weight: 700 !important;
-  border-bottom: 1px solid rgba(34, 197, 94, 0.25);
+  border-bottom: 1px solid rgba(201, 168, 76, 0.28);
   padding-bottom: 0.35rem;
 }
 code, .stCaption, [data-testid="stCaption"] {
   font-family: 'IBM Plex Mono', ui-monospace, monospace !important;
+  color: #a8b3c7 !important;
 }
 
 /* ── Cards / containers ───────────────────────────────────────────────── */
 div[data-testid="stVerticalBlockBorderWrapper"] {
-  background: rgba(15, 23, 42, 0.55) !important;
-  border: 1px solid rgba(148, 163, 184, 0.14) !important;
+  background: rgba(15, 27, 45, 0.72) !important;
+  border: 1px solid rgba(201, 168, 76, 0.14) !important;
   border-radius: 10px !important;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.35);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.4);
 }
 
-/* ── Expanders as candlestick panels ──────────────────────────────────── */
+/* ── Expanders as desk panels ─────────────────────────────────────────── */
 [data-testid="stExpander"] {
-  background: linear-gradient(180deg, rgba(15,23,42,0.95), rgba(8,12,20,0.98)) !important;
-  border: 1px solid rgba(148, 163, 184, 0.18) !important;
+  background: linear-gradient(180deg, rgba(15,27,45,0.98), rgba(8,14,26,0.99)) !important;
+  border: 1px solid rgba(148, 163, 184, 0.16) !important;
   border-radius: 10px !important;
   margin-bottom: 0.65rem !important;
   overflow: hidden;
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.03), 0 6px 18px rgba(0,0,0,0.25);
+  box-shadow: inset 0 1px 0 rgba(232,213,163,0.04), 0 6px 18px rgba(0,0,0,0.3);
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 [data-testid="stExpander"] summary {
@@ -98,88 +105,91 @@ div[data-testid="stVerticalBlockBorderWrapper"] {
   letter-spacing: 0.03em;
   padding: 0.7rem 0.9rem !important;
   cursor: pointer !important;
+  color: #e8edf5 !important;
 }
 [data-testid="stExpander"] summary:hover {
-  background: rgba(30, 41, 59, 0.55) !important;
+  background: rgba(26, 39, 68, 0.65) !important;
 }
 [data-testid="stExpander"] summary p {
   margin: 0 !important;
 }
 
-/* JS-applied candle classes (reliable) */
+/* Gold accent panels (📈 / docs / primary) */
 [data-testid="stExpander"].ws-candle-bull {
-  border-left: 5px solid #22c55e !important;
-  border-color: rgba(34, 197, 94, 0.4) !important;
-  box-shadow: inset 0 0 0 1px rgba(34,197,94,0.08), 0 6px 18px rgba(0,0,0,0.25);
+  border-left: 5px solid #C9A84C !important;
+  border-color: rgba(201, 168, 76, 0.42) !important;
+  box-shadow: inset 0 0 0 1px rgba(201,168,76,0.1), 0 6px 18px rgba(0,0,0,0.28);
 }
 [data-testid="stExpander"].ws-candle-bull summary {
-  color: #86efac !important;
-  background: linear-gradient(90deg, rgba(34,197,94,0.12), transparent 55%);
+  color: #E8D5A3 !important;
+  background: linear-gradient(90deg, rgba(201,168,76,0.14), transparent 55%);
 }
+/* Steel / risk panels (📉 / risk / TV) */
 [data-testid="stExpander"].ws-candle-bear {
-  border-left: 5px solid #ef4444 !important;
-  border-color: rgba(239, 68, 68, 0.4) !important;
-  box-shadow: inset 0 0 0 1px rgba(239,68,68,0.08), 0 6px 18px rgba(0,0,0,0.25);
+  border-left: 5px solid #8B9BB4 !important;
+  border-color: rgba(139, 155, 180, 0.4) !important;
+  box-shadow: inset 0 0 0 1px rgba(139,155,180,0.1), 0 6px 18px rgba(0,0,0,0.28);
 }
 [data-testid="stExpander"].ws-candle-bear summary {
-  color: #fca5a5 !important;
-  background: linear-gradient(90deg, rgba(239,68,68,0.12), transparent 55%);
+  color: #C5D0E0 !important;
+  background: linear-gradient(90deg, rgba(139,155,180,0.14), transparent 55%);
 }
 
-/* ── Primary / secondary buttons ──────────────────────────────────────── */
+/* ── Primary / secondary buttons — gold CTA ───────────────────────────── */
 .stButton > button[kind="primary"],
 .stButton > button[data-testid="baseButton-primary"] {
-  background: linear-gradient(180deg, #16a34a 0%, #15803d 100%) !important;
-  border: 1px solid #22c55e !important;
-  color: #f0fdf4 !important;
-  font-weight: 600 !important;
+  background: linear-gradient(180deg, #D4AF37 0%, #A88B2E 100%) !important;
+  border: 1px solid #C9A84C !important;
+  color: #0A1628 !important;
+  font-weight: 700 !important;
   border-radius: 6px !important;
-  box-shadow: 0 0 0 1px rgba(34,197,94,0.15), 0 4px 12px rgba(22,163,74,0.25);
+  box-shadow: 0 0 0 1px rgba(201,168,76,0.2), 0 4px 14px rgba(201,168,76,0.22);
 }
 .stButton > button[kind="secondary"],
 .stButton > button {
   border-radius: 6px !important;
-  border: 1px solid rgba(148,163,184,0.25) !important;
-  background: rgba(15, 23, 42, 0.9) !important;
-  color: #e2e8f0 !important;
+  border: 1px solid rgba(201,168,76,0.28) !important;
+  background: rgba(15, 27, 45, 0.95) !important;
+  color: #e8edf5 !important;
 }
 .stButton > button:hover {
-  border-color: rgba(34, 197, 94, 0.55) !important;
+  border-color: rgba(201, 168, 76, 0.65) !important;
 }
 
 /* ── Metrics / tape ───────────────────────────────────────────────────── */
 [data-testid="stMetric"] {
-  background: rgba(15, 23, 42, 0.7);
-  border: 1px solid rgba(148, 163, 184, 0.12);
+  background: rgba(15, 27, 45, 0.8);
+  border: 1px solid rgba(201, 168, 76, 0.14);
   border-radius: 8px;
   padding: 0.5rem 0.75rem;
 }
 [data-testid="stMetricValue"] {
   font-family: 'IBM Plex Mono', monospace !important;
-  color: #86efac !important;
+  color: #E8D5A3 !important;
 }
 
 /* ── Tabs ─────────────────────────────────────────────────────────────── */
 button[data-baseweb="tab"] {
   font-family: 'IBM Plex Mono', monospace !important;
   font-weight: 500 !important;
+  color: #a8b3c7 !important;
 }
 button[data-baseweb="tab"][aria-selected="true"] {
-  color: #86efac !important;
-  border-bottom-color: #22c55e !important;
+  color: #E8D5A3 !important;
+  border-bottom-color: #C9A84C !important;
 }
 
 /* ── Inputs ───────────────────────────────────────────────────────────── */
 .stTextInput input, .stTextArea textarea, .stSelectbox div[data-baseweb="select"] {
-  background: rgba(8, 12, 20, 0.95) !important;
-  border-color: rgba(148, 163, 184, 0.25) !important;
-  color: #e2e8f0 !important;
+  background: rgba(8, 14, 26, 0.95) !important;
+  border-color: rgba(201, 168, 76, 0.22) !important;
+  color: #e8edf5 !important;
   font-family: 'IBM Plex Mono', monospace !important;
 }
 
 /* ── Dataframes ───────────────────────────────────────────────────────── */
 [data-testid="stDataFrame"] {
-  border: 1px solid rgba(148, 163, 184, 0.15);
+  border: 1px solid rgba(201, 168, 76, 0.14);
   border-radius: 8px;
   overflow: hidden;
 }
@@ -192,31 +202,31 @@ button[data-baseweb="tab"][aria-selected="true"] {
   align-items: center;
   padding: 0.55rem 0.9rem;
   margin: 0 0 1rem 0;
-  background: linear-gradient(90deg, rgba(15,23,42,0.95), rgba(8,15,12,0.95), rgba(20,10,10,0.95));
-  border: 1px solid rgba(148, 163, 184, 0.15);
+  background: linear-gradient(90deg, rgba(10,22,40,0.98), rgba(15,27,45,0.95), rgba(10,22,40,0.98));
+  border: 1px solid rgba(201, 168, 76, 0.22);
   border-radius: 8px;
   font-family: 'IBM Plex Mono', monospace;
   font-size: 0.78rem;
   letter-spacing: 0.04em;
-  color: #94a3b8;
+  color: #a8b3c7;
 }
-.ws-tape .bull { color: #4ade80; font-weight: 600; }
-.ws-tape .bear { color: #f87171; font-weight: 600; }
-.ws-tape .sym { color: #e2e8f0; font-weight: 600; }
-.ws-tape .sep { opacity: 0.35; }
+.ws-tape .bull { color: #E8D5A3; font-weight: 600; }
+.ws-tape .bear { color: #C5D0E0; font-weight: 600; }
+.ws-tape .sym { color: #f4f1e8; font-weight: 600; }
+.ws-tape .sep { opacity: 0.35; color: #C9A84C; }
 
 .ws-page-hero {
   padding: 0.95rem 1.1rem 0.75rem 1.1rem;
   margin-bottom: 1.1rem;
-  background: linear-gradient(135deg, rgba(15,23,42,0.98) 0%, rgba(10,18,14,0.95) 50%, rgba(22,12,12,0.95) 100%);
-  border: 1px solid rgba(34, 197, 94, 0.22);
-  border-left: 5px solid #22c55e;
+  background: linear-gradient(135deg, rgba(10,22,40,0.98) 0%, rgba(15,27,45,0.96) 50%, rgba(12,18,32,0.98) 100%);
+  border: 1px solid rgba(201, 168, 76, 0.28);
+  border-left: 5px solid #C9A84C;
   border-radius: 10px;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.35);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.4), inset 0 1px 0 rgba(232,213,163,0.06);
 }
 .ws-page-hero.bear-edge {
-  border-left-color: #ef4444;
-  border-color: rgba(239, 68, 68, 0.25);
+  border-left-color: #8B9BB4;
+  border-color: rgba(139, 155, 180, 0.28);
 }
 .ws-page-hero h1 {
   margin: 0 0 0.3rem 0 !important;
@@ -226,11 +236,12 @@ button[data-baseweb="tab"][aria-selected="true"] {
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  color: #f4f1e8 !important;
 }
 .ws-page-hero .sub {
   font-family: 'IBM Plex Mono', monospace;
   font-size: 0.82rem;
-  color: #94a3b8;
+  color: #a8b3c7;
   margin: 0;
   line-height: 1.45;
 }
@@ -240,7 +251,7 @@ button[data-baseweb="tab"][aria-selected="true"] {
   font-size: 0.68rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: #64748b;
+  color: #C9A84C;
   margin-bottom: 0.35rem;
 }
 .ws-candle-mark {
@@ -254,12 +265,12 @@ button[data-baseweb="tab"][aria-selected="true"] {
   flex-shrink: 0;
 }
 .ws-candle-mark.bull {
-  background: #22c55e;
-  box-shadow: 0 -5px 0 0 #22c55e, 0 5px 0 0 #22c55e;
+  background: #C9A84C;
+  box-shadow: 0 -5px 0 0 #C9A84C, 0 5px 0 0 #C9A84C;
 }
 .ws-candle-mark.bear {
-  background: #ef4444;
-  box-shadow: 0 -5px 0 0 #ef4444, 0 5px 0 0 #ef4444;
+  background: #8B9BB4;
+  box-shadow: 0 -5px 0 0 #8B9BB4, 0 5px 0 0 #8B9BB4;
 }
 
 .ws-section {
@@ -267,29 +278,37 @@ button[data-baseweb="tab"][aria-selected="true"] {
   font-size: 0.75rem;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: #64748b;
-  border-bottom: 1px solid rgba(148,163,184,0.12);
+  color: #8B9BB4;
+  border-bottom: 1px solid rgba(201,168,76,0.16);
   padding-bottom: 0.35rem;
   margin: 1.25rem 0 0.75rem 0;
 }
-.ws-section .bull { color: #4ade80; }
-.ws-section .bear { color: #f87171; }
+.ws-section .bull { color: #C9A84C; }
+.ws-section .bear { color: #8B9BB4; }
 
-/* ── Links ────────────────────────────────────────────────────────────── */
-a { color: #4ade80 !important; }
-a:hover { color: #86efac !important; }
+/* ── Links — brand gold ───────────────────────────────────────────────── */
+a { color: #D4AF37 !important; }
+a:hover { color: #E8D5A3 !important; }
 
 /* ── Divider ──────────────────────────────────────────────────────────── */
 hr {
-  border-color: rgba(148, 163, 184, 0.12) !important;
+  border-color: rgba(201, 168, 76, 0.14) !important;
 }
 
 /* ── Auth / landing polish ────────────────────────────────────────────── */
 [data-testid="stForm"] {
-  background: rgba(15, 23, 42, 0.65);
-  border: 1px solid rgba(148, 163, 184, 0.14);
+  background: rgba(15, 27, 45, 0.75);
+  border: 1px solid rgba(201, 168, 76, 0.18);
   border-radius: 10px;
   padding: 0.75rem 1rem 1rem 1rem;
+}
+
+/* Progress bars / sliders pick up gold */
+[data-testid="stProgress"] > div > div {
+  background-color: #C9A84C !important;
+}
+div[data-baseweb="slider"] div[role="slider"] {
+  background-color: #C9A84C !important;
 }
 </style>
 """

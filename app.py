@@ -1188,7 +1188,7 @@ if rec.scores:
                     x=[s.short for s in sorted(rec.scores, key=lambda x: x.priority)],
                     y=[s.score for s in sorted(rec.scores, key=lambda x: x.priority)],
                     marker_color=[
-                        "#22c55e" if (rec.recommended == s.short and not rec.sit_out) else "#64748b"
+                        "#C9A84C" if (rec.recommended == s.short and not rec.sit_out) else "#4A5568"
                         for s in sorted(rec.scores, key=lambda x: x.priority)
                     ],
                     text=[f"{s.score:.1f}" for s in sorted(rec.scores, key=lambda x: x.priority)],
@@ -1199,7 +1199,7 @@ if rec.scores:
         fig_bar.add_hline(
             y=MIN_SCORE_TO_TRADE,
             line_dash="dash",
-            line_color="#f59e0b",
+            line_color="#D4AF37",
             annotation_text="Trade threshold",
         )
         fig_bar.update_layout(
@@ -1208,6 +1208,9 @@ if rec.scores:
             yaxis_range=[0, 105],
             height=360,
             margin=dict(t=40, b=20),
+            paper_bgcolor="rgba(6,11,22,0)",
+            plot_bgcolor="rgba(15,27,45,0.6)",
+            font=dict(color="#e8edf5"),
         )
         st.plotly_chart(fig_bar, use_container_width=True)
 
@@ -1247,13 +1250,13 @@ if rec.scores:
             sl = float(bars["Low"].min())
             fig.add_hline(
                 y=sh,
-                line_color="#ef4444",
+                line_color="#8B9BB4",
                 line_dash="dot",
                 annotation_text="Session high / resistance zone",
             )
             fig.add_hline(
                 y=sl,
-                line_color="#22c55e",
+                line_color="#C9A84C",
                 line_dash="dot",
                 annotation_text="Session low / support zone",
             )
@@ -1262,6 +1265,9 @@ if rec.scores:
                 xaxis_rangeslider_visible=False,
                 height=420,
                 margin=dict(t=40, b=20),
+                paper_bgcolor="rgba(6,11,22,0)",
+                plot_bgcolor="rgba(15,27,45,0.6)",
+                font=dict(color="#e8edf5"),
             )
             st.plotly_chart(fig, use_container_width=True)
             # Show HTF bias for selected micro

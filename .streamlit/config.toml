@@ -7,8 +7,9 @@ gatherUsageStats = false
 
 [theme]
 base = "dark"
-primaryColor = "#22c55e"
-backgroundColor = "#05080f"
-secondaryBackgroundColor = "#0f172a"
-textColor = "#e2e8f0"
+# CPRP brand: navy + gold (matches Official Seal / CPRP Strategies logos)
+primaryColor = "#C9A84C"
+backgroundColor = "#060b16"
+secondaryBackgroundColor = "#0f1b2d"
+textColor = "#e8edf5"
 font = "sans serif"
