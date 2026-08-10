@@ -389,10 +389,11 @@ Then you’ll have full access to the tool.
     )
 
     # Full disclosure on landing (always visible / open)
-    from disclosure import render_disclosure
+    from disclosure import render_disclosure, render_third_party_disclosure
 
     st.markdown("---")
     render_disclosure(expanded=True)
+    render_third_party_disclosure(expanded=True)
 
     st.markdown("---")
     st.subheader("Member access")

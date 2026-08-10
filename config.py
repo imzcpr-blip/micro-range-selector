@@ -158,3 +158,20 @@ By accessing or using any CPRP materials or participating in related discussions
 — **Raymon Michael Cooper**  
 Founder, CPRP Strategies
 """.strip()
+
+DISCLOSURE_THIRD_PARTY_TITLE = "Third-Party Tools, Free Sources & No Partnerships"
+DISCLOSURE_THIRD_PARTY_BODY = """
+CPRP Strategies and this Session Micro Range Selector Tool are **independent**. They are not owned by, sponsored by, endorsed by, or partnered with any broker, data vendor, news network, calendar provider, social platform, or other commercial service.
+
+Some features link to or embed **free third-party resources** for convenience only (for example: economic calendars, live news streams, or market data). Those sites and streams are owned and controlled by their respective owners. I do **not** control their content, accuracy, availability, advertising, or terms of use.
+
+- **No partnership or affiliation** is implied by linking to or embedding free public tools.
+- **No payment or sponsorship** relationship exists with those providers unless explicitly stated in writing.
+- You use third-party sites **at your own risk** and subject to **their** terms, privacy policies, and disclaimers.
+- CPRP materials and third-party information are for **personal educational / situational awareness** only and are **not** personalized financial advice.
+
+If a third-party embed does not load (blocked by the provider or your browser), use the direct link they provide.
+
+— **Raymon Michael Cooper**  
+Founder, CPRP Strategies
+""".strip()
