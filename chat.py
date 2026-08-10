@@ -172,6 +172,44 @@ def recent_messages(limit: int = CHAT_HISTORY_LIMIT) -> list[dict]:
     return out
 
 
+def list_recent_for_admin(limit: int = 40) -> list[dict]:
+    """Newest-first message list with ids for founder moderation."""
+    with _conn() as con:
+        rows = con.execute(
+            """
+            SELECT id, display_name, body, created_at, email
+            FROM chat_messages
+            ORDER BY id DESC
+            LIMIT ?
+            """,
+            (limit,),
+        ).fetchall()
+    return [
+        {
+            "id": r[0],
+            "display_name": r[1],
+            "body": r[2],
+            "created_at": r[3],
+            "email": r[4],
+        }
+        for r in rows
+    ]
+
+
+def delete_message(message_id: int) -> bool:
+    with _conn() as con:
+        cur = con.execute("DELETE FROM chat_messages WHERE id = ?", (message_id,))
+        con.commit()
+        return cur.rowcount > 0
+
+
+def clear_all_messages() -> int:
+    with _conn() as con:
+        cur = con.execute("DELETE FROM chat_messages")
+        con.commit()
+        return int(cur.rowcount or 0)
+
+
 def clear_presence_for_session() -> None:
     sid = st.session_state.get("chat_session_id")
     if not sid:

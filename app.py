@@ -17,6 +17,7 @@ import streamlit as st
 
 from alerts import RecommendationTracker
 from analyzer import analyze_all, fetch_bars
+from admin import is_current_user_admin, render_admin_panel
 from auth import (
     current_display_name,
     current_user_email,
@@ -27,6 +28,7 @@ from auth import (
 from chat import heartbeat, render_active_users_badge, render_member_chat
 from journal import render_journal_page, render_reference_and_journal_side_by_side
 from config import (
+    ADMIN_ROLE_LABEL,
     APP_NAME,
     BRANDING_DIR,
     BRANDING_LOGO_ICON,
@@ -153,12 +155,23 @@ PAGE_JOURNAL = "Trading Journal"
 PAGE_CHAT = "Member Chat"
 PAGE_BRANDING = "Company Branding"
 PAGE_ABOUT = "About the Founder"
+PAGE_ADMIN = "Admin / Founder"
+
+_nav_pages = [PAGE_SELECTOR, PAGE_JOURNAL, PAGE_CHAT, PAGE_BRANDING, PAGE_ABOUT]
+if is_current_user_admin():
+    _nav_pages.append(PAGE_ADMIN)
+
 page = st.sidebar.radio(
     "Navigate",
-    [PAGE_SELECTOR, PAGE_JOURNAL, PAGE_CHAT, PAGE_BRANDING, PAGE_ABOUT],
+    _nav_pages,
     index=0,
 )
 st.sidebar.markdown("---")
+
+# ── Admin / Founder only ──────────────────────────────────────────────────
+if page == PAGE_ADMIN:
+    render_admin_panel()
+    st.stop()
 
 # ── Trading Journal page (full history + side-by-side reference) ───────────
 if page == PAGE_JOURNAL:
@@ -197,22 +210,38 @@ if page == PAGE_BRANDING:
 
     col_sync, col_info = st.columns([1, 2])
     with col_sync:
-        if st.button("Sync branding & documents now", type="primary", use_container_width=True):
-            with st.spinner("Scanning CPRP Trading and related folders…"):
-                st.session_state.doc_sync_report = sync_cprp_assets()
-                st.session_state.doc_sync_done = True
-            st.rerun()
-    with col_info:
-        rep = st.session_state.doc_sync_report
-        if rep is not None:
-            for line in rep.summary_lines():
-                st.markdown(f"- {line}")
-            if rep.copied:
-                with st.expander("Files updated this session", expanded=False):
-                    for c in rep.copied:
-                        st.markdown(f"- `{c}`")
+        if is_current_user_admin():
+            if st.button(
+                "Sync branding & documents now",
+                type="primary",
+                use_container_width=True,
+            ):
+                with st.spinner("Scanning CPRP Trading and related folders…"):
+                    st.session_state.doc_sync_report = sync_cprp_assets()
+                    st.session_state.doc_sync_done = True
+                st.rerun()
         else:
-            st.info("No sync report yet. Click **Sync branding & documents now**.")
+            st.caption(
+                f"Brand media is view-only for members. "
+                f"Only **{ADMIN_ROLE_LABEL}** can sync or edit application assets."
+            )
+    with col_info:
+        if is_current_user_admin():
+            rep = st.session_state.doc_sync_report
+            if rep is not None:
+                for line in rep.summary_lines():
+                    st.markdown(f"- {line}")
+                if rep.copied:
+                    with st.expander("Files updated this session", expanded=False):
+                        for c in rep.copied:
+                            st.markdown(f"- `{c}`")
+            else:
+                st.info("No sync report yet. Click **Sync branding & documents now**.")
+        else:
+            st.info(
+                f"You are browsing as a **member**. Application edits are reserved for "
+                f"**{ADMIN_ROLE_LABEL}** ({CREATOR})."
+            )
 
     st.markdown("---")
     st.subheader("Logo GIFs (primary brand media — looping)")
@@ -612,16 +641,18 @@ st.sidebar.markdown("---")
 st.sidebar.subheader("Official documents")
 st.sidebar.caption("Synced from CPRP Trading · download for offline use.")
 
-if st.sidebar.button("Sync docs from CPRP Trading", use_container_width=True):
-    with st.spinner("Scanning CPRP files…"):
-        st.session_state.doc_sync_report = sync_cprp_assets()
-        st.session_state.doc_sync_done = True
-    st.sidebar.success("Sync complete")
-    st.rerun()
-
-_rep = st.session_state.doc_sync_report
-if _rep is not None and _rep.detected_version:
-    st.sidebar.caption(f"Latest scanned doc version: v{_rep.detected_version}")
+if is_current_user_admin():
+    if st.sidebar.button("Sync docs from CPRP Trading", use_container_width=True):
+        with st.spinner("Scanning CPRP files…"):
+            st.session_state.doc_sync_report = sync_cprp_assets()
+            st.session_state.doc_sync_done = True
+        st.sidebar.success("Sync complete")
+        st.rerun()
+    _rep = st.session_state.doc_sync_report
+    if _rep is not None and _rep.detected_version:
+        st.sidebar.caption(f"Latest scanned doc version: v{_rep.detected_version}")
+else:
+    st.sidebar.caption(f"Doc sync: {ADMIN_ROLE_LABEL} only")
 
 _qr_sidebar = Path(QUICK_REFERENCE_IMAGE)
 if _qr_sidebar.is_file():

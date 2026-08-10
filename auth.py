@@ -21,7 +21,7 @@ from typing import Optional
 
 import streamlit as st
 
-from config import APP_NAME, CREATOR, PROTOCOL_SHORT
+from config import ADMIN_EMAILS, ADMIN_ROLE_LABEL, APP_NAME, CREATOR, PROTOCOL_SHORT
 
 DATA_DIR = Path(__file__).resolve().parent / "data"
 DB_PATH = DATA_DIR / "users.db"
@@ -242,10 +242,48 @@ def current_user_email() -> Optional[str]:
     return st.session_state.get("auth_email")
 
 
+def admin_email_set() -> set[str]:
+    """Founder admin emails from config + optional Streamlit secrets."""
+    emails = {normalize_email(e) for e in ADMIN_EMAILS}
+    try:
+        raw = st.secrets.get("auth", {}).get("admin_emails", None)
+        if raw is None:
+            one = st.secrets.get("auth", {}).get("admin_email", None)
+            if one:
+                raw = [one]
+        if isinstance(raw, str):
+            raw = [raw]
+        if raw:
+            emails |= {normalize_email(x) for x in raw if x}
+    except Exception:
+        pass
+    return emails
+
+
+def is_admin(email: Optional[str] = None) -> bool:
+    """True if this email is the ADMIN / FOUNDER (only authorized app editor)."""
+    email = normalize_email(email or current_user_email() or "")
+    if not email:
+        return False
+    return email in admin_email_set()
+
+
 def current_display_name() -> Optional[str]:
     email = current_user_email()
     if not email:
         return None
+    # Founder always shows a clear public name if they never set one
+    if is_admin(email):
+        stored = None
+        cached = st.session_state.get("display_name")
+        if cached:
+            return cached
+        stored = get_display_name(email)
+        if stored:
+            st.session_state.display_name = stored
+            return stored
+        # Default founder display if not set yet
+        return "Founder"
     cached = st.session_state.get("display_name")
     if cached:
         return cached
@@ -379,6 +417,7 @@ def require_display_name() -> bool:
     """
     After login, force a public username before entering the app.
     Returns True when a display name is set.
+    Founder/admin may skip with a default name.
     """
     email = current_user_email()
     if not email:
@@ -387,6 +426,13 @@ def require_display_name() -> bool:
     existing = get_display_name(email)
     if existing:
         st.session_state.display_name = existing
+        return True
+
+    # Founder can continue with default "Founder" display name
+    if is_admin(email):
+        st.session_state.display_name = "Founder"
+        # Persist so chat/presence stay consistent
+        set_display_name(email, "Founder")
         return True
 
     st.markdown(
@@ -429,8 +475,23 @@ def render_account_sidebar() -> None:
         return
     name = current_display_name()
     st.sidebar.markdown("---")
-    if name:
+    if is_admin(email):
+        st.sidebar.markdown(
+            f"""
+<div style="
+  display:inline-block;background:linear-gradient(90deg,#1d4ed8,#7c3aed);
+  color:#fff;font-weight:700;font-size:0.72rem;letter-spacing:0.06em;
+  padding:0.28rem 0.55rem;border-radius:999px;margin-bottom:0.35rem;">
+  {ADMIN_ROLE_LABEL}
+</div>
+""",
+            unsafe_allow_html=True,
+        )
+        st.sidebar.markdown(f"**{name or CREATOR}**  \n`{email}`")
+        st.sidebar.caption("Only you can edit app administration.")
+    elif name:
         st.sidebar.markdown(f"**{name}**  \n`{email}`")
+        st.sidebar.caption("Member")
     else:
         st.sidebar.markdown(f"**Signed in**  \n`{email}`")
     if st.sidebar.button("Log out", use_container_width=True):
