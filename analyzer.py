@@ -1,7 +1,7 @@
 """
 Score MES / MNQ / MYM for Cooper Precision Reversion Protocol (CPRP) session suitability.
 
-Scoring maps to Official Rulebook base v1.3 + Update v1.5:
+Scoring maps to Official Rulebook v1.5 (Final):
   §2 Instruments & chart setup — micros only; two chart pairs only; static 1H context
   §3 Structure definition      — confirmed S/R range OR channel (≥2 touches each side)
   §4 Entry rules               — confirmation hierarchy: S/R → PA → volume → RSI (v1.5)

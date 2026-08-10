@@ -1,7 +1,7 @@
 """Cooper Precision Reversion Protocol (CPRP) — instrument & risk config.
 
-Aligned to Official Rulebook base v1.3 + Update v1.5
-(Chart Pair Hierarchy & RSI Clarification — final, Aug 10, 2026).
+Aligned to Official Rulebook v1.5 (Final) + Quick Reference v1.5
+(Chart Pair Hierarchy Locked — Aug 10, 2026).
 """
 
 from __future__ import annotations
@@ -12,7 +12,7 @@ from pathlib import Path
 PROTOCOL_NAME = "Cooper Precision Reversion Protocol"
 PROTOCOL_SHORT = "CPRP"
 RULEBOOK_VERSION = "1.5"
-RULEBOOK_BASE_VERSION = "1.3"
+RULEBOOK_BASE_VERSION = "1.5"  # Official full rulebook edition
 RULEBOOK_EDITION_DATE = "2026-08-10"
 CREATOR = "Raymon Michael Cooper"
 

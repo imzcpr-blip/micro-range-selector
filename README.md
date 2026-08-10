@@ -1,8 +1,8 @@
 # Cooper Precision Reversion Protocol — Session Micro Selector
 
 Personal tool aligned to **Cooper Precision Reversion Protocol (CPRP)**  
-**Official Rulebook base v1.3** + **Update v1.5** (final)  
-*(Chart Pair Hierarchy & RSI Clarification · Aug 10, 2026 · Raymon Michael Cooper)*
+**Official Rulebook v1.5 (Final)** + **Quick Reference v1.5**  
+*(Chart Pair Hierarchy Locked · Aug 10, 2026 · Raymon Michael Cooper)*
 
 Analyzes **MES**, **MNQ**, and **MYM** and recommends which micro to run for the current trading session — with desktop alerts when the pick changes.
 
@@ -174,7 +174,7 @@ Open a **new** terminal if an old session was already open before install.
 | `assets/CPRP_Quick_Reference_v1.5.jpg` | Downloadable Quick Reference card |
 | `assets/CPRP_Quick_Reference_v1.5.pdf` | Official Quick Reference v1.5 PDF |
 | `assets/CPRP_Rulebook_Update_v1.5.pdf` | Official Rulebook Update & Changelog v1.5 |
-| `assets/CPRP_Official_Rulebook_v1.3.pdf` | Official Rulebook base (synced from CPRP Trading) |
+| `assets/CPRP_Official_Rulebook_v1.5.pdf` | Official Rulebook v1.5 Final (synced from CPRP Trading) |
 | `assets/branding/` | Company logo suite + video media |
 
 ## App pages
@@ -271,7 +271,7 @@ Full in-app copy: sidebar **How to operate the strategy (official Quick Referenc
 - Hard stop, structure-break pause, micros-only rules still apply in your platform.
 - Futures trading involves substantial risk of loss.
 
-## Rulebook mapping (base v1.3 + update v1.5)
+## Rulebook mapping (Official Rulebook v1.5 Final)
 
 | Section | How the app uses it |
 |---------|---------------------|
@@ -286,12 +286,11 @@ Full in-app copy: sidebar **How to operate the strategy (official Quick Referenc
 
 ## Version note
 
-App aligned to **CPRP Official Rulebook base v1.3** + **Update v1.5** (final, 10 August 2026).
+App aligned to **CPRP Official Rulebook v1.5 (Final)** and **Quick Reference v1.5** (10 August 2026).
 
-**v1.5 primary changes:**
+**v1.5 primary points:**
 - Chart pairs: **15m+5m** (primary/default) and **30m+15m** (larger/slower/lower volume) only
 - No chart lower than 5-minute for structure or execution
-- RSI clarified as secondary confirmation; prefer divergence at S/R; 15m/30m extremes are alerts only
+- RSI as secondary confirmation; prefer divergence at S/R; 15m/30m extremes are alerts only
 - Quality over frequency reinforced
-
-All other v1.3 sections remain in force unless explicitly superseded by the v1.5 update document.
+- Documents sync from `CPRP Trading` folder (latest Official Rulebook, Quick Reference, Update PDFs)

@@ -1,6 +1,6 @@
 """
 Cooper Precision Reversion Protocol (CPRP) — Session Micro Selector
-Official Rulebook base v1.3 + Update v1.5
+Official Rulebook v1.5 (Final)
 
 Run:
   streamlit run app.py
@@ -377,7 +377,7 @@ if page == PAGE_BRANDING:
 - Still images remain available for favicon, downloads, and offline use.
 - Brand name: **{PROTOCOL_NAME} ({PROTOCOL_SHORT})**
 - Founder: **{FOUNDER_NAME}**
-- Rulebook alignment: base **v{RULEBOOK_BASE_VERSION}** + update **v{RULEBOOK_VERSION}**
+- Rulebook: **Official Rulebook v{RULEBOOK_VERSION} (Final)**
 - Tagline: *Trade the boundaries. Respect the structure. Control the risk.*
 """
     )
@@ -404,7 +404,7 @@ if page == PAGE_ABOUT:
         st.markdown(
             f"""
 **Protocol:** {PROTOCOL_NAME} ({PROTOCOL_SHORT})  
-**Rulebook:** base v{RULEBOOK_BASE_VERSION} · update v{RULEBOOK_VERSION}  
+**Rulebook:** Official Rulebook v{RULEBOOK_VERSION} (Final)  
 **Focus:** Range / channel reversion on Micro futures (MES · MNQ · MYM)
 """
         )
@@ -515,7 +515,7 @@ with st.sidebar.expander("Sidebar controls explained"):
 with st.sidebar.expander("How scores are built (rulebook map)"):
     st.markdown(
         f"""
-Scores (0–100) blend CPRP Rulebook base v{RULEBOOK_BASE_VERSION} + Update v{RULEBOOK_VERSION}:
+Scores (0–100) blend CPRP Official Rulebook v{RULEBOOK_VERSION}:
 
 | Weight theme | Rulebook | Idea |
 |--------------|----------|------|
@@ -561,7 +561,7 @@ with st.sidebar.expander("How to operate the strategy (official Quick Reference)
     st.markdown(
         f"""
 Source: **CPRP Official Quick Reference v{RULEBOOK_VERSION}**  
-(base rulebook v{RULEBOOK_BASE_VERSION} remains in force except where superseded).
+(Official Rulebook v{RULEBOOK_VERSION} (Final) is authoritative).
 
 *“Trade the boundaries. Respect the structure. Control the risk.”*
 
@@ -759,7 +759,7 @@ st.markdown(
 ### What this app is
 
 A **personal session-selection dashboard** for the **{PROTOCOL_NAME} (CPRP)**
-(Official Rulebook base v{RULEBOOK_BASE_VERSION} + **Update v{RULEBOOK_VERSION}**). It analyzes the three approved
+(Official Rulebook **v{RULEBOOK_VERSION} (Final)**). It analyzes the three approved
 micro futures — **MES**, **MNQ**, and **MYM** — and answers one question:
 
 > *“Which micro should I focus on for range/channel reversion right now — or should I sit out?”*
@@ -814,7 +814,7 @@ with st.expander(
         f"""
 Official operating instructions for the **{PROTOCOL_NAME}**, distilled from the
 **Official Quick Reference v{RULEBOOK_VERSION}** and **Rulebook Update v{RULEBOOK_VERSION}**
-(base rulebook v{RULEBOOK_BASE_VERSION} remains in force except where superseded).  
+(Official Rulebook v{RULEBOOK_VERSION} (Final) is authoritative).  
 This selector chooses *which micro* to focus on; **you** still operate the Protocol on the charts.
 
 > *Trade the boundaries. Respect the structure. Control the risk.*
@@ -1156,7 +1156,7 @@ if _rb_base_main.is_file():
             file_name=RULEBOOK_BASE_DOWNLOAD_NAME,
             mime="application/pdf",
             use_container_width=True,
-            help=f"Official Rulebook base v{RULEBOOK_BASE_VERSION}.",
+            help=f"Official Rulebook v{RULEBOOK_BASE_VERSION} (Final).",
         )
         st.caption(
             "Open **Trading Journal** in the sidebar for full history, filters, and edit/delete. "
@@ -1165,7 +1165,7 @@ if _rb_base_main.is_file():
 
 st.caption(
     f"Disclaimer: Personal trading tool aligned to {PROTOCOL_NAME} "
-    f"Official Rulebook base v{RULEBOOK_BASE_VERSION} + Update v{RULEBOOK_VERSION}. "
+    f"Official Rulebook v{RULEBOOK_VERSION} (Final). "
     "Futures trading involves substantial risk of loss. "
     "This app does not place orders and is not financial advice. Data via Yahoo Finance (delayed). "
     f"© 2026 {CREATOR}."
