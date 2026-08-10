@@ -29,6 +29,7 @@ from chat import heartbeat, render_active_users_badge, render_member_chat
 from journal import render_journal_page, render_reference_and_journal_side_by_side
 from community import render_community_panel
 from live_news import render_bloomberg_audio_option, render_bloomberg_panel
+from session_stats import render_session_wl_panel
 from config import (
     ADMIN_ROLE_LABEL,
     APP_NAME,
@@ -154,6 +155,7 @@ except Exception:
 
 PAGE_SELECTOR = "Session Selector"
 PAGE_JOURNAL = "Trading Journal"
+PAGE_SESSION_WL = "Session Winning vs. Losing Trades"
 PAGE_COMMUNITY = "Community"
 PAGE_CHAT = "Member Chat"
 PAGE_NEWS = "Bloomberg Live"
@@ -165,6 +167,7 @@ PAGE_ADMIN = "Admin / Founder"
 _nav_pages = [
     PAGE_SELECTOR,
     PAGE_JOURNAL,
+    PAGE_SESSION_WL,
     PAGE_COMMUNITY,
     PAGE_CHAT,
     PAGE_NEWS,
@@ -198,6 +201,11 @@ if page == PAGE_ADMIN:
 # ── Bloomberg Live dedicated panel ────────────────────────────────────────
 if page == PAGE_NEWS:
     render_bloomberg_panel()
+    st.stop()
+
+# ── Session Winning vs. Losing Trades ─────────────────────────────────────
+if page == PAGE_SESSION_WL:
+    render_session_wl_panel()
     st.stop()
 
 # ── Community board (posts + images) ──────────────────────────────────────
