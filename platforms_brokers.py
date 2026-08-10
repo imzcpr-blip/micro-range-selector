@@ -27,8 +27,8 @@ def render_platforms_brokers_panel() -> None:
     with candle_expander("Popular with micro traders", side="bull", expanded=True, kind="up"):
         st.markdown(
             """
-Many independent day traders who work with **Micro** contracts (MES, MNQ, MYM, etc.)
-use a charting / execution platform together with a futures broker:
+Many independent day traders who work with **Micro** contracts (MES, MNQ, MYM, and others)
+use a charting and execution platform together with a futures broker:
 
 | Role | Site |
 |------|------|

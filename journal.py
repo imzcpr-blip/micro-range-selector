@@ -832,7 +832,7 @@ def render_journal_page(default_micro: str = "") -> None:
     """Full Trading Journal navigation page."""
     page_hero(
         "Trading Journal",
-        "Private session log · review trades, results, and lessons · pairs with Quick Reference",
+        "Private session log · review trades, results, and lessons · shown with the Quick Reference",
         side="bull",
         desk_tag="JOURNAL DESK · PRIVATE LOG",
     )

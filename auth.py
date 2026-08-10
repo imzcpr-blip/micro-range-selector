@@ -397,24 +397,24 @@ def require_login() -> bool:
 To use this site you need a free member account:
 
 1. **Sign up** with a valid **email address** and a **password** (at least {MIN_PASSWORD_LEN} characters).  
-2. Confirm the risk acknowledgment (futures trading involves substantial risk of loss).  
-3. **Log in** anytime with the same email and password.
+2. Confirm the risk acknowledgement (futures trading involves substantial risk of loss).  
+3. **Log in** at any time with the same email and password.
 
-Without signing up or logging in, the Session Micro Range Selector, Trading Journal, Community, Member Chat, and other member tools stay locked.
+Without signing up or logging in, the Session Micro Range Selector, Trading Journal, Community, Member Chat, and other member tools remain locked.
 """
         )
 
     with st.expander("After you sign up — create a custom username", expanded=False):
         st.markdown(
             """
-Right after your account is created, you’ll be asked to choose a **custom public username**  
+Right after your account is created, you will be asked to choose a **custom public username**  
 (3–20 characters: letters, numbers, and underscores).
 
 - Your **email** is only for login and account recovery.  
 - Your **username** is what other members see in Community, Member Chat, and the online list.  
 - You can pick something unique that represents you — it does not have to match your email.
 
-Then you’ll have full access to the tool.
+You will then have full access to the tool.
 """
         )
 

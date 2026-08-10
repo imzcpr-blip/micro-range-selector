@@ -928,25 +928,25 @@ st.markdown(
 """
 )
 
-with candle_expander("Purpose, who it’s for, and how it fits your process", side="bull", expanded=True, kind="up"):
+with candle_expander("Purpose, who it is for, and how it fits your process", side="bull", expanded=True, kind="up"):
     st.markdown(
         f"""
 **Purpose**
 - Rank the three micros for **support/resistance range or channel reversion** conditions.
 - Flag whether price is at a **structure boundary** (valid) or **mid-structure** (avoid).
 - Check whether the current **structure size fits your hard dollar stop** (${HARD_STOP_MIN_USD:.0f}–${HARD_STOP_MAX_USD:.0f}).
-- Apply **static 1-Hour trend context**: more selective when fading against the HTF trend.
+- Apply **static 1-Hour trend context**: be more selective when fading against the HTF trend.
 - Suggest the **active chart pair** from approved pairs only (**15m+5m** default · **30m+15m** slow).
 - Surface **desktop alerts** when the recommended micro changes.
 
-**Who it’s for**
+**Who it is for**
 - You, trading **only** MES / MNQ / MYM under the CPRP rulebook.
 - Traders who want a mechanical pre-session and in-session **focus** tool.
 
-**How it’s intended to be used**
+**How it is intended to be used**
 1. Run this app **before** you trade (and leave it open while you trade).
 2. Take the **recommended micro** as your focus market for the session.
-3. Open the suggested chart pair (**15m+5m** or **30m+15m**) + static **1-Hour** on **NinjaTrader Web**.
+3. Open the suggested chart pair (**15m+5m** or **30m+15m**) plus a static **1-Hour** chart on **NinjaTrader Web**.
 4. Build entries only with full confluence: **S/R → price action → volume → RSI**.
 5. Route orders through **Ironbeam**.
 6. Prefer **quality over frequency** (v1.5). Never override the hard stop or micros-only rule.
@@ -975,7 +975,7 @@ with candle_expander(
         f"""
 Official operating instructions for the **{PROTOCOL_NAME}**, distilled from the
 **Official Quick Reference v{RULEBOOK_VERSION}** and **Rulebook Update v{RULEBOOK_VERSION}**
-(Official Rulebook v{RULEBOOK_VERSION} (Final) is authoritative).  
+(the Official Rulebook v{RULEBOOK_VERSION} (Final) is authoritative).  
 This selector chooses *which micro* to focus on; **you** still operate the Protocol on the charts.
 
 > *Trade the boundaries. Respect the structure. Control the risk.*

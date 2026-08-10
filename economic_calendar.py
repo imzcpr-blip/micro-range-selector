@@ -45,7 +45,7 @@ For the **Cooper Precision Reversion Protocol**, the calendar is best used as a
 2. **Protect the hard risk rule** — avoid forcing boundary fades around red-folder events unless your plan allows it.  
 3. **Structure-break awareness** — after news, ranges often expand; respect the **30-minute pause**.  
 4. **Session selection** — prefer clearer tape *after* major risk events when structure re-forms.  
-5. **Journal context** — note which events were live when you log wins/losses.
+5. **Journal context** — note which events were live when you log wins and losses.
 
 **Not recommended as:** an entry trigger, a substitute for confirmed S/R, or a reason to ignore the hard stop.
 """

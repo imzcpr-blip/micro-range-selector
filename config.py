@@ -139,13 +139,13 @@ CPRP_TRADING_DIR = Path(r"C:\Users\imzcp\OneDrive\Desktop\CPRP Trading")
 FOUNDER_NAME = "Raymon Michael Cooper"
 FOUNDER_TITLE = "Founder — Cooper Precision Reversion Protocol (CPRP)"
 FOUNDER_BIO = """
-I’m **Raymon Michael Cooper**. For years I worked as a Delivery/Logistics Driver, showing up consistently and taking care of what needed to be done. At home I’m a father to my son and share the house with a couple of cats who’ve been part of the family for a long time. Those responsibilities have always grounded me — they also pushed me to look for a better long-term path.
+I’m **Raymon Michael Cooper**. For years I worked as a delivery and logistics driver, showing up consistently and taking care of what needed to be done. At home I’m a father to my son, and I share the house with a couple of cats who have been part of the family for a long time. Those responsibilities have always grounded me — and they also pushed me to look for a better long-term path.
 
-I’ve always been drawn to research, patterns, and data. I enrolled at Southern New Hampshire University for Data Analytics because I wanted to build real analytical skills. Classroom-based learning didn’t fit how I process information, so I stepped away and started applying that same curiosity directly to the markets. What began as an interest in data quickly turned into a deep focus on chart structure, price behavior, and probability.
+I’ve always been drawn to research, patterns, and data. I enrolled at Southern New Hampshire University for Data Analytics because I wanted to build real analytical skills. Classroom-based learning did not fit how I process information, so I stepped away and started applying that same curiosity directly to the markets. What began as an interest in data quickly turned into a deep focus on chart structure, price behavior, and probability.
 
-That process led me to develop my own system — the **Cooper Precision Reversion Protocol (CPRP)**. It’s a rules-based approach to Micro futures that centers on confirmed range and channel structure, multi-timeframe confirmation, strict risk limits, and disciplined execution. I didn’t copy a method. I built one through observation, testing, and holding myself accountable to clear standards.
+That process led me to develop my own system — the **Cooper Precision Reversion Protocol (CPRP)**. It is a rules-based approach to Micro futures that centers on confirmed range and channel structure, multi-timeframe confirmation, strict risk limits, and disciplined execution. I did not copy a method. I built one through observation, testing, and holding myself accountable to clear standards.
 
-This transition isn’t about escaping work. It’s about taking the same reliability and consistency I brought to the road and applying them to a craft I can own and improve every day. I’m still early in making trading my primary path, but I’m fully committed. Between the responsibility of being a father, the quiet company of the cats, and the daily work of refining my process, I’m betting on myself — deliberately and with structure.
+This transition is not about escaping work. It is about taking the same reliability and consistency I brought to the road and applying them to a craft I can own and improve every day. I’m still early in making trading my primary path, but I’m fully committed. Between the responsibility of being a father, the quiet company of the cats, and the daily work of refining my process, I’m betting on myself — deliberately and with structure.
 """.strip()
 
 FOUNDER_TAGLINE = (
@@ -157,7 +157,7 @@ DISCLOSURE_TITLE = "Acknowledgement & Disclosure"
 DISCLOSURE_BODY = """
 The Cooper Precision Reversion Protocol (CPRP), including all related tools, rulebooks, guidelines, applications, and educational materials, has been developed solely for my personal use as an independent day trader. I am freely sharing these resources with others who may find them useful.
 
-Nothing contained in this protocol, its tools, or any associated community discussions constitutes personalized financial, investment, or trading advice. Every trader is solely responsible for their own decisions, risk management, and results. Futures trading involves substantial risk of loss and is not suitable for all individuals. Past performance is not indicative of future results.
+Nothing contained in this protocol, its tools, or any associated community discussions constitutes personalized financial, investment, or trading advice. Every trader is solely responsible for his or her own decisions, risk management, and results. Futures trading involves substantial risk of loss and is not suitable for all individuals. Past performance is not indicative of future results.
 
 This is a free, informal community of independent day traders who choose to share ideas, observations, and understanding with one another. Participation is voluntary. No one is obligated to follow any strategy, rule, or suggestion shared here.
 
@@ -169,16 +169,16 @@ Founder, CPRP Strategies
 
 DISCLOSURE_THIRD_PARTY_TITLE = "Third-Party Tools, Free Sources & No Partnerships"
 DISCLOSURE_THIRD_PARTY_BODY = """
-CPRP Strategies and this Session Micro Range Selector Tool are **independent**. They are not owned by, sponsored by, endorsed by, or partnered with any broker, data vendor, news network, calendar provider, social platform, or other commercial service.
+CPRP Strategies and this Session Micro Range Selector tool are **independent**. They are not owned by, sponsored by, endorsed by, or partnered with any broker, data vendor, news network, calendar provider, social platform, or other commercial service.
 
-Some features link to or embed **free third-party resources** for convenience only (for example: economic calendars, live news streams, or market data). Those sites and streams are owned and controlled by their respective owners. I do **not** control their content, accuracy, availability, advertising, or terms of use.
+Some features link to or embed **free third-party resources** for convenience only (for example, economic calendars, live news streams, or market data). Those sites and streams are owned and controlled by their respective owners. I do **not** control their content, accuracy, availability, advertising, or terms of use.
 
 - **No partnership or affiliation** is implied by linking to or embedding free public tools.
 - **No payment or sponsorship** relationship exists with those providers unless explicitly stated in writing.
 - You use third-party sites **at your own risk** and subject to **their** terms, privacy policies, and disclaimers.
-- CPRP materials and third-party information are for **personal educational / situational awareness** only and are **not** personalized financial advice.
+- CPRP materials and third-party information are for **personal educational and situational awareness** only and are **not** personalized financial advice.
 
-If a third-party embed does not load (blocked by the provider or your browser), use the direct link they provide.
+If a third-party embed does not load (blocked by the provider or your browser), use the direct link provided.
 
 — **Raymon Michael Cooper**  
 Founder, CPRP Strategies

@@ -49,7 +49,7 @@ def render_micros_guide_panel() -> None:
             """
 **Micro E-mini futures** are smaller versions of CME’s popular equity-index futures.
 They track the same major US indexes as the full-size E-minis, but with **smaller
-dollar risk per point**, so traders can size risk more precisely.
+dollar risk per point**, so traders can size risk more precisely under a fixed hard stop.
 
 Under CPRP you trade **micros only**:
 
