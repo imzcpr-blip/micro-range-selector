@@ -21,7 +21,17 @@ from typing import Optional
 
 import streamlit as st
 
-from config import ADMIN_EMAILS, ADMIN_ROLE_LABEL, APP_NAME, CREATOR, PROTOCOL_SHORT
+from config import (
+    ADMIN_EMAILS,
+    ADMIN_ROLE_LABEL,
+    APP_NAME,
+    BRANDING_LOGO_ICON,
+    BRANDING_LOGO_IMAGE,
+    BRANDING_LOGO_VIDEO,
+    BRANDING_LOGO_VIDEO_ALT,
+    CREATOR,
+    PROTOCOL_SHORT,
+)
 
 DATA_DIR = Path(__file__).resolve().parent / "data"
 DB_PATH = DATA_DIR / "users.db"
@@ -315,6 +325,23 @@ def logout() -> None:
             del st.session_state[key]
 
 
+def _render_landing_branding() -> None:
+    """Branding logo / GIF for the public welcome landing page."""
+    candidates = [
+        Path(BRANDING_LOGO_VIDEO),
+        Path(BRANDING_LOGO_VIDEO_ALT),
+        Path(BRANDING_LOGO_IMAGE),
+        Path(BRANDING_LOGO_ICON),
+    ]
+    for p in candidates:
+        if p.is_file():
+            # Centered column for a clean landing look
+            _, mid, _ = st.columns([1, 2, 1])
+            with mid:
+                st.image(str(p), use_container_width=True)
+            return
+
+
 def require_login() -> bool:
     """
     Render login/signup UI if needed.
@@ -323,20 +350,51 @@ def require_login() -> bool:
     if is_logged_in():
         return True
 
+    # ── Landing / welcome ────────────────────────────────────────────────
+    _render_landing_branding()
+
     st.markdown(
-        f"""
-# Welcome to {APP_NAME}
+        """
+# Welcome to CPRP Trading Strategies, Session Micro Range Selector Tool
 
-**{PROTOCOL_SHORT}** by {CREATOR}
+**Cooper Precision Reversion Protocol (CPRP)** · Personal trading aid by Raymon Michael Cooper  
 
-Sign up or log in to use the session micro selector and Member Chat.  
-Use your **email** to create an account, then choose a public **username** for chat.
+*Trade the boundaries. Respect the structure. Control the risk.*
 """
     )
+
+    st.markdown(
+        f"""
+### Access the Tool / Site
+
+To use this site you need a free member account:
+
+1. **Sign up** with a valid **email address** and a **password** (at least {MIN_PASSWORD_LEN} characters).  
+2. Confirm the risk acknowledgment (futures trading involves substantial risk of loss).  
+3. **Log in** anytime with the same email and password.
+
+Without signing up or logging in, the Session Micro Range Selector, Trading Journal, Community, Member Chat, and other member tools stay locked.
+
+### After you sign up — create a custom username
+
+Right after your account is created, you’ll be asked to choose a **custom public username**  
+(3–20 characters: letters, numbers, and underscores).
+
+- Your **email** is only for login and account recovery.  
+- Your **username** is what other members see in Community, Member Chat, and the online list.  
+- You can pick something unique that represents you — it does not have to match your email.
+
+Then you’ll have full access to the tool.
+"""
+    )
+
+    st.markdown("---")
+    st.subheader("Member access")
 
     tab_login, tab_signup = st.tabs(["Log in", "Sign up"])
 
     with tab_login:
+        st.caption("Already have an account? Log in with your email and password.")
         with st.form("login_form", clear_on_submit=False):
             email = st.text_input("Email", key="login_email", autocomplete="username")
             password = st.text_input(
@@ -360,9 +418,9 @@ Use your **email** to create an account, then choose a public **username** for c
 
     with tab_signup:
         st.caption(
-            f"Create a free account with your email. Password must be at least {MIN_PASSWORD_LEN} characters. "
-            "After signup you’ll choose a public username for Member Chat. "
-            "The founder is notified of new subscribers by email."
+            f"Create a free account with your **email** and a **password** (min {MIN_PASSWORD_LEN} characters). "
+            "After signup, you’ll create a **custom username** for Community and chat. "
+            "The founder is notified of new members by email."
         )
         with st.form("signup_form", clear_on_submit=False):
             email = st.text_input("Email", key="signup_email", autocomplete="username")
@@ -417,7 +475,8 @@ Use your **email** to create an account, then choose a public **username** for c
 
     st.markdown("---")
     st.caption(
-        f"Accounts use email + password. Passwords are stored hashed. "
+        f"CPRP Trading Strategies · Session Micro Range Selector Tool  \n"
+        f"Accounts use email + password (hashed). After signup, choose a custom username.  \n"
         f"© {CREATOR}."
     )
     return False
@@ -447,23 +506,27 @@ def require_display_name() -> bool:
 
     st.markdown(
         f"""
-# Choose your username
+# Create your custom username
 
-You’re signed in as `{email}`.
+Welcome to **CPRP Trading Strategies**. You’re signed in as `{email}`.
 
-Pick a **public username** for Member Chat and the active members list.  
-This is separate from your login email.
+Next, choose a **custom public username**. This is what other members will see in:
+- **Community** posts  
+- **Member Chat**  
+- The **online members** list  
+
+Your email stays private for login only. Username: **3–20 characters** (letters, numbers, underscores).
 """
     )
     with st.form("username_form"):
         uname = st.text_input(
-            "Username",
+            "Custom username",
             max_chars=20,
             placeholder="e.g. ChartRanger_01",
             help="3–20 characters: letters, numbers, underscores.",
         )
         submitted = st.form_submit_button(
-            "Save username & continue", type="primary", use_container_width=True
+            "Save username & enter the tool", type="primary", use_container_width=True
         )
     if submitted:
         ok, msg = set_display_name(email, uname)
