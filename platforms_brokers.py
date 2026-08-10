@@ -9,7 +9,7 @@ from __future__ import annotations
 import streamlit as st
 
 from disclosure import render_disclosure, render_third_party_disclosure
-from wallstreet_ui import candle_expander, desk_section, page_hero
+from wallstreet_ui import candle_expander, desk_section, link_label, page_hero
 
 NINJATRADER_URL = "https://ninjatrader.com"
 IRONBEAM_URL = "https://www.ironbeam.com"
@@ -24,7 +24,7 @@ def render_platforms_brokers_panel() -> None:
         desk_tag="EXECUTION DESK · EXTERNAL VENDORS",
     )
 
-    with candle_expander("Popular with micro traders", side="bull", expanded=True):
+    with candle_expander("Popular with micro traders", side="bull", expanded=True, kind="up"):
         st.markdown(
             """
 Many independent day traders who work with **Micro** contracts (MES, MNQ, MYM, etc.)
@@ -39,7 +39,7 @@ use a charting / execution platform together with a futures broker:
 """
         )
 
-    with candle_expander("Recommended use with CPRP", side="bear", expanded=False):
+    with candle_expander("Recommended use with CPRP", side="bear", expanded=False, kind="down"):
         st.markdown(
             """
 - Use your platform to mark **confirmed S/R structure**, run **15m+5m** (or **30m+15m**),
@@ -56,10 +56,10 @@ use a charting / execution platform together with a futures broker:
         st.markdown("#### NinjaTrader")
         st.markdown(
             "Charting and trading platform often used for futures and micros.  \n"
-            f"[https://ninjatrader.com]({NINJATRADER_URL})"
+            f"🔗 [https://ninjatrader.com]({NINJATRADER_URL})"
         )
         st.link_button(
-            "Visit NinjaTrader",
+            link_label("Visit NinjaTrader"),
             NINJATRADER_URL,
             type="primary",
             use_container_width=True,
@@ -68,16 +68,21 @@ use a charting / execution platform together with a futures broker:
         st.markdown("#### Ironbeam")
         st.markdown(
             "Futures broker used by many micro futures traders.  \n"
-            f"[https://www.ironbeam.com]({IRONBEAM_URL})"
+            f"🔗 [https://www.ironbeam.com]({IRONBEAM_URL})"
         )
         st.link_button(
-            "Visit Ironbeam",
+            link_label("Visit Ironbeam"),
             IRONBEAM_URL,
             type="primary",
             use_container_width=True,
         )
 
-    with candle_expander("Important notices (read before opening accounts)", side="bear", expanded=True):
+    with candle_expander(
+        "Important notices (read before opening accounts)",
+        side="bear",
+        expanded=True,
+        kind="doc",
+    ):
         st.markdown(
             """
 - **No partnership:** CPRP Strategies and this tool are **not** owned by, sponsored by,

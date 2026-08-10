@@ -125,7 +125,7 @@ def render_admin_panel() -> None:
 
     desk_section("Application edits (Founder only)", side="bear")
 
-    with candle_expander("Sync official documents & branding", side="bull", expanded=True):
+    with candle_expander("Sync official documents & branding", side="bull", expanded=True, kind="folder"):
         st.caption("Pull latest files from your CPRP Trading folder into the app assets.")
         if st.button("Sync branding & documents now", type="primary", key="admin_sync"):
             try:
@@ -143,7 +143,7 @@ def render_admin_panel() -> None:
             except Exception as exc:  # noqa: BLE001
                 st.error(f"Sync failed: {exc}")
 
-    with candle_expander("Member Chat moderation", side="bear", expanded=False):
+    with candle_expander("Member Chat moderation", side="bear", expanded=False, kind="down"):
         st.caption("Remove individual messages or clear the room.")
         try:
             from chat import delete_message, list_recent_for_admin, clear_all_messages
@@ -170,7 +170,7 @@ def render_admin_panel() -> None:
         except Exception as exc:  # noqa: BLE001
             st.caption(f"Chat moderation unavailable: {exc}")
 
-    with candle_expander("Community board moderation", side="bear", expanded=False):
+    with candle_expander("Community board moderation", side="bear", expanded=False, kind="down"):
         st.caption("Remove member trading-idea posts (text + images).")
         try:
             from community import count_posts, delete_post, list_posts_admin
@@ -194,13 +194,13 @@ def render_admin_panel() -> None:
         except Exception as exc:  # noqa: BLE001
             st.caption(f"Community moderation unavailable: {exc}")
 
-    with candle_expander("Journal capacity", side="bull", expanded=False):
+    with candle_expander("Journal capacity", side="bull", expanded=False, kind="page"):
         st.caption(
             f"Per-member journal limit is currently **{journal_max_entries()}** entries. "
             "Override in Streamlit secrets: `[journal] max_entries = 50`."
         )
 
-    with candle_expander("Domain & code ownership", side="bear", expanded=False):
+    with candle_expander("Domain & code ownership", side="bear", expanded=False, kind="doc"):
         st.markdown(
             f"""
 | Control | Owner |

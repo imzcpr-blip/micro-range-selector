@@ -10,7 +10,7 @@ from __future__ import annotations
 import streamlit as st
 import streamlit.components.v1 as components
 
-from wallstreet_ui import candle_expander, desk_section, page_hero
+from wallstreet_ui import candle_expander, desk_section, link_label, page_hero
 
 BLOOMBERG_VIDEO_ID = "QB5BNdBFujE"
 BLOOMBERG_WATCH_URL = f"https://www.youtube.com/watch?v={BLOOMBERG_VIDEO_ID}"
@@ -38,7 +38,7 @@ def render_bloomberg_player(
     height: int = 360,
     key_prefix: str = "bb",
     compact: bool = False,
-    title: str = "Bloomberg Business News Live",
+    title: str = "📺 Bloomberg Business News Live",
     default_on: bool = False,
 ) -> None:
     """
@@ -53,14 +53,15 @@ def render_bloomberg_player(
         else:
             st.session_state[enabled_key] = default_on
 
+    display_title = title if title.startswith("📺") else f"📺 {title}"
     if compact:
-        st.markdown(f"**{title}**")
+        st.markdown(f"**{display_title}**")
     else:
-        st.subheader(title)
+        st.subheader(display_title)
 
     st.caption(
-        "Live stream via YouTube · "
-        f"[Open on YouTube]({BLOOMBERG_WATCH_URL}) · "
+        "📺 Live stream via YouTube · "
+        f"🔗 [Open on YouTube]({BLOOMBERG_WATCH_URL}) · "
         "Toggle off to pause / stop the stream."
     )
 
@@ -117,12 +118,12 @@ def render_bloomberg_player(
 def render_bloomberg_panel() -> None:
     """Dedicated full-page Bloomberg Live experience."""
     page_hero(
-        "Bloomberg Business News Live",
+        "📺 Bloomberg Business News Live",
         "External YouTube live desk feed · watch or listen while you trade · not affiliated with Bloomberg",
         side="bear",
         desk_tag="NEWS DESK · EXTERNAL FEED",
     )
-    with candle_expander("What this desk is for", side="bull", expanded=True):
+    with candle_expander("What this desk is for", side="bull", expanded=True, kind="tv"):
         st.markdown(
             """
 Watch or listen to **Bloomberg Business News Live** while you trade.  
@@ -134,15 +135,16 @@ This is an external YouTube live stream — **CPRP is not affiliated with Bloomb
         key_prefix="panel",
         compact=False,
         default_on=True,
+        title="📺 Bloomberg Business News Live",
     )
     desk_section("Desk tips", side="bear")
-    with candle_expander("How to use the news feed", side="bear", expanded=False):
+    with candle_expander("How to use the news feed", side="bear", expanded=False, kind="tv"):
         st.markdown(
             f"""
 - Leave this panel open for continuous news while you work.
 - Or enable the player on **Session Selector**, **Trading Journal**, or **Member Chat**.
 - Toggle off anytime to stop audio/video.
-- Direct link: [{BLOOMBERG_WATCH_URL}]({BLOOMBERG_WATCH_URL})
+- {link_label("Direct link")}: [{BLOOMBERG_WATCH_URL}]({BLOOMBERG_WATCH_URL})
 """
         )
     st.caption(
@@ -157,10 +159,16 @@ This is an external YouTube live stream — **CPRP is not affiliated with Bloomb
 
 def render_bloomberg_audio_option(*, key_prefix: str, height: int = 280) -> None:
     """Compact block for main / journal / chat pages."""
-    with candle_expander("Bloomberg Business News Live — watch or listen", side="bear", expanded=False):
+    with candle_expander(
+        "Bloomberg Business News Live — watch or listen",
+        side="bear",
+        expanded=False,
+        kind="tv",
+    ):
         render_bloomberg_player(
             height=height,
             key_prefix=key_prefix,
             compact=True,
             default_on=False,
+            title="📺 Bloomberg Business News Live",
         )

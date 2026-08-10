@@ -44,7 +44,7 @@ def render_micros_guide_panel() -> None:
     render_disclosure(expanded=False)
     render_third_party_disclosure(expanded=False)
 
-    with candle_expander("What are Micro E-mini Futures?", side="bull", expanded=True):
+    with candle_expander("What are Micro E-mini Futures?", side="bull", expanded=True, kind="up"):
         st.markdown(
             """
 **Micro E-mini futures** are smaller versions of CME’s popular equity-index futures.
@@ -66,7 +66,7 @@ No full-size contracts (ES, NQ, YM, etc.) are part of this protocol.
             st.image(str(OVERVIEW_IMG), use_container_width=True, caption="Micro E-mini overview")
 
     desk_section("Contract specifications", side="bull")
-    with candle_expander("Tick values (CME reference)", side="bull", expanded=False):
+    with candle_expander("Tick values (CME reference)", side="bull", expanded=False, kind="page"):
         st.markdown(
             """
 A **tick** is the minimum price increment. **Tick value** is how many dollars you gain or lose
@@ -94,7 +94,7 @@ when price moves one tick (for one contract).
             "Specifications can change."
         )
 
-    with candle_expander("Position sizing under the CPRP hard stop", side="bear", expanded=True):
+    with candle_expander("Position sizing under the CPRP hard stop", side="bear", expanded=True, kind="down"):
         st.markdown(
             f"""
 CPRP hard risk rule (non-negotiable):
@@ -143,7 +143,7 @@ you must still keep **total** risk per trade inside −${HARD_STOP_MIN_USD:.0f} 
 """
         )
 
-    with candle_expander("How this fits the Session Micro Selector", side="bull", expanded=False):
+    with candle_expander("How this fits the Session Micro Selector", side="bull", expanded=False, kind="doc"):
         st.markdown(
             """
 This app ranks **MES / MNQ / MYM** for range/channel-reversion conditions and checks whether

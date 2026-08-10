@@ -294,7 +294,7 @@ hr {
 </style>
 """
 
-# Colors expanders that contain bull/bear candle labels (runs in parent via components)
+# Colors expanders from emoji prefixes (runs in parent via components)
 _CANDLE_COLORIZER_JS = """
 <script>
 (function() {
@@ -305,12 +305,18 @@ _CANDLE_COLORIZER_JS = """
       nodes.forEach(function(el) {
         var t = (el.innerText || el.textContent || '');
         el.classList.remove('ws-candle-bull', 'ws-candle-bear');
-        if (t.indexOf('🟢') !== -1 || t.indexOf('▲') === 0) {
+        /* Green / rising panels */
+        if (t.indexOf('📈') !== -1 || t.indexOf('🟢') !== -1) {
           el.classList.add('ws-candle-bull');
-        } else if (t.indexOf('🔴') !== -1 || t.indexOf('▼') === 0) {
+        /* Red / falling / risk / TV news */
+        } else if (t.indexOf('📉') !== -1 || t.indexOf('🔴') !== -1 || t.indexOf('📺') !== -1) {
           el.classList.add('ws-candle-bear');
+        /* Document / link panels — soft green desk edge */
+        } else if (t.indexOf('📂') !== -1 || t.indexOf('📁') !== -1 ||
+                   t.indexOf('📃') !== -1 || t.indexOf('📄') !== -1 ||
+                   t.indexOf('🔗') !== -1) {
+          el.classList.add('ws-candle-bull');
         } else {
-          /* alternate remaining plain expanders for desk feel */
           var idx = Array.prototype.indexOf.call(nodes, el);
           el.classList.add(idx % 2 === 0 ? 'ws-candle-bull' : 'ws-candle-bear');
         }
@@ -329,12 +335,71 @@ _CANDLE_COLORIZER_JS = """
 </script>
 """
 
+# Panel icon sets
+DOC_ICONS = ("📂", "📁", "📃", "📄")  # rotate for document panels
+ICON_UP = "📈"
+ICON_DOWN = "📉"
+ICON_TV = "📺"
+ICON_LINK = "🔗"
+
+# Sidebar nav: page name → lead emoji (mixed, senseful)
+NAV_PAGE_ICONS: dict[str, str] = {
+    "Session Selector": ICON_UP,
+    "Trading Journal": "📃",
+    "CPRP Session Statistics": ICON_DOWN,
+    "Community": ICON_UP,
+    "Member Chat": ICON_UP,
+    "Economic Calendar": ICON_DOWN,
+    "Bloomberg Live": ICON_TV,
+    "Platforms & Brokers": ICON_LINK,
+    "Micro E-mini Futures": ICON_UP,
+    "Company Branding": "📁",
+    "About the Founder": "📄",
+    "Admin / Founder": "📂",
+}
+
+# All known label prefixes we may strip from nav labels
+_EMOJI_PREFIXES = (
+    "🟢🕯️ BULL · ",
+    "🔴🕯️ BEAR · ",
+    "🟢🕯️ ",
+    "🔴🕯️ ",
+    "🟢 ",
+    "🔴 ",
+    f"{ICON_UP} ",
+    f"{ICON_DOWN} ",
+    f"{ICON_TV} ",
+    f"{ICON_LINK} ",
+    "📂 ",
+    "📁 ",
+    "📃 ",
+    "📄 ",
+    "📊 ",
+    "💬 ",
+    "📅 ",
+)
+
 
 def inject_wallstreet_theme() -> None:
     """Inject global Wall Street CSS + candle expander colorizer once per run."""
     st.markdown(WS_CSS, unsafe_allow_html=True)
     # Tiny zero-height component so JS can reach parent DOM expanders
     components.html(_CANDLE_COLORIZER_JS, height=0)
+
+
+def doc_icon_for(text: str) -> str:
+    """Pick a document emoji (folder/page mix) from the title for variety."""
+    if not text:
+        return DOC_ICONS[0]
+    return DOC_ICONS[sum(ord(c) for c in text) % len(DOC_ICONS)]
+
+
+def link_label(text: str) -> str:
+    """Prefix a link button / external action with the link emoji."""
+    t = text.strip()
+    if t.startswith(ICON_LINK):
+        return t
+    return f"{ICON_LINK} {t}"
 
 
 def market_tape(
@@ -392,11 +457,46 @@ def desk_section(title: str, *, side: CandleSide = "bull") -> None:
     )
 
 
-def candle_label(text: str, *, side: CandleSide = "bull") -> str:
-    """Label for nav / expanders with green or red candle glyph only (no BULL/BEAR words)."""
-    if side == "bull":
-        return f"🟢🕯️ {text}"
-    return f"🔴🕯️ {text}"
+def candle_label(
+    text: str,
+    *,
+    side: CandleSide = "bull",
+    kind: str | None = None,
+    icon: str | None = None,
+) -> str:
+    """
+    Label for nav / expanders with senseful emoji prefixes.
+
+    side bull → 📈  ·  side bear → 📉
+    kind: 'doc' | 'folder' | 'page' | 'tv' | 'link' | 'up' | 'down' (overrides default)
+    icon: explicit emoji override
+    """
+    t = text.strip()
+    if icon:
+        lead = icon
+    elif kind in ("doc", "document", "folder", "page"):
+        if kind == "folder":
+            lead = "📁"
+        elif kind == "page":
+            lead = "📄"
+        else:
+            lead = doc_icon_for(t)
+    elif kind == "tv":
+        lead = ICON_TV
+    elif kind == "link":
+        lead = ICON_LINK
+    elif kind == "up":
+        lead = ICON_UP
+    elif kind == "down":
+        lead = ICON_DOWN
+    elif side == "bull":
+        lead = ICON_UP
+    else:
+        lead = ICON_DOWN
+    # Avoid double-prefix if caller already added the emoji
+    if t.startswith(lead):
+        return t
+    return f"{lead} {t}"
 
 
 def candle_expander(
@@ -404,34 +504,43 @@ def candle_expander(
     *,
     side: CandleSide = "bull",
     expanded: bool = False,
+    kind: str | None = None,
+    icon: str | None = None,
 ):
     """
-    Expander that reads as a candlestick panel control.
-    Green candle = open/long accent · Red candle = risk/close accent.
+    Expander panel with emoji control:
+    - Green/up panels → 📈
+    - Red/down panels → 📉
+    - Documents → 📂 📁 📃 📄 (kind='doc')
+    - Bloomberg / video → 📺 (kind='tv')
+    - External links → 🔗 (kind='link')
     """
-    label = candle_label(title, side=side)
+    label = candle_label(title, side=side, kind=kind, icon=icon)
     return st.expander(label, expanded=expanded)
 
 
 def nav_candle_pages(pages: list[str]) -> list[str]:
-    """Prefix nav page names with alternating green/red candles."""
+    """Prefix nav page names with tab-appropriate emojis."""
     out = []
     for i, name in enumerate(pages):
-        side: CandleSide = "bull" if i % 2 == 0 else "bear"
-        out.append(candle_label(name, side=side))
+        icon = NAV_PAGE_ICONS.get(name)
+        if icon is None:
+            icon = ICON_UP if i % 2 == 0 else ICON_DOWN
+        out.append(f"{icon} {name}")
     return out
 
 
 def strip_candle_prefix(label: str) -> str:
-    """Map candle-prefixed nav label back to clean page name."""
-    for prefix in (
-        "🟢🕯️ BULL · ",
-        "🔴🕯️ BEAR · ",
-        "🟢🕯️ ",
-        "🔴🕯️ ",
-        "🟢 ",
-        "🔴 ",
-    ):
-        if label.startswith(prefix):
-            return label[len(prefix) :]
-    return label
+    """Map emoji-prefixed nav label back to clean page name."""
+    s = label
+    # Strip repeatedly in case of stacked prefixes from older sessions
+    for _ in range(3):
+        stripped = False
+        for prefix in _EMOJI_PREFIXES:
+            if s.startswith(prefix):
+                s = s[len(prefix) :]
+                stripped = True
+                break
+        if not stripped:
+            break
+    return s

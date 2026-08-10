@@ -631,7 +631,7 @@ def render_journal_history(*, key_prefix: str = "jhist", show_edit: bool = True)
     st.markdown(f"**Past sessions** ({total} / {max_n})")
 
     if is_journal_full(email):
-        with candle_expander("Journal full — export options", side="bear", expanded=True):
+        with candle_expander("Journal full — export options", side="bear", expanded=True, kind="folder"):
             render_journal_full_export_prompt(key_prefix=f"{key_prefix}_histfull")
 
     if not entries:

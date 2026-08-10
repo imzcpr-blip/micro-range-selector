@@ -163,7 +163,7 @@ st.sidebar.markdown(f"### {PROTOCOL_SHORT} DESK")
 st.sidebar.caption(f"Rulebook v{RULEBOOK_VERSION} · {CREATOR}")
 st.sidebar.markdown(
     '<p style="font-family:IBM Plex Mono,monospace;font-size:0.72rem;color:#64748b;">'
-    "🟢🕯️ / 🔴🕯️ candle panels — expand for detail</p>",
+    "📈 green · 📉 red · 📂 docs · 📺 news · 🔗 links — expand panels for detail</p>",
     unsafe_allow_html=True,
 )
 render_account_sidebar()
@@ -300,7 +300,7 @@ if page == PAGE_BRANDING:
         caption="Primary logo GIF (looping)",
     )
 
-    with candle_expander("Brand sync & access control", side="bear", expanded=False):
+    with candle_expander("Brand sync & access control", side="bear", expanded=False, kind="folder"):
         col_sync, col_info = st.columns([1, 2])
         with col_sync:
             if is_current_user_admin():
@@ -325,7 +325,7 @@ if page == PAGE_BRANDING:
                     for line in rep.summary_lines():
                         st.markdown(f"- {line}")
                     if rep.copied:
-                        with candle_expander("Files updated this session", side="bull", expanded=False):
+                        with candle_expander("Files updated this session", side="bull", expanded=False, kind="doc"):
                             for c in rep.copied:
                                 st.markdown(f"- `{c}`")
                 else:
@@ -372,7 +372,7 @@ if page == PAGE_BRANDING:
                 if v.suffix.lower() == ".gif":
                     st.image(str(v), use_container_width=True)
                     st.download_button(
-                        label="Download GIF",
+                        label="📁 Download GIF",
                         data=v.read_bytes(),
                         file_name=v.name,
                         mime="image/gif",
@@ -416,7 +416,7 @@ if page == PAGE_BRANDING:
                 st.markdown(f"**{title}**")
                 st.image(str(img), use_container_width=True)
                 st.download_button(
-                    label=f"Download {img.suffix.upper().lstrip('.')}",
+                    label=f"📄 Download {img.suffix.upper().lstrip('.')}",
                     data=img.read_bytes(),
                     file_name=img.name,
                     mime="image/jpeg" if img.suffix.lower() in {".jpg", ".jpeg"} else "image/png",
@@ -426,7 +426,7 @@ if page == PAGE_BRANDING:
     else:
         st.caption("No still images found.")
 
-    with candle_expander("Brand usage notes", side="bull", expanded=False):
+    with candle_expander("Brand usage notes", side="bull", expanded=False, kind="page"):
         st.markdown(
             f"""
 - Prefer **looping logo GIFs** for headers, branding, and Member Chat.
@@ -470,10 +470,10 @@ if page == PAGE_ABOUT:
 """
         )
 
-    with candle_expander("My story", side="bull", expanded=True):
+    with candle_expander("My story", side="bull", expanded=True, kind="page"):
         st.markdown(FOUNDER_BIO)
 
-    with candle_expander("What drives CPRP", side="bear", expanded=True):
+    with candle_expander("What drives CPRP", side="bear", expanded=True, icon="📄"):
         c1, c2, c3, c4 = st.columns(4)
         c1.markdown(
             """
@@ -752,7 +752,7 @@ else:
 _qr_sidebar = Path(QUICK_REFERENCE_IMAGE)
 if _qr_sidebar.is_file():
     st.sidebar.download_button(
-        label="Download QR card (JPG)",
+        label="📄 Download QR card (JPG)",
         data=_qr_sidebar.read_bytes(),
         file_name=QUICK_REFERENCE_DOWNLOAD_NAME,
         mime="image/jpeg",
@@ -762,7 +762,7 @@ if _qr_sidebar.is_file():
     _qr_pdf_side = Path(QUICK_REFERENCE_PDF)
     if _qr_pdf_side.is_file():
         st.sidebar.download_button(
-            label="Download QR card (PDF)",
+            label="📃 Download QR card (PDF)",
             data=_qr_pdf_side.read_bytes(),
             file_name=f"CPRP_Quick_Reference_v{RULEBOOK_VERSION}.pdf",
             mime="application/pdf",
@@ -775,7 +775,7 @@ else:
 _rb_side = Path(RULEBOOK_UPDATE_PDF)
 if _rb_side.is_file():
     st.sidebar.download_button(
-        label="Download Rulebook Update (PDF)",
+        label="📂 Download Rulebook Update (PDF)",
         data=_rb_side.read_bytes(),
         file_name=RULEBOOK_UPDATE_DOWNLOAD_NAME,
         mime="application/pdf",
@@ -786,7 +786,7 @@ if _rb_side.is_file():
 _rb_base = Path(RULEBOOK_BASE_PDF)
 if _rb_base.is_file():
     st.sidebar.download_button(
-        label="Download Official Rulebook base (PDF)",
+        label="📁 Download Official Rulebook base (PDF)",
         data=_rb_base.read_bytes(),
         file_name=RULEBOOK_BASE_DOWNLOAD_NAME,
         mime="application/pdf",
@@ -827,7 +827,7 @@ st.markdown(
 """
 )
 
-with candle_expander("Purpose, who it’s for, and how it fits your process", side="bull", expanded=True):
+with candle_expander("Purpose, who it’s for, and how it fits your process", side="bull", expanded=True, kind="up"):
     st.markdown(
         f"""
 **Purpose**
@@ -860,7 +860,7 @@ with candle_expander("Purpose, who it’s for, and how it fits your process", si
 
 st.info(
     "💡 **New here?** Open the left sidebar → **Help & navigation** for section-by-section "
-    "app instructions, and the green/red candle panels for full CPRP operating steps."
+    "app instructions, and the 📈 / 📉 / 📂 panels for full CPRP operating steps."
 )
 
 # ── Strategy operating instructions (Official Quick Reference v1.5) ──────
@@ -868,6 +868,7 @@ with candle_expander(
     "How to properly operate the strategy (CPRP Official Quick Reference v1.5)",
     side="bear",
     expanded=False,
+    kind="doc",
 ):
     st.markdown(
         f"""
@@ -1179,7 +1180,7 @@ checks = [
 for item in checks:
     st.checkbox(item, key=f"chk_{item[:28]}")
 
-with candle_expander("RSI rules & exits (Quick Reference v1.5)", side="bear", expanded=False):
+with candle_expander("RSI rules & exits (Quick Reference v1.5)", side="bear", expanded=False, kind="doc"):
     st.markdown(
         f"""
 **RSI (v1.5)**
@@ -1209,9 +1210,9 @@ render_reference_and_journal_side_by_side(default_micro=_default_jr_micro)
 # Extra rulebook base download (optional)
 _rb_base_main = Path(RULEBOOK_BASE_PDF)
 if _rb_base_main.is_file():
-    with candle_expander("More documents (Official Rulebook base)", side="bull", expanded=False):
+    with candle_expander("More documents (Official Rulebook base)", side="bull", expanded=False, kind="folder"):
         st.download_button(
-            label="Download Official Rulebook base (PDF)",
+            label="📂 Download Official Rulebook base (PDF)",
             data=_rb_base_main.read_bytes(),
             file_name=RULEBOOK_BASE_DOWNLOAD_NAME,
             mime="application/pdf",

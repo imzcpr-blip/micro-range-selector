@@ -18,14 +18,14 @@ def render_disclosure(*, expanded: bool = False, key: str | None = None) -> None
     Render the official Acknowledgement & Disclosure.
     Use expanded=True on the landing page; collapsed expander on member pages.
     """
-    with candle_expander(DISCLOSURE_TITLE, side="bear", expanded=expanded):
+    with candle_expander(DISCLOSURE_TITLE, side="bear", expanded=expanded, kind="doc"):
         st.markdown(f"### {DISCLOSURE_TITLE}")
         st.markdown(DISCLOSURE_BODY)
 
 
 def render_third_party_disclosure(*, expanded: bool = False) -> None:
     """Free sources, embeds, and no-partnership acknowledgement."""
-    with candle_expander(DISCLOSURE_THIRD_PARTY_TITLE, side="bear", expanded=expanded):
+    with candle_expander(DISCLOSURE_THIRD_PARTY_TITLE, side="bear", expanded=expanded, kind="page"):
         st.markdown(f"### {DISCLOSURE_THIRD_PARTY_TITLE}")
         st.markdown(DISCLOSURE_THIRD_PARTY_BODY)
 
@@ -36,7 +36,7 @@ def render_disclosure_footer() -> None:
     st.caption(
         "Not financial advice. Futures trading involves substantial risk of loss. "
         "Free third-party tools (if any) are not partnerships. "
-        "Expand the red candle disclosure panels below for full legal text."
+        "Expand the 📂 / 📄 disclosure panels below for full legal text."
     )
     render_disclosure(expanded=False)
     render_third_party_disclosure(expanded=False)

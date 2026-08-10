@@ -208,7 +208,7 @@ def render_community_panel() -> None:
     st.caption(f"Posting as **{display}**")
 
     desk_section("Compose", side="bull")
-    with candle_expander("New post — publish a trading idea", side="bull", expanded=True):
+    with candle_expander("New post — publish a trading idea", side="bull", expanded=True, kind="up"):
         with st.form("community_new_post", clear_on_submit=True):
             title = st.text_input(
                 "Title",

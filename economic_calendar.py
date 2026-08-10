@@ -10,7 +10,7 @@ import streamlit as st
 import streamlit.components.v1 as components
 
 from disclosure import render_disclosure, render_third_party_disclosure
-from wallstreet_ui import candle_expander, desk_section, page_hero
+from wallstreet_ui import candle_expander, desk_section, link_label, page_hero
 
 FOREX_FACTORY_CALENDAR_URL = "https://www.forexfactory.com/calendar"
 # Some browsers/providers block full-page iframes; still try + always offer direct link.
@@ -22,12 +22,12 @@ def render_economic_calendar_panel() -> None:
     page_hero(
         "Economic Calendar",
         f"High-impact news risk filter · free Forex Factory source · "
-        f"[Open calendar]({FOREX_FACTORY_CALENDAR_URL})",
+        f"🔗 [Open calendar]({FOREX_FACTORY_CALENDAR_URL})",
         side="bear",
         desk_tag="EVENT RISK DESK · THIRD-PARTY",
     )
 
-    with candle_expander("What this is & CPRP use", side="bull", expanded=True):
+    with candle_expander("What this is & CPRP use", side="bull", expanded=True, kind="up"):
         st.markdown(
             """
 An **economic calendar** lists scheduled macroeconomic releases and events
@@ -61,7 +61,7 @@ For the **Cooper Precision Reversion Protocol**, the calendar is best used as a
     )
 
     st.link_button(
-        "Open full calendar on Forex Factory",
+        link_label("Open full calendar on Forex Factory"),
         FOREX_FACTORY_CALENDAR_URL,
         type="primary",
         use_container_width=True,
@@ -87,7 +87,7 @@ For the **Cooper Precision Reversion Protocol**, the calendar is best used as a
     """
     components.html(iframe, height=height + 60, scrolling=True)
 
-    with candle_expander("Quick CPRP checklist around news", side="bear", expanded=False):
+    with candle_expander("Quick CPRP checklist around news", side="bear", expanded=False, kind="down"):
         st.markdown(
             f"""
 | Step | Action |
@@ -104,13 +104,18 @@ For the **Cooper Precision Reversion Protocol**, the calendar is best used as a
 
 def render_economic_calendar_compact(*, key_prefix: str = "econ") -> None:
     """Optional compact expander for other pages."""
-    with candle_expander("Economic Calendar (Forex Factory) — news risk filter", side="bear", expanded=False):
+    with candle_expander(
+        "Economic Calendar (Forex Factory) — news risk filter",
+        side="bear",
+        expanded=False,
+        kind="link",
+    ):
         st.markdown(
             "Use the calendar to **avoid or respect high-impact news** around CPRP range fades. "
             "Not a trade signal. Free third-party source — **no partnership** with Forex Factory."
         )
         st.link_button(
-            "Open Forex Factory Calendar",
+            link_label("Open Forex Factory Calendar"),
             FOREX_FACTORY_CALENDAR_URL,
             use_container_width=True,
             key=f"{key_prefix}_ff_link",

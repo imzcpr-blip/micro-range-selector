@@ -188,7 +188,7 @@ def render_session_wl_panel() -> None:
     st.caption(f"Uploading as **{display}**")
 
     desk_section("Upload", side="bull")
-    with candle_expander("Upload session statistics image", side="bull", expanded=True):
+    with candle_expander("Upload session statistics image", side="bull", expanded=True, kind="up"):
         st.markdown(
             "Add a chart or screenshot of your **winning vs. losing trades** "
             "(or contracts-by-instrument) for a session."
