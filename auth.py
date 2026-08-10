@@ -243,8 +243,13 @@ def current_user_email() -> Optional[str]:
 
 
 def admin_email_set() -> set[str]:
-    """Founder admin emails from config + optional Streamlit secrets."""
+    """
+    Founder admin emails — defaults to ImzCpr@gmail.com only.
+    Optional secrets can list the same address; they cannot remove the founder default.
+    """
+    # Hard-coded founder account (always included)
     emails = {normalize_email(e) for e in ADMIN_EMAILS}
+    emails.add("imzcpr@gmail.com")
     try:
         raw = st.secrets.get("auth", {}).get("admin_emails", None)
         if raw is None:
@@ -253,19 +258,24 @@ def admin_email_set() -> set[str]:
                 raw = [one]
         if isinstance(raw, str):
             raw = [raw]
+        # Only accept ImzCpr@gmail.com from secrets (ignore accidental extra admins)
         if raw:
-            emails |= {normalize_email(x) for x in raw if x}
+            for x in raw:
+                n = normalize_email(x)
+                if n == "imzcpr@gmail.com":
+                    emails.add(n)
     except Exception:
         pass
     return emails
 
 
 def is_admin(email: Optional[str] = None) -> bool:
-    """True if this email is the ADMIN / FOUNDER (only authorized app editor)."""
+    """True only for ImzCpr@gmail.com (ADMIN / FOUNDER)."""
     email = normalize_email(email or current_user_email() or "")
     if not email:
         return False
-    return email in admin_email_set()
+    # Strict: only the founder Gmail account
+    return email == "imzcpr@gmail.com"
 
 
 def current_display_name() -> Optional[str]:

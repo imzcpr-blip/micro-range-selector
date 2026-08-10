@@ -16,9 +16,9 @@ RULEBOOK_BASE_VERSION = "1.3"
 RULEBOOK_EDITION_DATE = "2026-08-10"
 CREATOR = "Raymon Michael Cooper"
 
-# Only this account is ADMIN / FOUNDER in-app (case-insensitive).
-# Extend via secrets: [auth] admin_emails = ["ImzCpr@gmail.com"]
+# ONLY this account may see/use the Admin / Founder panel (case-insensitive).
 ADMIN_EMAILS = ("imzcpr@gmail.com",)
+ADMIN_EMAIL = "imzcpr@gmail.com"
 ADMIN_ROLE_LABEL = "ADMIN / FOUNDER"
 
 

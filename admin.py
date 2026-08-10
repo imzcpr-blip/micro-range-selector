@@ -31,14 +31,18 @@ def is_current_user_admin() -> bool:
 
 
 def require_admin() -> bool:
-    """Return True if current user is admin; otherwise show denied UI."""
-    if is_current_user_admin():
+    """Return True only for ImzCpr@gmail.com; otherwise deny and hide content."""
+    email = (current_user_email() or "").strip().lower()
+    if email == "imzcpr@gmail.com" and is_current_user_admin():
         return True
-    st.error("**Access denied.** Only the ADMIN / FOUNDER can open this area.")
+    st.error("**Access denied.** The Admin / Founder panel is only visible to the founder.")
     st.info(
-        f"Application edits and domain administration are reserved for "
-        f"**{FOUNDER_NAME}** (ADMIN / FOUNDER)."
+        f"Only **{FOUNDER_NAME}** (`ImzCpr@gmail.com`) as **ADMIN / FOUNDER** "
+        f"can open this panel and edit application administration."
     )
+    # Bounce non-admins away from this page in the nav widget
+    if st.session_state.get("nav_page") == "Admin / Founder":
+        st.session_state["nav_page"] = "Session Selector"
     return False
 
 

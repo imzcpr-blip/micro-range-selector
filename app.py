@@ -157,19 +157,29 @@ PAGE_BRANDING = "Company Branding"
 PAGE_ABOUT = "About the Founder"
 PAGE_ADMIN = "Admin / Founder"
 
+# Member nav — Admin / Founder page is NEVER listed for non-admins
 _nav_pages = [PAGE_SELECTOR, PAGE_JOURNAL, PAGE_CHAT, PAGE_BRANDING, PAGE_ABOUT]
-if is_current_user_admin():
-    _nav_pages.append(PAGE_ADMIN)
+_is_founder = is_current_user_admin()
+if _is_founder:
+    _nav_pages = _nav_pages + [PAGE_ADMIN]
+
+# Clear stale Streamlit radio state if a non-admin still has Admin selected
+if not _is_founder and st.session_state.get("nav_page") == PAGE_ADMIN:
+    st.session_state["nav_page"] = PAGE_SELECTOR
 
 page = st.sidebar.radio(
     "Navigate",
     _nav_pages,
-    index=0,
+    key="nav_page",
 )
 st.sidebar.markdown("---")
 
-# ── Admin / Founder only ──────────────────────────────────────────────────
+# ── Admin / Founder only (hard gate — not visible or usable by members) ───
 if page == PAGE_ADMIN:
+    if not _is_founder:
+        st.session_state["nav_page"] = PAGE_SELECTOR
+        st.warning("The Admin / Founder panel is only available to the founder account.")
+        st.rerun()
     render_admin_panel()
     st.stop()
 
