@@ -447,6 +447,9 @@ A craft built, tested, and refined — not copied.
         "It does not place orders and is not financial advice. "
         "Futures trading involves substantial risk of loss."
     )
+    from disclosure import render_disclosure_footer
+
+    render_disclosure_footer()
     st.caption(f"© 2026 {FOUNDER_NAME}. All rights reserved.")
     st.stop()
 
@@ -1163,11 +1166,12 @@ if _rb_base_main.is_file():
             "On this page the journal sits next to the Quick Reference so you can take notes live."
         )
 
+from disclosure import render_disclosure_footer
+
+render_disclosure_footer()
 st.caption(
-    f"Disclaimer: Personal trading tool aligned to {PROTOCOL_NAME} "
-    f"Official Rulebook v{RULEBOOK_VERSION} (Final). "
-    "Futures trading involves substantial risk of loss. "
-    "This app does not place orders and is not financial advice. Data via Yahoo Finance (delayed). "
+    f"Personal tool aligned to {PROTOCOL_NAME} Official Rulebook v{RULEBOOK_VERSION} (Final). "
+    "Does not place orders. Market data via Yahoo Finance (delayed). "
     f"© 2026 {CREATOR}."
 )
 

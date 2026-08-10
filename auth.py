@@ -388,6 +388,12 @@ Then you’ll have full access to the tool.
 """
     )
 
+    # Full disclosure on landing (always visible / open)
+    from disclosure import render_disclosure
+
+    st.markdown("---")
+    render_disclosure(expanded=True)
+
     st.markdown("---")
     st.subheader("Member access")
 
@@ -437,8 +443,10 @@ Then you’ll have full access to the tool.
                 autocomplete="new-password",
             )
             agree = st.checkbox(
-                "I understand this is a personal trading tool, not financial advice, "
-                "and futures trading involves substantial risk of loss.",
+                "I have read and agree to the Acknowledgement & Disclosure above. "
+                "I understand CPRP is not personalized financial advice, "
+                "futures trading involves substantial risk of loss, "
+                "and I participate at my own risk.",
                 key="signup_agree",
             )
             submitted = st.form_submit_button(
@@ -477,7 +485,7 @@ Then you’ll have full access to the tool.
     st.caption(
         f"CPRP Trading Strategies · Session Micro Range Selector Tool  \n"
         f"Accounts use email + password (hashed). After signup, choose a custom username.  \n"
-        f"© {CREATOR}."
+        f"Not financial advice. © {CREATOR}."
     )
     return False
 

@@ -137,6 +137,13 @@ This is an external YouTube live stream — CPRP is not affiliated with Bloomber
 - Direct link: [{BLOOMBERG_WATCH_URL}]({BLOOMBERG_WATCH_URL})
 """
     )
+    st.caption(
+        "External news stream only. Not affiliated with Bloomberg or YouTube. "
+        "Not financial advice — see Acknowledgement & Disclosure."
+    )
+    from disclosure import render_disclosure
+
+    render_disclosure(expanded=False)
 
 
 def render_bloomberg_audio_option(*, key_prefix: str, height: int = 280) -> None:

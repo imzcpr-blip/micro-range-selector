@@ -281,6 +281,9 @@ def render_member_chat(
     st.caption(
         "Live chat for signed-in CPRP members. Be respectful — this is a community space, not financial advice."
     )
+    from disclosure import render_disclosure
+
+    render_disclosure(expanded=False)
 
     top_l, top_r = st.columns([1, 2])
     with top_l:

@@ -140,3 +140,18 @@ This transition isn’t about escaping work. It’s about taking the same reliab
 FOUNDER_TAGLINE = (
     "Father, researcher, and builder of CPRP — structure, data, and deliberate discipline."
 )
+
+# Legal / community disclosure (landing page + key member pages)
+DISCLOSURE_TITLE = "Acknowledgement & Disclosure"
+DISCLOSURE_BODY = """
+The Cooper Precision Reversion Protocol (CPRP), including all related tools, rulebooks, guidelines, applications, and educational materials, has been developed solely for my personal use as an independent day trader. I am freely sharing these resources with others who may find them useful.
+
+Nothing contained in this protocol, its tools, or any associated community discussions constitutes personalized financial, investment, or trading advice. Every trader is solely responsible for their own decisions, risk management, and results. Futures trading involves substantial risk of loss and is not suitable for all individuals. Past performance is not indicative of future results.
+
+This is a free, informal community of independent day traders who choose to share ideas, observations, and understanding with one another. Participation is voluntary. No one is obligated to follow any strategy, rule, or suggestion shared here.
+
+By accessing or using any CPRP materials or participating in related discussions, you acknowledge that you do so at your own risk and that I accept no liability for any trading decisions, losses, or outcomes that may result.
+
+— **Raymon Michael Cooper**  
+Founder, CPRP Strategies
+""".strip()

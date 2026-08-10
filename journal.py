@@ -824,6 +824,9 @@ def render_journal_page(default_micro: str = "") -> None:
         "Your private session log. Review past trades, results, and lessons. "
         "On the Session Selector page, the journal also sits side-by-side with the Quick Reference."
     )
+    from disclosure import render_disclosure
+
+    render_disclosure(expanded=False)
 
     # Side-by-side on this page too for convenience
     left, right = st.columns([1, 1], gap="large")

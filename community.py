@@ -197,8 +197,11 @@ def render_community_panel() -> None:
     st.title("Community")
     st.caption(
         "Share trading ideas with other CPRP members — text and optional chart images. "
-        "Be respectful. Not financial advice; ideas only."
+        "Be respectful. Ideas only — not financial advice."
     )
+    from disclosure import render_disclosure
+
+    render_disclosure(expanded=False)
 
     st.markdown(f"Posting as **{display}**")
 
