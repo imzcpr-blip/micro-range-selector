@@ -111,10 +111,12 @@ BRANDING_LOGO_VIDEO = _ASSETS / "cprp_logo_video.gif"
 BRANDING_LOGO_VIDEO_ALT = _ASSETS / "cprp_logo_video_alt.gif"
 BRANDING_LOGO_ICON = _ASSETS / "cprp_logo_icon.jpg"  # favicon / tiny fallback only
 BRANDING_LOGO_IMAGE = _ASSETS / "cprp_logo_primary.jpg"  # static fallback
-# Official CPRP seal (landing page + branding suite)
-BRANDING_OFFICIAL_SEAL = _ASSETS / "cprp_official_seal.jpg"
+# Official CPRP seal (landing page + branding suite) — PNG has transparent background
+BRANDING_OFFICIAL_SEAL = _ASSETS / "cprp_official_seal.png"
+BRANDING_OFFICIAL_SEAL_JPG = _ASSETS / "cprp_official_seal.jpg"  # original fallback
 BRANDING_OFFICIAL_SEAL_ANIM = _ASSETS / "cprp_official_seal_anim.gif"
-BRANDING_OFFICIAL_SEAL_BRAND = BRANDING_DIR / "cprp_official_seal.jpg"
+BRANDING_OFFICIAL_SEAL_BRAND = BRANDING_DIR / "cprp_official_seal.png"
+BRANDING_OFFICIAL_SEAL_BRAND_JPG = BRANDING_DIR / "cprp_official_seal.jpg"
 BRANDING_OFFICIAL_SEAL_ANIM_BRAND = BRANDING_DIR / "cprp_official_seal_anim.gif"
 BRANDING_BANNER = _ASSETS / "cprp_banner_horizontal.jpg"
 MEMBER_CHAT_HERO_VIDEO = _ASSETS / "cprp_member_chat_hero.gif"

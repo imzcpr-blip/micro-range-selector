@@ -87,6 +87,7 @@ BRANDING_MAP: dict[str, str] = {
 # Primary app files kept at assets/ root (synced from branding when newer)
 PRIMARY_BRANDING_LINKS: list[tuple[str, str]] = [
     # Prefer new official suite for app chrome when available
+    ("cprp_official_seal.png", "cprp_official_seal.png"),
     ("cprp_official_seal.jpg", "cprp_official_seal.jpg"),
     ("cprp_official_seal_anim.gif", "cprp_official_seal_anim.gif"),
     ("cprp_icon_minimal.jpg", "cprp_logo_icon.jpg"),
@@ -342,13 +343,16 @@ def list_branding_images() -> list[Path]:
 
 
 def list_official_brand_suite() -> list[tuple[str, Path]]:
-    """Ordered official 2026 brand stills (label, path)."""
+    """Ordered official 2026 brand stills (label, path). Prefer transparent seal PNG."""
+    seal_png = BRANDING_DIR / "cprp_official_seal.png"
+    seal_jpg = BRANDING_DIR / "cprp_official_seal.jpg"
+    seal_path = seal_png if seal_png.is_file() else seal_jpg
     suite = [
         ("Candlestick brand logo", BRANDING_DIR / "cprp_brand_logo_candlestick.jpg"),
         ("Support / Resistance brand logo", BRANDING_DIR / "cprp_brand_logo_support_resistance.jpg"),
         ("Minimal icon", BRANDING_DIR / "cprp_icon_minimal.jpg"),
         ("Horizontal banner", BRANDING_DIR / "cprp_banner_horizontal.jpg"),
-        ("Official Seal", BRANDING_DIR / "cprp_official_seal.jpg"),
+        ("Official Seal", seal_path),
     ]
     return [(label, p) for label, p in suite if p.is_file()]
 

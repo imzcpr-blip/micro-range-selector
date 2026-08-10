@@ -33,6 +33,8 @@ from config import (
     BRANDING_OFFICIAL_SEAL_ANIM,
     BRANDING_OFFICIAL_SEAL_ANIM_BRAND,
     BRANDING_OFFICIAL_SEAL_BRAND,
+    BRANDING_OFFICIAL_SEAL_BRAND_JPG,
+    BRANDING_OFFICIAL_SEAL_JPG,
     CREATOR,
     PROTOCOL_SHORT,
 )
@@ -330,21 +332,25 @@ def logout() -> None:
 
 
 def _render_landing_branding() -> None:
-    """Official Seal only on the public welcome landing page (no video/logo below)."""
+    """Official Seal only on the public welcome landing page (transparent PNG preferred)."""
     seal_candidates = [
-        Path(BRANDING_OFFICIAL_SEAL),
-        Path(BRANDING_OFFICIAL_SEAL_BRAND),
+        Path(BRANDING_OFFICIAL_SEAL),           # transparent PNG
+        Path(BRANDING_OFFICIAL_SEAL_BRAND),     # branding transparent PNG
+        Path(BRANDING_OFFICIAL_SEAL_JPG),       # jpg fallback
+        Path(BRANDING_OFFICIAL_SEAL_BRAND_JPG),
         Path(BRANDING_OFFICIAL_SEAL_ANIM),
         Path(BRANDING_OFFICIAL_SEAL_ANIM_BRAND),
     ]
     for p in seal_candidates:
         if p.is_file():
-            # Prefer static seal JPG over animated GIF for a clean, single-mark landing
+            # Prefer static transparent PNG/JPG over animated GIF
             if p.suffix.lower() == ".gif" and any(
-                Path(s).is_file() and Path(s).suffix.lower() in {".jpg", ".jpeg", ".png"}
+                Path(s).is_file() and Path(s).suffix.lower() in {".png", ".jpg", ".jpeg"}
                 for s in (
                     BRANDING_OFFICIAL_SEAL,
                     BRANDING_OFFICIAL_SEAL_BRAND,
+                    BRANDING_OFFICIAL_SEAL_JPG,
+                    BRANDING_OFFICIAL_SEAL_BRAND_JPG,
                 )
             ):
                 continue

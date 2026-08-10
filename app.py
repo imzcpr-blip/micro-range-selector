@@ -45,6 +45,8 @@ from config import (
     BRANDING_OFFICIAL_SEAL_ANIM,
     BRANDING_OFFICIAL_SEAL_ANIM_BRAND,
     BRANDING_OFFICIAL_SEAL_BRAND,
+    BRANDING_OFFICIAL_SEAL_BRAND_JPG,
+    BRANDING_OFFICIAL_SEAL_JPG,
     CREATOR,
     MEMBER_CHAT_HERO_IMAGE,
     MEMBER_CHAT_HERO_VIDEO,
@@ -302,24 +304,32 @@ if page == PAGE_BRANDING:
         desk_tag="BRAND DESK · CORPORATE IDENTITY",
     )
 
-    # Official Seal hero
+    # Official Seal hero (transparent PNG preferred)
     desk_section("Official Seal", side="bull")
     seal_cols = st.columns([1, 1.4, 1])
     with seal_cols[1]:
         seal_shown = False
         for p in (
+            Path(BRANDING_OFFICIAL_SEAL),           # transparent PNG
+            Path(BRANDING_OFFICIAL_SEAL_BRAND),
             Path(BRANDING_OFFICIAL_SEAL_ANIM),
             Path(BRANDING_OFFICIAL_SEAL_ANIM_BRAND),
-            Path(BRANDING_OFFICIAL_SEAL),
-            Path(BRANDING_OFFICIAL_SEAL_BRAND),
+            Path(BRANDING_OFFICIAL_SEAL_JPG),
+            Path(BRANDING_OFFICIAL_SEAL_BRAND_JPG),
         ):
             if p.is_file():
                 st.image(str(p), use_container_width=True, caption="CPRP Official Seal")
+                mime = {
+                    ".gif": "image/gif",
+                    ".png": "image/png",
+                    ".jpg": "image/jpeg",
+                    ".jpeg": "image/jpeg",
+                }.get(p.suffix.lower(), "application/octet-stream")
                 st.download_button(
                     label=f"📁 Download {p.name}",
                     data=p.read_bytes(),
                     file_name=p.name,
-                    mime="image/gif" if p.suffix.lower() == ".gif" else "image/jpeg",
+                    mime=mime,
                     key=f"dl_seal_{p.name}",
                     use_container_width=True,
                 )
