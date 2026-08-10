@@ -1,0 +1,275 @@
+"""
+Simple email + password auth for CPRP Session Micro Selector.
+
+- Username = email address
+- Passwords stored as salted PBKDF2 hashes (never plain text)
+- Signups are recorded and can trigger owner email notification
+"""
+
+from __future__ import annotations
+
+import hashlib
+import hmac
+import re
+import secrets
+import sqlite3
+from dataclasses import dataclass
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Optional
+
+import streamlit as st
+
+from config import APP_NAME, CREATOR, PROTOCOL_SHORT
+
+DATA_DIR = Path(__file__).resolve().parent / "data"
+DB_PATH = DATA_DIR / "users.db"
+SUBSCRIBERS_CSV = DATA_DIR / "subscribers.csv"
+
+EMAIL_RE = re.compile(r"^[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}$")
+MIN_PASSWORD_LEN = 8
+PBKDF2_ITERATIONS = 200_000
+
+
+@dataclass
+class UserRecord:
+    email: str
+    created_at: str
+
+
+def _pepper() -> str:
+    try:
+        return str(st.secrets.get("auth", {}).get("pepper", "") or "")
+    except Exception:
+        return ""
+
+
+def _conn() -> sqlite3.Connection:
+    DATA_DIR.mkdir(parents=True, exist_ok=True)
+    con = sqlite3.connect(DB_PATH, check_same_thread=False)
+    con.execute(
+        """
+        CREATE TABLE IF NOT EXISTS users (
+            email TEXT PRIMARY KEY COLLATE NOCASE,
+            password_hash TEXT NOT NULL,
+            salt TEXT NOT NULL,
+            created_at TEXT NOT NULL
+        )
+        """
+    )
+    con.commit()
+    return con
+
+
+def normalize_email(email: str) -> str:
+    return (email or "").strip().lower()
+
+
+def is_valid_email(email: str) -> bool:
+    return bool(EMAIL_RE.match(normalize_email(email)))
+
+
+def _hash_password(password: str, salt_hex: str) -> str:
+    material = (password + _pepper()).encode("utf-8")
+    salt = bytes.fromhex(salt_hex)
+    digest = hashlib.pbkdf2_hmac("sha256", material, salt, PBKDF2_ITERATIONS)
+    return digest.hex()
+
+
+def user_exists(email: str) -> bool:
+    email = normalize_email(email)
+    with _conn() as con:
+        row = con.execute("SELECT 1 FROM users WHERE email = ?", (email,)).fetchone()
+    return row is not None
+
+
+def create_user(email: str, password: str) -> tuple[bool, str]:
+    """Register a new user. Returns (ok, message)."""
+    email = normalize_email(email)
+    if not is_valid_email(email):
+        return False, "Please enter a valid email address."
+    if len(password or "") < MIN_PASSWORD_LEN:
+        return False, f"Password must be at least {MIN_PASSWORD_LEN} characters."
+    if user_exists(email):
+        return False, "An account with this email already exists. Please log in."
+
+    salt_hex = secrets.token_hex(16)
+    pw_hash = _hash_password(password, salt_hex)
+    created = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
+
+    try:
+        with _conn() as con:
+            con.execute(
+                "INSERT INTO users (email, password_hash, salt, created_at) VALUES (?, ?, ?, ?)",
+                (email, pw_hash, salt_hex, created),
+            )
+            con.commit()
+    except sqlite3.IntegrityError:
+        return False, "An account with this email already exists. Please log in."
+
+    _append_subscriber_csv(email, created)
+    return True, "Account created. You can use the tool now."
+
+
+def verify_login(email: str, password: str) -> tuple[bool, str]:
+    email = normalize_email(email)
+    if not is_valid_email(email):
+        return False, "Please enter a valid email address."
+    with _conn() as con:
+        row = con.execute(
+            "SELECT password_hash, salt FROM users WHERE email = ?",
+            (email,),
+        ).fetchone()
+    if not row:
+        return False, "No account found for that email. Please sign up."
+    stored_hash, salt_hex = row
+    candidate = _hash_password(password, salt_hex)
+    if not hmac.compare_digest(stored_hash, candidate):
+        return False, "Incorrect password."
+    return True, "Logged in."
+
+
+def _append_subscriber_csv(email: str, created_at: str) -> None:
+    DATA_DIR.mkdir(parents=True, exist_ok=True)
+    new_file = not SUBSCRIBERS_CSV.is_file()
+    with SUBSCRIBERS_CSV.open("a", encoding="utf-8") as f:
+        if new_file:
+            f.write("email,created_at\n")
+        f.write(f"{email},{created_at}\n")
+
+
+def list_subscribers() -> list[UserRecord]:
+    with _conn() as con:
+        rows = con.execute(
+            "SELECT email, created_at FROM users ORDER BY created_at DESC"
+        ).fetchall()
+    return [UserRecord(email=r[0], created_at=r[1]) for r in rows]
+
+
+def is_logged_in() -> bool:
+    return bool(st.session_state.get("auth_email"))
+
+
+def current_user_email() -> Optional[str]:
+    return st.session_state.get("auth_email")
+
+
+def logout() -> None:
+    for key in ("auth_email", "auth_just_signed_up"):
+        if key in st.session_state:
+            del st.session_state[key]
+
+
+def require_login() -> bool:
+    """
+    Render login/signup UI if needed.
+    Returns True when the user is authenticated and the main app may run.
+    """
+    if is_logged_in():
+        return True
+
+    st.markdown(
+        f"""
+# Welcome to {APP_NAME}
+
+**{PROTOCOL_SHORT}** by {CREATOR}
+
+Sign up or log in to use the session micro selector.  
+Your email is used as your username and added to the founder’s subscriber list.
+"""
+    )
+
+    tab_login, tab_signup = st.tabs(["Log in", "Sign up"])
+
+    with tab_login:
+        with st.form("login_form", clear_on_submit=False):
+            email = st.text_input("Email", key="login_email", autocomplete="username")
+            password = st.text_input(
+                "Password",
+                type="password",
+                key="login_password",
+                autocomplete="current-password",
+            )
+            submitted = st.form_submit_button("Log in", type="primary", use_container_width=True)
+        if submitted:
+            ok, msg = verify_login(email, password)
+            if ok:
+                st.session_state.auth_email = normalize_email(email)
+                st.success(msg)
+                st.rerun()
+            else:
+                st.error(msg)
+
+    with tab_signup:
+        st.caption(
+            f"Create a free account. Password must be at least {MIN_PASSWORD_LEN} characters. "
+            "You’ll receive access immediately; the founder is notified of new subscribers by email."
+        )
+        with st.form("signup_form", clear_on_submit=False):
+            email = st.text_input("Email (username)", key="signup_email", autocomplete="username")
+            password = st.text_input(
+                "Password",
+                type="password",
+                key="signup_password",
+                autocomplete="new-password",
+            )
+            password2 = st.text_input(
+                "Confirm password",
+                type="password",
+                key="signup_password2",
+                autocomplete="new-password",
+            )
+            agree = st.checkbox(
+                "I understand this is a personal trading tool, not financial advice, "
+                "and futures trading involves substantial risk of loss.",
+                key="signup_agree",
+            )
+            submitted = st.form_submit_button("Create account", type="primary", use_container_width=True)
+
+        if submitted:
+            if not agree:
+                st.error("Please confirm the risk acknowledgment to sign up.")
+            elif password != password2:
+                st.error("Passwords do not match.")
+            else:
+                ok, msg = create_user(email, password)
+                if ok:
+                    # Notify owner (best-effort; never block signup if email fails)
+                    notify_error = None
+                    try:
+                        from emailer import notify_owner_of_signup
+
+                        notify_owner_of_signup(normalize_email(email))
+                    except Exception as exc:  # noqa: BLE001
+                        notify_error = str(exc)
+
+                    st.session_state.auth_email = normalize_email(email)
+                    st.session_state.auth_just_signed_up = True
+                    st.success(msg)
+                    if notify_error:
+                        st.warning(
+                            "Account created, but the subscriber notification email could not be sent. "
+                            f"(Owner setup issue: check Streamlit secrets / SMTP.)"
+                        )
+                    st.rerun()
+                else:
+                    st.error(msg)
+
+    st.markdown("---")
+    st.caption(
+        f"Accounts use email + password only. Passwords are stored hashed. "
+        f"© {CREATOR}."
+    )
+    return False
+
+
+def render_account_sidebar() -> None:
+    """Show logged-in user + logout in the sidebar."""
+    email = current_user_email()
+    if not email:
+        return
+    st.sidebar.markdown("---")
+    st.sidebar.markdown(f"**Signed in**  \n`{email}`")
+    if st.sidebar.button("Log out", use_container_width=True):
+        logout()
+        st.rerun()

@@ -17,6 +17,7 @@ import streamlit as st
 
 from alerts import RecommendationTracker
 from analyzer import analyze_all, fetch_bars
+from auth import render_account_sidebar, require_login
 from config import (
     APP_NAME,
     BRANDING_DIR,
@@ -57,7 +58,12 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# Session state
+# ── Auth gate (email = username + password) ───────────────────────────────
+# Public visitors must sign up / log in before using the tool.
+if not require_login():
+    st.stop()
+
+# Session state (only after login)
 if "tracker" not in st.session_state:
     st.session_state.tracker = RecommendationTracker()
 if "last_rec" not in st.session_state:
@@ -73,13 +79,6 @@ if "doc_sync_done" not in st.session_state:
 # On Streamlit Community Cloud there is no local CPRP Trading folder — skip silently.
 if not st.session_state.doc_sync_done:
     try:
-        import os
-
-        _is_cloud = bool(
-            os.environ.get("STREAMLIT_SHARING_MODE")
-            or os.environ.get("STREAMLIT_SERVER_PORT")
-            and not Path(r"C:\Users\imzcp\OneDrive\Desktop\CPRP Trading").is_dir()
-        )
         if Path(r"C:\Users\imzcp\OneDrive\Desktop\CPRP Trading").is_dir():
             st.session_state.doc_sync_report = sync_cprp_assets()
         else:
@@ -96,6 +95,7 @@ if Path(BRANDING_LOGO_ICON).is_file():
     st.sidebar.image(str(BRANDING_LOGO_ICON), use_container_width=True)
 st.sidebar.title(f"{PROTOCOL_SHORT}")
 st.sidebar.caption(f"Rulebook v{RULEBOOK_VERSION} · {CREATOR}")
+render_account_sidebar()
 
 PAGE_SELECTOR = "Session Selector"
 PAGE_BRANDING = "Company Branding"

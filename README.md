@@ -40,6 +40,36 @@ python run_once.py --watch 60 --alert
 
 Or double-click `Start-Dashboard.bat` / `Start-Watch.bat`.
 
+## Accounts & subscriber list (email + password)
+
+Visitors must **sign up or log in** before using the tool.
+
+- **Username** = email address  
+- **Password** = min 8 characters (stored hashed, never plain text)  
+- On **sign up**, an email is sent to you with the new subscriber address (subscriber list)
+
+### Configure email (required for signup alerts)
+
+1. Copy `.streamlit/secrets.toml.example` → `.streamlit/secrets.toml` (local).
+2. Fill in your SMTP settings (Gmail: use an [App Password](https://myaccount.google.com/apppasswords)).
+3. On **Streamlit Cloud**: App → **Settings** → **Secrets** → paste the same TOML.
+
+```toml
+[auth]
+notify_email = "your-email@example.com"
+pepper = "long-random-string"
+
+[smtp]
+host = "smtp.gmail.com"
+port = 587
+username = "your-email@example.com"
+password = "your-app-password"
+from_email = "your-email@example.com"
+```
+
+Local copies of accounts live in `data/users.db` (gitignored).  
+**Note:** Streamlit Community Cloud’s disk is temporary — after a full redeploy, the user database may reset. Your **email inbox** remains the durable subscriber list. For permanent cloud storage later, we can move users to a free database (e.g. Supabase).
+
 ## Deploy (public link — Streamlit Community Cloud)
 
 GitHub repository (public): **https://github.com/imzcpr-blip/micro-range-selector**
