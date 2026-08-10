@@ -41,6 +41,8 @@ from config import (
     BRANDING_LOGO_IMAGE,
     BRANDING_LOGO_VIDEO,
     BRANDING_LOGO_VIDEO_ALT,
+    SESSION_SELECTOR_VIDEO,
+    SESSION_SELECTOR_VIDEO_BRAND,
     BRANDING_OFFICIAL_SEAL,
     BRANDING_OFFICIAL_SEAL_ANIM,
     BRANDING_OFFICIAL_SEAL_ANIM_BRAND,
@@ -288,11 +290,8 @@ if page == PAGE_JOURNAL:
 # ── Member Chat page ──────────────────────────────────────────────────────
 if page == PAGE_CHAT:
     render_bloomberg_audio_option(key_prefix="chat_bb", height=260)
-    render_member_chat(
-        hero_video=Path(MEMBER_CHAT_HERO_VIDEO),
-        hero_image=Path(MEMBER_CHAT_HERO_IMAGE),
-        logo_video=Path(BRANDING_LOGO_VIDEO),
-    )
+    # No hero video/image on Member Chat — desk header only
+    render_member_chat()
     st.stop()
 
 # ── Company Branding page ─────────────────────────────────────────────────
@@ -899,17 +898,18 @@ st.sidebar.markdown("---")
 st.sidebar.caption(f"Pages: Selector · Branding · About · © {CREATOR}")
 
 # ══════════════════════════════════════════════════════════════════════════
-# MAIN — branding logo video + description + analysis
+# MAIN — Session Selector header video + description + analysis
 # ══════════════════════════════════════════════════════════════════════════
-# Branding banner: looping logo GIF (fallback to still)
+# Session Selector banner: official branding video (grok_video …09-51-29.mp4)
 if not _play_logo_video(
+    Path(SESSION_SELECTOR_VIDEO),
+    Path(SESSION_SELECTOR_VIDEO_BRAND),
+    Path(BRANDING_DIR) / "cprp_logo_video_variant_2.mp4",
     Path(BRANDING_LOGO_VIDEO),
     Path(BRANDING_LOGO_VIDEO_ALT),
-    Path(BRANDING_DIR) / "cprp_logo_video_main.gif",
-    Path(BRANDING_DIR) / "cprp_logo_video_main.mp4",
     Path(BRANDING_LOGO_IMAGE),
 ):
-    st.warning("CPRP branding logo GIF not found in assets/.")
+    st.warning("CPRP Session Selector video not found in assets/.")
 
 # Bloomberg Live audio/video option on main Session Selector page
 render_bloomberg_audio_option(key_prefix="main_bb", height=280)
