@@ -40,6 +40,43 @@ python run_once.py --watch 60 --alert
 
 Or double-click `Start-Dashboard.bat` / `Start-Watch.bat`.
 
+## Deploy (public link — Streamlit Community Cloud)
+
+GitHub repository (public): **https://github.com/imzcpr-blip/micro-range-selector**
+
+1. Open **[https://share.streamlit.io](https://share.streamlit.io)** (or [streamlit.io/cloud](https://streamlit.io/cloud)).
+2. Sign in with **GitHub** and authorize Streamlit.
+3. Click **Create app** / **New app**.
+4. Choose:
+   - **Repository:** `imzcpr-blip/micro-range-selector`
+   - **Branch:** `main`
+   - **Main file path:** `app.py`
+5. Click **Deploy**.
+
+Your shareable URL will look like: `https://<app-name>.streamlit.app`
+
+### If the in-app **Deploy** button says “not connected to a remote”
+
+That button only works when you launch Streamlit from the Git-connected folder **and** `git` is on PATH.
+
+1. Use: `C:\Users\imzcp\micro-range-selector` (not the Desktop copy — that folder has no Git remote).
+2. Confirm:
+
+```powershell
+cd C:\Users\imzcp\micro-range-selector
+git remote -v
+# origin https://github.com/imzcpr-blip/micro-range-selector.git
+```
+
+3. Stop Streamlit completely, open a **new** terminal, then:
+
+```powershell
+cd C:\Users\imzcp\micro-range-selector
+python -m streamlit run app.py
+```
+
+**Recommended:** deploy from **share.streamlit.io** (steps above). That path does not depend on the local Deploy button.
+
 ### Grok skill: RunCPRP
 
 This project includes a Grok skill at `.grok/skills/run-cprp/`.
