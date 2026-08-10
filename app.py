@@ -41,6 +41,10 @@ from config import (
     BRANDING_LOGO_IMAGE,
     BRANDING_LOGO_VIDEO,
     BRANDING_LOGO_VIDEO_ALT,
+    BRANDING_OFFICIAL_SEAL,
+    BRANDING_OFFICIAL_SEAL_ANIM,
+    BRANDING_OFFICIAL_SEAL_ANIM_BRAND,
+    BRANDING_OFFICIAL_SEAL_BRAND,
     CREATOR,
     MEMBER_CHAT_HERO_IMAGE,
     MEMBER_CHAT_HERO_VIDEO,
@@ -66,7 +70,13 @@ from config import (
     RULEBOOK_VERSION,
     STRUCTURE_BREAK_PAUSE_MINUTES,
 )
-from sync_cprp_assets import list_branding_images, list_branding_videos, sync_cprp_assets
+from sync_cprp_assets import (
+    list_branding_images,
+    list_branding_videos,
+    list_official_brand_animated,
+    list_official_brand_suite,
+    sync_cprp_assets,
+)
 from wallstreet_ui import (
     candle_expander,
     desk_section,
@@ -287,17 +297,88 @@ if page == PAGE_CHAT:
 if page == PAGE_BRANDING:
     page_hero(
         "CPRP Company Branding",
-        f"Official looping logo GIFs and stills for **{PROTOCOL_NAME}** · animated GIFs by default",
+        f"Official brand suite for **{PROTOCOL_NAME}** · seal · logos · banners · animated media",
         side="bull",
         desk_tag="BRAND DESK · CORPORATE IDENTITY",
     )
 
-    # Hero GIF at top of branding page
+    # Official Seal hero
+    desk_section("Official Seal", side="bull")
+    seal_cols = st.columns([1, 1.4, 1])
+    with seal_cols[1]:
+        seal_shown = False
+        for p in (
+            Path(BRANDING_OFFICIAL_SEAL_ANIM),
+            Path(BRANDING_OFFICIAL_SEAL_ANIM_BRAND),
+            Path(BRANDING_OFFICIAL_SEAL),
+            Path(BRANDING_OFFICIAL_SEAL_BRAND),
+        ):
+            if p.is_file():
+                st.image(str(p), use_container_width=True, caption="CPRP Official Seal")
+                st.download_button(
+                    label=f"📁 Download {p.name}",
+                    data=p.read_bytes(),
+                    file_name=p.name,
+                    mime="image/gif" if p.suffix.lower() == ".gif" else "image/jpeg",
+                    key=f"dl_seal_{p.name}",
+                    use_container_width=True,
+                )
+                seal_shown = True
+                break
+        if not seal_shown:
+            st.warning("Official Seal not found — run branding sync.")
+
+    # Official numbered suite stills
+    desk_section("Official brand suite (stills)", side="bull")
+    suite = list_official_brand_suite()
+    if suite:
+        cols = st.columns(min(3, len(suite)))
+        for i, (label, img) in enumerate(suite):
+            with cols[i % len(cols)]:
+                st.markdown(f"**{label}**")
+                st.image(str(img), use_container_width=True)
+                st.download_button(
+                    label=f"📄 Download",
+                    data=img.read_bytes(),
+                    file_name=img.name,
+                    mime="image/jpeg",
+                    key=f"dl_suite_{img.name}",
+                    use_container_width=True,
+                )
+    else:
+        st.info("Official suite stills not found. Click **Sync branding & documents now**.")
+
+    # Official animated suite
+    desk_section("Official brand suite (animated)", side="bear")
+    anim_suite = list_official_brand_animated()
+    if anim_suite:
+        cols = st.columns(2)
+        for i, (label, media) in enumerate(anim_suite):
+            with cols[i % 2]:
+                st.markdown(f"**{label}**")
+                if media.suffix.lower() == ".gif":
+                    st.image(str(media), use_container_width=True)
+                    st.download_button(
+                        label="📁 Download GIF",
+                        data=media.read_bytes(),
+                        file_name=media.name,
+                        mime="image/gif",
+                        key=f"dl_anim_{media.name}",
+                        use_container_width=True,
+                    )
+                else:
+                    st.video(str(media), format="video/mp4", start_time=0, loop=True, muted=True)
+    else:
+        st.caption("No official animated brand media found yet.")
+
+    # Legacy / primary looping logo
+    desk_section("Primary logo motion (app chrome)", side="bull")
     _play_logo_video(
         Path(BRANDING_LOGO_VIDEO),
+        Path(BRANDING_DIR) / "cprp_brand_logo_candlestick_anim.gif",
         Path(BRANDING_DIR) / "cprp_logo_video_main.gif",
         Path(BRANDING_DIR) / "cprp_logo_video_main.mp4",
-        caption="Primary logo GIF (looping)",
+        caption="Primary logo motion (looping)",
     )
 
     with candle_expander("Brand sync & access control", side="bear", expanded=False, kind="folder"):
@@ -361,6 +442,11 @@ if page == PAGE_BRANDING:
         "cprp_logo_video_variant_3": "Logo motion GIF 3",
         "cprp_logo_video_variant_4": "Logo motion GIF 4",
         "cprp_member_chat_hero": "Member Chat hero GIF",
+        "cprp_brand_logo_candlestick_anim": "Candlestick brand (animated)",
+        "cprp_brand_logo_support_resistance_anim": "Support / Resistance brand (animated)",
+        "cprp_icon_minimal_anim": "Minimal icon (animated)",
+        "cprp_banner_horizontal_anim": "Horizontal banner (animated)",
+        "cprp_official_seal_anim": "Official Seal (animated)",
     }
 
     if ordered:
@@ -399,6 +485,11 @@ if page == PAGE_BRANDING:
 
     if imgs:
         label_map = {
+            "cprp_brand_logo_candlestick": "Candlestick brand logo",
+            "cprp_brand_logo_support_resistance": "Support / Resistance brand logo",
+            "cprp_icon_minimal": "Minimal icon",
+            "cprp_banner_horizontal": "Horizontal banner",
+            "cprp_official_seal": "Official Seal",
             "cprp_logo_square_monogram": "Square monogram",
             "cprp_logo_primary_chart": "Primary chart logo",
             "cprp_logo_minimal_dark": "Minimal dark",

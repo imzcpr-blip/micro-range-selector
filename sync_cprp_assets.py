@@ -52,6 +52,24 @@ DOC_RULES: list[tuple[str, str, str]] = [
 
 # Branding files to copy (source name under CPRP_Branding or roots → dest name)
 BRANDING_MAP: dict[str, str] = {
+    # ── Official 2026 brand suite (numbered stills) ──────────────────────
+    "01_CPRP_Brand_Logo_Candlestick.jpg": "cprp_brand_logo_candlestick.jpg",
+    "02_CPRP_Brand_Logo_Support_Resistance.jpg": "cprp_brand_logo_support_resistance.jpg",
+    "03_CPRP_Icon_Minimal.jpg": "cprp_icon_minimal.jpg",
+    "04_CPRP_Banner_Horizontal.jpg": "cprp_banner_horizontal.jpg",
+    "05_CPRP_Official_Seal.jpg": "cprp_official_seal.jpg",
+    # Animated suite (from CPRP_Branding/Animated/)
+    "01_CPRP_Brand_Logo_Candlestick_anim.gif": "cprp_brand_logo_candlestick_anim.gif",
+    "01_CPRP_Brand_Logo_Candlestick_anim.mp4": "cprp_brand_logo_candlestick_anim.mp4",
+    "02_CPRP_Brand_Logo_Support_Resistance_anim.gif": "cprp_brand_logo_support_resistance_anim.gif",
+    "02_CPRP_Brand_Logo_Support_Resistance_anim.mp4": "cprp_brand_logo_support_resistance_anim.mp4",
+    "03_CPRP_Icon_Minimal_anim.gif": "cprp_icon_minimal_anim.gif",
+    "03_CPRP_Icon_Minimal_anim.mp4": "cprp_icon_minimal_anim.mp4",
+    "04_CPRP_Banner_Horizontal_anim.gif": "cprp_banner_horizontal_anim.gif",
+    "04_CPRP_Banner_Horizontal_anim.mp4": "cprp_banner_horizontal_anim.mp4",
+    "05_CPRP_Official_Seal_anim.gif": "cprp_official_seal_anim.gif",
+    "05_CPRP_Official_Seal_anim.mp4": "cprp_official_seal_anim.mp4",
+    # ── Legacy suite (kept for compatibility) ────────────────────────────
     "CPRP_Logo_Square_Monogram.jpg": "cprp_logo_square_monogram.jpg",
     "CPRP_Logo_Primary_Chart.jpg": "cprp_logo_primary_chart.jpg",
     "CPRP_Logo_Minimal_Dark.jpg": "cprp_logo_minimal_dark.jpg",
@@ -68,12 +86,21 @@ BRANDING_MAP: dict[str, str] = {
 
 # Primary app files kept at assets/ root (synced from branding when newer)
 PRIMARY_BRANDING_LINKS: list[tuple[str, str]] = [
-    ("cprp_logo_square_monogram.jpg", "cprp_logo_icon.jpg"),
+    # Prefer new official suite for app chrome when available
+    ("cprp_official_seal.jpg", "cprp_official_seal.jpg"),
+    ("cprp_official_seal_anim.gif", "cprp_official_seal_anim.gif"),
+    ("cprp_icon_minimal.jpg", "cprp_logo_icon.jpg"),
+    ("cprp_brand_logo_candlestick.jpg", "cprp_logo_primary.jpg"),
+    ("cprp_banner_horizontal.jpg", "cprp_banner_horizontal.jpg"),
+    ("cprp_logo_square_monogram.jpg", "cprp_logo_icon.jpg"),  # fallback if icon missing
     ("cprp_logo_primary_chart.jpg", "cprp_logo_primary.jpg"),
     ("cprp_logo_primary_chart.jpg", "cprp_member_chat_poster.jpg"),
     ("cprp_logo_video_main.mp4", "cprp_logo_video.mp4"),
     ("cprp_logo_video_alt.mp4", "cprp_logo_video_alt.mp4"),
     ("cprp_logo_video_variant_1.mp4", "cprp_member_chat_hero.mp4"),
+    # Prefer animated candlestick brand as primary looping media when present
+    ("cprp_brand_logo_candlestick_anim.gif", "cprp_logo_video.gif"),
+    ("cprp_banner_horizontal_anim.gif", "cprp_logo_video_alt.gif"),
 ]
 
 
@@ -175,12 +202,15 @@ def sync_branding(search_roots: list[Path] | None = None, report: SyncReport | N
     roots = [r for r in (search_roots or DEFAULT_SEARCH_ROOTS) if r.is_dir()]
     BRANDING_DIR.mkdir(parents=True, exist_ok=True)
 
-    # Prefer dedicated branding folder when present
-    candidate_dirs = []
+    # Prefer dedicated branding folder (+ Animated subfolder) when present
+    candidate_dirs: list[Path] = []
     for r in roots:
         b = r / "CPRP_Branding"
         if b.is_dir():
             candidate_dirs.append(b)
+            anim = b / "Animated"
+            if anim.is_dir():
+                candidate_dirs.append(anim)
         candidate_dirs.append(r)
 
     found_names: set[str] = set()
@@ -198,11 +228,19 @@ def sync_branding(search_roots: list[Path] | None = None, report: SyncReport | N
             if dest_name not in report.missing:
                 report.missing.append(dest_name)
 
-    # Mirror primary branding into assets root for existing app paths
+    # Mirror primary branding into assets root for existing app paths.
+    # First match wins for each root_name so official suite can override legacy.
+    mirrored: set[str] = set()
     for brand_name, root_name in PRIMARY_BRANDING_LINKS:
+        if root_name in mirrored:
+            # Only skip if destination already exists from a preferred source this run
+            dest = ASSETS / root_name
+            if dest.is_file():
+                continue
         src = BRANDING_DIR / brand_name
         if src.is_file():
-            _copy_if_newer(src, ASSETS / root_name, report)
+            if _copy_if_newer(src, ASSETS / root_name, report) or (ASSETS / root_name).is_file():
+                mirrored.add(root_name)
 
     return report
 
@@ -303,14 +341,50 @@ def list_branding_images() -> list[Path]:
     return imgs
 
 
+def list_official_brand_suite() -> list[tuple[str, Path]]:
+    """Ordered official 2026 brand stills (label, path)."""
+    suite = [
+        ("Candlestick brand logo", BRANDING_DIR / "cprp_brand_logo_candlestick.jpg"),
+        ("Support / Resistance brand logo", BRANDING_DIR / "cprp_brand_logo_support_resistance.jpg"),
+        ("Minimal icon", BRANDING_DIR / "cprp_icon_minimal.jpg"),
+        ("Horizontal banner", BRANDING_DIR / "cprp_banner_horizontal.jpg"),
+        ("Official Seal", BRANDING_DIR / "cprp_official_seal.jpg"),
+    ]
+    return [(label, p) for label, p in suite if p.is_file()]
+
+
+def list_official_brand_animated() -> list[tuple[str, Path]]:
+    """Ordered official animated brand media (GIF preferred over MP4)."""
+    pairs = [
+        ("Candlestick logo (animated)", "cprp_brand_logo_candlestick_anim"),
+        ("Support / Resistance logo (animated)", "cprp_brand_logo_support_resistance_anim"),
+        ("Minimal icon (animated)", "cprp_icon_minimal_anim"),
+        ("Horizontal banner (animated)", "cprp_banner_horizontal_anim"),
+        ("Official Seal (animated)", "cprp_official_seal_anim"),
+    ]
+    out: list[tuple[str, Path]] = []
+    for label, stem in pairs:
+        gif = BRANDING_DIR / f"{stem}.gif"
+        mp4 = BRANDING_DIR / f"{stem}.mp4"
+        if gif.is_file():
+            out.append((label, gif))
+        elif mp4.is_file():
+            out.append((label, mp4))
+    return out
+
+
 def list_branding_videos() -> list[Path]:
-    """Return looping logo GIFs (preferred) plus any leftover MP4s."""
+    """Return looping brand GIFs (preferred) plus any leftover MP4s."""
     if not BRANDING_DIR.is_dir():
         return []
+    # Include logo / brand / seal / banner / icon animations
+    keywords = ("logo", "brand", "seal", "banner", "icon", "anim")
     gifs = [
         p
         for p in BRANDING_DIR.iterdir()
-        if p.suffix.lower() == ".gif" and p.is_file() and "logo" in p.name.lower()
+        if p.suffix.lower() == ".gif"
+        and p.is_file()
+        and any(k in p.name.lower() for k in keywords)
     ]
     mp4s = [
         p

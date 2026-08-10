@@ -29,6 +29,10 @@ from config import (
     BRANDING_LOGO_IMAGE,
     BRANDING_LOGO_VIDEO,
     BRANDING_LOGO_VIDEO_ALT,
+    BRANDING_OFFICIAL_SEAL,
+    BRANDING_OFFICIAL_SEAL_ANIM,
+    BRANDING_OFFICIAL_SEAL_ANIM_BRAND,
+    BRANDING_OFFICIAL_SEAL_BRAND,
     CREATOR,
     PROTOCOL_SHORT,
 )
@@ -326,20 +330,46 @@ def logout() -> None:
 
 
 def _render_landing_branding() -> None:
-    """Branding logo / GIF for the public welcome landing page."""
-    candidates = [
+    """Official Seal + brand media for the public welcome landing page."""
+    # Official Seal first (static preferred for fast load; animated if still only)
+    seal_candidates = [
+        Path(BRANDING_OFFICIAL_SEAL),
+        Path(BRANDING_OFFICIAL_SEAL_BRAND),
+        Path(BRANDING_OFFICIAL_SEAL_ANIM),
+        Path(BRANDING_OFFICIAL_SEAL_ANIM_BRAND),
+    ]
+    seal_shown = False
+    for p in seal_candidates:
+        if p.is_file():
+            left, mid, right = st.columns([1, 1.2, 1])
+            with mid:
+                st.image(
+                    str(p),
+                    use_container_width=True,
+                    caption="CPRP Official Seal",
+                )
+            seal_shown = True
+            break
+
+    # Optional brand motion / banner under the seal
+    motion_candidates = [
         Path(BRANDING_LOGO_VIDEO),
         Path(BRANDING_LOGO_VIDEO_ALT),
         Path(BRANDING_LOGO_IMAGE),
         Path(BRANDING_LOGO_ICON),
     ]
-    for p in candidates:
-        if p.is_file():
-            # Centered column for a clean landing look
-            _, mid, _ = st.columns([1, 2, 1])
-            with mid:
-                st.image(str(p), use_container_width=True)
-            return
+    for p in motion_candidates:
+        if not p.is_file():
+            continue
+        # Skip if it's the same seal file already shown
+        if seal_shown and "seal" in p.name.lower():
+            continue
+        _, mid, _ = st.columns([1, 2, 1])
+        with mid:
+            st.image(str(p), use_container_width=True)
+        return
+    if not seal_shown:
+        st.caption("CPRP branding media not found.")
 
 
 def require_login() -> bool:
