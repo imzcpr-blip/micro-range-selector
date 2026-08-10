@@ -350,23 +350,25 @@ def require_login() -> bool:
     if is_logged_in():
         return True
 
-    # ── Landing / welcome (Wall Street desk feel) ────────────────────────
-    from wallstreet_ui import candle_expander, inject_wallstreet_theme, market_tape, page_hero
+    # ── Landing / welcome (professional desk look; no BULL/BEAR labels) ──
+    from wallstreet_ui import inject_wallstreet_theme, market_tape, page_hero
 
     inject_wallstreet_theme()
     _render_landing_branding()
+    # Tape without bull/bear wording (glyphs only stripped on landing)
     market_tape()
     page_hero(
         "CPRP Trading Strategies",
         "Session Micro Range Selector · Cooper Precision Reversion Protocol · by Raymon Michael Cooper",
         side="bull",
-        desk_tag="MEMBER GATE · TRADING DESK",
+        desk_tag="MEMBER ACCESS · TRADING DESK",
     )
     st.markdown(
         "*Trade the boundaries. Respect the structure. Control the risk.*"
     )
 
-    with candle_expander("Access the Tool / Site", side="bull", expanded=True):
+    # Plain expanders on landing — no candle / BULL / BEAR prefixes in labels
+    with st.expander("Access the Tool / Site", expanded=True):
         st.markdown(
             f"""
 To use this site you need a free member account:
@@ -379,7 +381,7 @@ Without signing up or logging in, the Session Micro Range Selector, Trading Jour
 """
         )
 
-    with candle_expander("After you sign up — create a custom username", side="bear", expanded=False):
+    with st.expander("After you sign up — create a custom username", expanded=False):
         st.markdown(
             """
 Right after your account is created, you’ll be asked to choose a **custom public username**  
@@ -393,12 +395,21 @@ Then you’ll have full access to the tool.
 """
         )
 
-    # Full disclosure on landing (always visible / open)
-    from disclosure import render_disclosure, render_third_party_disclosure
+    # Full disclosure on landing — plain titles (no candle BULL/BEAR labels)
+    from config import (
+        DISCLOSURE_BODY,
+        DISCLOSURE_THIRD_PARTY_BODY,
+        DISCLOSURE_THIRD_PARTY_TITLE,
+        DISCLOSURE_TITLE,
+    )
 
     st.markdown("---")
-    render_disclosure(expanded=True)
-    render_third_party_disclosure(expanded=True)
+    with st.expander(DISCLOSURE_TITLE, expanded=True):
+        st.markdown(f"### {DISCLOSURE_TITLE}")
+        st.markdown(DISCLOSURE_BODY)
+    with st.expander(DISCLOSURE_THIRD_PARTY_TITLE, expanded=True):
+        st.markdown(f"### {DISCLOSURE_THIRD_PARTY_TITLE}")
+        st.markdown(DISCLOSURE_THIRD_PARTY_BODY)
 
     st.markdown("---")
     st.subheader("Member access")

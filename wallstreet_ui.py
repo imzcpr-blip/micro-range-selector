@@ -350,7 +350,6 @@ def market_tape(
 <div class="ws-tape">
   <span class="sym">{protocol}</span><span class="sep">|</span>
   <span>RULEBOOK <span class="bull">v{version}</span></span><span class="sep">|</span>
-  <span class="bull">▲</span> / <span class="bear">▼</span><span class="sep">|</span>
   <span class="sym">{instruments}</span><span class="sep">|</span>
   <span>HARD RISK <span class="bear">{risk}</span></span><span class="sep">|</span>
   <span>MICROS ONLY</span>
