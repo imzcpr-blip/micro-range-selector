@@ -163,7 +163,7 @@ st.sidebar.markdown(f"### {PROTOCOL_SHORT} DESK")
 st.sidebar.caption(f"Rulebook v{RULEBOOK_VERSION} · {CREATOR}")
 st.sidebar.markdown(
     '<p style="font-family:IBM Plex Mono,monospace;font-size:0.72rem;color:#64748b;">'
-    "🟢🕯️ BULL panel · 🔴🕯️ BEAR panel — expand for detail</p>",
+    "🟢🕯️ / 🔴🕯️ candle panels — expand for detail</p>",
     unsafe_allow_html=True,
 )
 render_account_sidebar()
@@ -860,7 +860,7 @@ with candle_expander("Purpose, who it’s for, and how it fits your process", si
 
 st.info(
     "💡 **New here?** Open the left sidebar → **Help & navigation** for section-by-section "
-    "app instructions, and the **BULL / BEAR** candle panels for full CPRP operating steps."
+    "app instructions, and the green/red candle panels for full CPRP operating steps."
 )
 
 # ── Strategy operating instructions (Official Quick Reference v1.5) ──────

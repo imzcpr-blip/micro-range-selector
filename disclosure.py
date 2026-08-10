@@ -36,7 +36,7 @@ def render_disclosure_footer() -> None:
     st.caption(
         "Not financial advice. Futures trading involves substantial risk of loss. "
         "Free third-party tools (if any) are not partnerships. "
-        "Expand the **BEAR** disclosure candles below for full legal text."
+        "Expand the red candle disclosure panels below for full legal text."
     )
     render_disclosure(expanded=False)
     render_third_party_disclosure(expanded=False)

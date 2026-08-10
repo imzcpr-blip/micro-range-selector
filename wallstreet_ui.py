@@ -305,9 +305,9 @@ _CANDLE_COLORIZER_JS = """
       nodes.forEach(function(el) {
         var t = (el.innerText || el.textContent || '');
         el.classList.remove('ws-candle-bull', 'ws-candle-bear');
-        if (t.indexOf('🟢') !== -1 || t.indexOf('BULL') !== -1 || t.indexOf('▲') === 0) {
+        if (t.indexOf('🟢') !== -1 || t.indexOf('▲') === 0) {
           el.classList.add('ws-candle-bull');
-        } else if (t.indexOf('🔴') !== -1 || t.indexOf('BEAR') !== -1 || t.indexOf('▼') === 0) {
+        } else if (t.indexOf('🔴') !== -1 || t.indexOf('▼') === 0) {
           el.classList.add('ws-candle-bear');
         } else {
           /* alternate remaining plain expanders for desk feel */
@@ -350,7 +350,7 @@ def market_tape(
 <div class="ws-tape">
   <span class="sym">{protocol}</span><span class="sep">|</span>
   <span>RULEBOOK <span class="bull">v{version}</span></span><span class="sep">|</span>
-  <span class="bull">▲ BULL</span> / <span class="bear">▼ BEAR</span><span class="sep">|</span>
+  <span class="bull">▲</span> / <span class="bear">▼</span><span class="sep">|</span>
   <span class="sym">{instruments}</span><span class="sep">|</span>
   <span>HARD RISK <span class="bear">{risk}</span></span><span class="sep">|</span>
   <span>MICROS ONLY</span>
@@ -394,10 +394,10 @@ def desk_section(title: str, *, side: CandleSide = "bull") -> None:
 
 
 def candle_label(text: str, *, side: CandleSide = "bull") -> str:
-    """Label for nav / expanders with bullish or bearish candle glyph."""
+    """Label for nav / expanders with green or red candle glyph only (no BULL/BEAR words)."""
     if side == "bull":
-        return f"🟢🕯️ BULL · {text}"
-    return f"🔴🕯️ BEAR · {text}"
+        return f"🟢🕯️ {text}"
+    return f"🔴🕯️ {text}"
 
 
 def candle_expander(
@@ -408,22 +408,18 @@ def candle_expander(
 ):
     """
     Expander that reads as a candlestick panel control.
-    Bull = green open · Bear = red open.
+    Green candle = open/long accent · Red candle = risk/close accent.
     """
     label = candle_label(title, side=side)
     return st.expander(label, expanded=expanded)
 
 
 def nav_candle_pages(pages: list[str]) -> list[str]:
-    """Prefix nav page names with alternating bull/bear candles."""
+    """Prefix nav page names with alternating green/red candles."""
     out = []
     for i, name in enumerate(pages):
         side: CandleSide = "bull" if i % 2 == 0 else "bear"
-        # Nav keeps shorter labels (candle + name only)
-        if side == "bull":
-            out.append(f"🟢🕯️ {name}")
-        else:
-            out.append(f"🔴🕯️ {name}")
+        out.append(candle_label(name, side=side))
     return out
 
 
