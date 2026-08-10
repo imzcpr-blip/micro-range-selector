@@ -12,11 +12,11 @@ from PIL import Image
 ROOT = Path(__file__).resolve().parents[1]
 ASSETS = ROOT / "assets"
 
-# Target max width and FPS to keep GIF sizes reasonable for Streamlit Cloud
-MAX_WIDTH = 480
-SIDEBAR_MAX_WIDTH = 240
-FPS = 8
-MAX_DURATION_SEC = 4.0  # cap long clips
+# Target max width and FPS to keep GIF sizes reasonable for Streamlit Cloud / git push
+MAX_WIDTH = 360
+SIDEBAR_MAX_WIDTH = 200
+FPS = 6
+MAX_DURATION_SEC = 3.0  # cap long clips
 
 
 def convert_one(src: Path, dest: Path, max_width: int = MAX_WIDTH) -> None:
@@ -49,7 +49,7 @@ def convert_one(src: Path, dest: Path, max_width: int = MAX_WIDTH) -> None:
             nh = int(h * (max_width / w))
             img = img.resize((max_width, nh), Image.Resampling.LANCZOS)
         # reduce colors for smaller GIF
-        frames.append(img.convert("P", palette=Image.Palette.ADAPTIVE, colors=64))
+        frames.append(img.convert("P", palette=Image.Palette.ADAPTIVE, colors=48))
         if len(frames) >= max_frames:
             break
     reader.close()
