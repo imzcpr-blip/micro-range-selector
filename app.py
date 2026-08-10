@@ -155,7 +155,7 @@ except Exception:
 
 PAGE_SELECTOR = "Session Selector"
 PAGE_JOURNAL = "Trading Journal"
-PAGE_SESSION_WL = "Session Winning vs. Losing Trades"
+PAGE_SESSION_WL = "CPRP Session Statistics"
 PAGE_COMMUNITY = "Community"
 PAGE_CHAT = "Member Chat"
 PAGE_NEWS = "Bloomberg Live"
@@ -203,7 +203,7 @@ if page == PAGE_NEWS:
     render_bloomberg_panel()
     st.stop()
 
-# ── Session Winning vs. Losing Trades ─────────────────────────────────────
+# ── CPRP Session Statistics (W/L image uploads) ───────────────────────────
 if page == PAGE_SESSION_WL:
     render_session_wl_panel()
     st.stop()

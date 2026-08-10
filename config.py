@@ -114,11 +114,8 @@ BRANDING_LOGO_IMAGE = _ASSETS / "cprp_logo_primary.jpg"  # static fallback
 MEMBER_CHAT_HERO_VIDEO = _ASSETS / "cprp_member_chat_hero.gif"
 MEMBER_CHAT_HERO_IMAGE = _ASSETS / "cprp_member_chat_poster.jpg"
 
-# Session performance charts (Winning vs Losing Trades)
+# Legacy static session charts folder (optional seed images)
 SESSIONS_DIR = _ASSETS / "sessions"
-SESSION_WL_TRADES_IMAGE = SESSIONS_DIR / "Session_08.10.26_W-L_Trades.png"
-SESSION_WL_CONTRACTS_IMAGE = SESSIONS_DIR / "Session_08.10.26_WvL_Contract.png"
-SESSION_WL_LABEL = "Session 08.10.26"
 QUICK_REFERENCE_IMAGE = _ASSETS / f"CPRP_Quick_Reference_v{RULEBOOK_VERSION}.jpg"
 QUICK_REFERENCE_PDF = _ASSETS / f"CPRP_Quick_Reference_v{RULEBOOK_VERSION}.pdf"
 QUICK_REFERENCE_DOWNLOAD_NAME = f"CPRP_Quick_Reference_v{RULEBOOK_VERSION}.jpg"
