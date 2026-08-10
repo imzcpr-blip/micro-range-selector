@@ -1,0 +1,32 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+dist/
+build/
+.venv/
+venv/
+env/
+
+# Streamlit / local runtime
+.streamlit/secrets.toml
+*.log
+
+# OS / editor
+.DS_Store
+Thumbs.db
+Desktop.ini
+.idea/
+.vscode/
+*.swp
+
+# Local caches and backups
+*-ImzCpr.*
+.pytest_cache/
+.mypy_cache/
+
+# Optional: keep large generated previews out if recreated by sync
+# Uncomment if repo size becomes an issue:
+# assets/**/*.mp4
