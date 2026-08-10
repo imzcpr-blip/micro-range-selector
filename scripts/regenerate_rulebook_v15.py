@@ -581,8 +581,9 @@ def build_story(s: dict) -> list:
 
 def main() -> None:
     s = styles()
-    story = build_story(s)
     for path in OUTPUTS:
+        # Rebuild story each time — ReportLab flowables cannot be reused
+        story = build_story(s)
         path.parent.mkdir(parents=True, exist_ok=True)
         doc = SimpleDocTemplate(
             str(path),
