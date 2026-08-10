@@ -67,6 +67,14 @@ from config import (
     STRUCTURE_BREAK_PAUSE_MINUTES,
 )
 from sync_cprp_assets import list_branding_images, list_branding_videos, sync_cprp_assets
+from wallstreet_ui import (
+    candle_expander,
+    inject_wallstreet_theme,
+    market_tape,
+    nav_candle_pages,
+    page_hero,
+    strip_candle_prefix,
+)
 
 _page_icon = str(BRANDING_LOGO_ICON) if Path(BRANDING_LOGO_ICON).is_file() else "📊"
 
@@ -76,6 +84,9 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded",
 )
+
+# Wall Street / trading-desk visual system (all pages)
+inject_wallstreet_theme()
 
 # ── Auth gate (email + password, then public username) ────────────────────
 # Public visitors must sign up / log in before using the tool.
@@ -147,8 +158,13 @@ if _side_gif.is_file():
     st.sidebar.image(str(_side_gif), use_container_width=True)
 elif Path(BRANDING_LOGO_ICON).is_file():
     st.sidebar.image(str(BRANDING_LOGO_ICON), use_container_width=True)
-st.sidebar.title(f"{PROTOCOL_SHORT}")
+st.sidebar.markdown(f"### {PROTOCOL_SHORT} DESK")
 st.sidebar.caption(f"Rulebook v{RULEBOOK_VERSION} · {CREATOR}")
+st.sidebar.markdown(
+    '<p style="font-family:IBM Plex Mono,monospace;font-size:0.72rem;color:#64748b;">'
+    "🟢🕯️ BULL panel · 🔴🕯️ BEAR panel — expand for detail</p>",
+    unsafe_allow_html=True,
+)
 render_account_sidebar()
 st.sidebar.markdown("##### Live now")
 try:
@@ -170,7 +186,7 @@ PAGE_ABOUT = "About the Founder"
 PAGE_ADMIN = "Admin / Founder"
 
 # Member nav — Admin / Founder page is NEVER listed for non-admins
-_nav_pages = [
+_nav_pages_clean = [
     PAGE_SELECTOR,
     PAGE_JOURNAL,
     PAGE_SESSION_WL,
@@ -185,18 +201,26 @@ _nav_pages = [
 ]
 _is_founder = is_current_user_admin()
 if _is_founder:
-    _nav_pages = _nav_pages + [PAGE_ADMIN]
+    _nav_pages_clean = _nav_pages_clean + [PAGE_ADMIN]
+
+# Candle-styled nav labels (bullish / bearish alternating)
+_nav_pages = nav_candle_pages(_nav_pages_clean)
 
 # Clear stale Streamlit radio state if a non-admin still has Admin selected
-if not _is_founder and st.session_state.get("nav_page") == PAGE_ADMIN:
-    st.session_state["nav_page"] = PAGE_SELECTOR
+_nav_raw = st.session_state.get("nav_page", "")
+if not _is_founder and PAGE_ADMIN in str(_nav_raw):
+    st.session_state["nav_page"] = nav_candle_pages([PAGE_SELECTOR])[0]
 
-page = st.sidebar.radio(
-    "Navigate",
+page_label = st.sidebar.radio(
+    "Trading desk",
     _nav_pages,
     key="nav_page",
 )
+page = strip_candle_prefix(page_label)
 st.sidebar.markdown("---")
+
+# Desk tape under nav
+market_tape(version=RULEBOOK_VERSION)
 
 # ── Admin / Founder only (hard gate — not visible or usable by members) ───
 if page == PAGE_ADMIN:
