@@ -27,6 +27,7 @@ from auth import (
 )
 from chat import heartbeat, render_active_users_badge, render_member_chat
 from journal import render_journal_page, render_reference_and_journal_side_by_side
+from live_news import render_bloomberg_audio_option, render_bloomberg_panel
 from config import (
     ADMIN_ROLE_LABEL,
     APP_NAME,
@@ -153,12 +154,20 @@ except Exception:
 PAGE_SELECTOR = "Session Selector"
 PAGE_JOURNAL = "Trading Journal"
 PAGE_CHAT = "Member Chat"
+PAGE_NEWS = "Bloomberg Live"
 PAGE_BRANDING = "Company Branding"
 PAGE_ABOUT = "About the Founder"
 PAGE_ADMIN = "Admin / Founder"
 
 # Member nav — Admin / Founder page is NEVER listed for non-admins
-_nav_pages = [PAGE_SELECTOR, PAGE_JOURNAL, PAGE_CHAT, PAGE_BRANDING, PAGE_ABOUT]
+_nav_pages = [
+    PAGE_SELECTOR,
+    PAGE_JOURNAL,
+    PAGE_CHAT,
+    PAGE_NEWS,
+    PAGE_BRANDING,
+    PAGE_ABOUT,
+]
 _is_founder = is_current_user_admin()
 if _is_founder:
     _nav_pages = _nav_pages + [PAGE_ADMIN]
@@ -183,6 +192,11 @@ if page == PAGE_ADMIN:
     render_admin_panel()
     st.stop()
 
+# ── Bloomberg Live dedicated panel ────────────────────────────────────────
+if page == PAGE_NEWS:
+    render_bloomberg_panel()
+    st.stop()
+
 # ── Trading Journal page (full history + side-by-side reference) ───────────
 if page == PAGE_JOURNAL:
     _pick_for_journal = ""
@@ -190,11 +204,13 @@ if page == PAGE_JOURNAL:
         _lr = st.session_state.last_rec
         if getattr(_lr, "recommended", None) and not getattr(_lr, "sit_out", True):
             _pick_for_journal = _lr.recommended
+    render_bloomberg_audio_option(key_prefix="jr_bb", height=260)
     render_journal_page(default_micro=_pick_for_journal)
     st.stop()
 
 # ── Member Chat page ──────────────────────────────────────────────────────
 if page == PAGE_CHAT:
+    render_bloomberg_audio_option(key_prefix="chat_bb", height=260)
     render_member_chat(
         hero_video=Path(MEMBER_CHAT_HERO_VIDEO),
         hero_image=Path(MEMBER_CHAT_HERO_IMAGE),
@@ -724,6 +740,9 @@ if not _play_logo_video(
     Path(BRANDING_LOGO_IMAGE),
 ):
     st.warning("CPRP branding logo GIF not found in assets/.")
+
+# Bloomberg Live audio/video option on main Session Selector page
+render_bloomberg_audio_option(key_prefix="main_bb", height=280)
 
 st.title(f"{PROTOCOL_NAME} — Session Micro Selector")
 
