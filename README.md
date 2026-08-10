@@ -40,13 +40,14 @@ python run_once.py --watch 60 --alert
 
 Or double-click `Start-Dashboard.bat` / `Start-Watch.bat`.
 
-## Accounts & subscriber list (email + password)
+## Accounts, usernames & Member Chat
 
 Visitors must **sign up or log in** before using the tool.
 
-- **Username** = email address  
-- **Password** = min 8 characters (stored hashed, never plain text)  
-- On **sign up**, an email is sent to you with the new subscriber address (subscriber list)
+- **Login** = email + password (min 8 characters; password hashed)  
+- **Public username** = chosen after first login (3–20 chars: letters, numbers, `_`)  
+- On **sign up**, an email is sent to you with the new subscriber address  
+- **Member Chat** = live member panel with messages + **online member count** (green active icon)
 
 ### Configure email (required for signup alerts)
 

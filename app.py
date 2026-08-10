@@ -17,7 +17,14 @@ import streamlit as st
 
 from alerts import RecommendationTracker
 from analyzer import analyze_all, fetch_bars
-from auth import render_account_sidebar, require_login
+from auth import (
+    current_display_name,
+    current_user_email,
+    render_account_sidebar,
+    require_display_name,
+    require_login,
+)
+from chat import heartbeat, render_active_users_badge, render_member_chat
 from config import (
     APP_NAME,
     BRANDING_DIR,
@@ -58,10 +65,21 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# ── Auth gate (email = username + password) ───────────────────────────────
+# ── Auth gate (email + password, then public username) ────────────────────
 # Public visitors must sign up / log in before using the tool.
 if not require_login():
     st.stop()
+if not require_display_name():
+    st.stop()
+
+# Presence heartbeat (active member count)
+_email = current_user_email() or ""
+_display = current_display_name() or "Member"
+if _email:
+    try:
+        heartbeat(_email, _display)
+    except Exception:
+        pass
 
 # Session state (only after login)
 if "tracker" not in st.session_state:
@@ -96,16 +114,27 @@ if Path(BRANDING_LOGO_ICON).is_file():
 st.sidebar.title(f"{PROTOCOL_SHORT}")
 st.sidebar.caption(f"Rulebook v{RULEBOOK_VERSION} · {CREATOR}")
 render_account_sidebar()
+st.sidebar.markdown("##### Live now")
+try:
+    render_active_users_badge()
+except Exception:
+    st.sidebar.caption("Online count unavailable")
 
 PAGE_SELECTOR = "Session Selector"
+PAGE_CHAT = "Member Chat"
 PAGE_BRANDING = "Company Branding"
 PAGE_ABOUT = "About the Founder"
 page = st.sidebar.radio(
     "Navigate",
-    [PAGE_SELECTOR, PAGE_BRANDING, PAGE_ABOUT],
+    [PAGE_SELECTOR, PAGE_CHAT, PAGE_BRANDING, PAGE_ABOUT],
     index=0,
 )
 st.sidebar.markdown("---")
+
+# ── Member Chat page ──────────────────────────────────────────────────────
+if page == PAGE_CHAT:
+    render_member_chat()
+    st.stop()
 
 # ── Company Branding page ─────────────────────────────────────────────────
 if page == PAGE_BRANDING:

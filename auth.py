@@ -1,9 +1,10 @@
 """
 Simple email + password auth for CPRP Session Micro Selector.
 
-- Username = email address
+- Login identity = email address
+- Optional public display username chosen after account creation
 - Passwords stored as salted PBKDF2 hashes (never plain text)
-- Signups are recorded and can trigger owner email notification
+- Signups trigger owner email notification (subscriber list)
 """
 
 from __future__ import annotations
@@ -27,6 +28,7 @@ DB_PATH = DATA_DIR / "users.db"
 SUBSCRIBERS_CSV = DATA_DIR / "subscribers.csv"
 
 EMAIL_RE = re.compile(r"^[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}$")
+USERNAME_RE = re.compile(r"^[A-Za-z0-9_]{3,20}$")
 MIN_PASSWORD_LEN = 8
 PBKDF2_ITERATIONS = 200_000
 
@@ -35,6 +37,7 @@ PBKDF2_ITERATIONS = 200_000
 class UserRecord:
     email: str
     created_at: str
+    display_name: Optional[str] = None
 
 
 def _pepper() -> str:
@@ -46,15 +49,28 @@ def _pepper() -> str:
 
 def _conn() -> sqlite3.Connection:
     DATA_DIR.mkdir(parents=True, exist_ok=True)
-    con = sqlite3.connect(DB_PATH, check_same_thread=False)
+    con = sqlite3.connect(str(DB_PATH), check_same_thread=False, timeout=30)
+    con.execute("PRAGMA journal_mode=WAL;")
     con.execute(
         """
         CREATE TABLE IF NOT EXISTS users (
             email TEXT PRIMARY KEY COLLATE NOCASE,
             password_hash TEXT NOT NULL,
             salt TEXT NOT NULL,
-            created_at TEXT NOT NULL
+            created_at TEXT NOT NULL,
+            display_name TEXT
         )
+        """
+    )
+    # Migrate older DBs that lack display_name
+    cols = {r[1] for r in con.execute("PRAGMA table_info(users)").fetchall()}
+    if "display_name" not in cols:
+        con.execute("ALTER TABLE users ADD COLUMN display_name TEXT")
+    con.execute(
+        """
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_users_display_name
+        ON users (display_name COLLATE NOCASE)
+        WHERE display_name IS NOT NULL AND display_name != ''
         """
     )
     con.commit()
@@ -67,6 +83,14 @@ def normalize_email(email: str) -> str:
 
 def is_valid_email(email: str) -> bool:
     return bool(EMAIL_RE.match(normalize_email(email)))
+
+
+def normalize_username(name: str) -> str:
+    return (name or "").strip()
+
+
+def is_valid_username(name: str) -> bool:
+    return bool(USERNAME_RE.match(normalize_username(name)))
 
 
 def _hash_password(password: str, salt_hex: str) -> str:
@@ -83,8 +107,29 @@ def user_exists(email: str) -> bool:
     return row is not None
 
 
+def username_taken(name: str, exclude_email: Optional[str] = None) -> bool:
+    name = normalize_username(name)
+    exclude_email = normalize_email(exclude_email or "")
+    with _conn() as con:
+        if exclude_email:
+            row = con.execute(
+                """
+                SELECT 1 FROM users
+                WHERE display_name = ? COLLATE NOCASE
+                  AND email != ?
+                """,
+                (name, exclude_email),
+            ).fetchone()
+        else:
+            row = con.execute(
+                "SELECT 1 FROM users WHERE display_name = ? COLLATE NOCASE",
+                (name,),
+            ).fetchone()
+    return row is not None
+
+
 def create_user(email: str, password: str) -> tuple[bool, str]:
-    """Register a new user. Returns (ok, message)."""
+    """Register a new user (email + password). Display name chosen next."""
     email = normalize_email(email)
     if not is_valid_email(email):
         return False, "Please enter a valid email address."
@@ -100,7 +145,10 @@ def create_user(email: str, password: str) -> tuple[bool, str]:
     try:
         with _conn() as con:
             con.execute(
-                "INSERT INTO users (email, password_hash, salt, created_at) VALUES (?, ?, ?, ?)",
+                """
+                INSERT INTO users (email, password_hash, salt, created_at, display_name)
+                VALUES (?, ?, ?, ?, NULL)
+                """,
                 (email, pw_hash, salt_hex, created),
             )
             con.commit()
@@ -108,7 +156,7 @@ def create_user(email: str, password: str) -> tuple[bool, str]:
         return False, "An account with this email already exists. Please log in."
 
     _append_subscriber_csv(email, created)
-    return True, "Account created. You can use the tool now."
+    return True, "Account created. Choose a public username next."
 
 
 def verify_login(email: str, password: str) -> tuple[bool, str]:
@@ -129,6 +177,41 @@ def verify_login(email: str, password: str) -> tuple[bool, str]:
     return True, "Logged in."
 
 
+def get_display_name(email: str) -> Optional[str]:
+    email = normalize_email(email)
+    with _conn() as con:
+        row = con.execute(
+            "SELECT display_name FROM users WHERE email = ?",
+            (email,),
+        ).fetchone()
+    if not row:
+        return None
+    name = (row[0] or "").strip()
+    return name or None
+
+
+def set_display_name(email: str, username: str) -> tuple[bool, str]:
+    email = normalize_email(email)
+    username = normalize_username(username)
+    if not is_valid_username(username):
+        return (
+            False,
+            "Username must be 3–20 characters: letters, numbers, and underscores only.",
+        )
+    if username_taken(username, exclude_email=email):
+        return False, "That username is already taken. Please choose another."
+    try:
+        with _conn() as con:
+            con.execute(
+                "UPDATE users SET display_name = ? WHERE email = ?",
+                (username, email),
+            )
+            con.commit()
+    except sqlite3.IntegrityError:
+        return False, "That username is already taken. Please choose another."
+    return True, f"Username set to {username}."
+
+
 def _append_subscriber_csv(email: str, created_at: str) -> None:
     DATA_DIR.mkdir(parents=True, exist_ok=True)
     new_file = not SUBSCRIBERS_CSV.is_file()
@@ -141,9 +224,14 @@ def _append_subscriber_csv(email: str, created_at: str) -> None:
 def list_subscribers() -> list[UserRecord]:
     with _conn() as con:
         rows = con.execute(
-            "SELECT email, created_at FROM users ORDER BY created_at DESC"
+            """
+            SELECT email, created_at, display_name
+            FROM users ORDER BY created_at DESC
+            """
         ).fetchall()
-    return [UserRecord(email=r[0], created_at=r[1]) for r in rows]
+    return [
+        UserRecord(email=r[0], created_at=r[1], display_name=r[2]) for r in rows
+    ]
 
 
 def is_logged_in() -> bool:
@@ -154,8 +242,27 @@ def current_user_email() -> Optional[str]:
     return st.session_state.get("auth_email")
 
 
+def current_display_name() -> Optional[str]:
+    email = current_user_email()
+    if not email:
+        return None
+    cached = st.session_state.get("display_name")
+    if cached:
+        return cached
+    name = get_display_name(email)
+    if name:
+        st.session_state.display_name = name
+    return name
+
+
 def logout() -> None:
-    for key in ("auth_email", "auth_just_signed_up"):
+    try:
+        from chat import clear_presence_for_session
+
+        clear_presence_for_session()
+    except Exception:
+        pass
+    for key in ("auth_email", "auth_just_signed_up", "display_name", "chat_session_id"):
         if key in st.session_state:
             del st.session_state[key]
 
@@ -163,7 +270,7 @@ def logout() -> None:
 def require_login() -> bool:
     """
     Render login/signup UI if needed.
-    Returns True when the user is authenticated and the main app may run.
+    Returns True when the user is authenticated (display name may still be required).
     """
     if is_logged_in():
         return True
@@ -174,8 +281,8 @@ def require_login() -> bool:
 
 **{PROTOCOL_SHORT}** by {CREATOR}
 
-Sign up or log in to use the session micro selector.  
-Your email is used as your username and added to the founder’s subscriber list.
+Sign up or log in to use the session micro selector and Member Chat.  
+Use your **email** to create an account, then choose a public **username** for chat.
 """
     )
 
@@ -195,6 +302,9 @@ Your email is used as your username and added to the founder’s subscriber list
             ok, msg = verify_login(email, password)
             if ok:
                 st.session_state.auth_email = normalize_email(email)
+                name = get_display_name(st.session_state.auth_email)
+                if name:
+                    st.session_state.display_name = name
                 st.success(msg)
                 st.rerun()
             else:
@@ -202,11 +312,12 @@ Your email is used as your username and added to the founder’s subscriber list
 
     with tab_signup:
         st.caption(
-            f"Create a free account. Password must be at least {MIN_PASSWORD_LEN} characters. "
-            "You’ll receive access immediately; the founder is notified of new subscribers by email."
+            f"Create a free account with your email. Password must be at least {MIN_PASSWORD_LEN} characters. "
+            "After signup you’ll choose a public username for Member Chat. "
+            "The founder is notified of new subscribers by email."
         )
         with st.form("signup_form", clear_on_submit=False):
-            email = st.text_input("Email (username)", key="signup_email", autocomplete="username")
+            email = st.text_input("Email", key="signup_email", autocomplete="username")
             password = st.text_input(
                 "Password",
                 type="password",
@@ -224,7 +335,9 @@ Your email is used as your username and added to the founder’s subscriber list
                 "and futures trading involves substantial risk of loss.",
                 key="signup_agree",
             )
-            submitted = st.form_submit_button("Create account", type="primary", use_container_width=True)
+            submitted = st.form_submit_button(
+                "Create account", type="primary", use_container_width=True
+            )
 
         if submitted:
             if not agree:
@@ -234,7 +347,6 @@ Your email is used as your username and added to the founder’s subscriber list
             else:
                 ok, msg = create_user(email, password)
                 if ok:
-                    # Notify owner (best-effort; never block signup if email fails)
                     notify_error = None
                     try:
                         from emailer import notify_owner_of_signup
@@ -249,7 +361,7 @@ Your email is used as your username and added to the founder’s subscriber list
                     if notify_error:
                         st.warning(
                             "Account created, but the subscriber notification email could not be sent. "
-                            f"(Owner setup issue: check Streamlit secrets / SMTP.)"
+                            "(Owner setup issue: check Streamlit secrets / SMTP.)"
                         )
                     st.rerun()
                 else:
@@ -257,9 +369,56 @@ Your email is used as your username and added to the founder’s subscriber list
 
     st.markdown("---")
     st.caption(
-        f"Accounts use email + password only. Passwords are stored hashed. "
+        f"Accounts use email + password. Passwords are stored hashed. "
         f"© {CREATOR}."
     )
+    return False
+
+
+def require_display_name() -> bool:
+    """
+    After login, force a public username before entering the app.
+    Returns True when a display name is set.
+    """
+    email = current_user_email()
+    if not email:
+        return False
+
+    existing = get_display_name(email)
+    if existing:
+        st.session_state.display_name = existing
+        return True
+
+    st.markdown(
+        f"""
+# Choose your username
+
+You’re signed in as `{email}`.
+
+Pick a **public username** for Member Chat and the active members list.  
+This is separate from your login email.
+"""
+    )
+    with st.form("username_form"):
+        uname = st.text_input(
+            "Username",
+            max_chars=20,
+            placeholder="e.g. ChartRanger_01",
+            help="3–20 characters: letters, numbers, underscores.",
+        )
+        submitted = st.form_submit_button(
+            "Save username & continue", type="primary", use_container_width=True
+        )
+    if submitted:
+        ok, msg = set_display_name(email, uname)
+        if ok:
+            st.session_state.display_name = normalize_username(uname)
+            st.success(msg)
+            st.rerun()
+        else:
+            st.error(msg)
+
+    st.caption("You can only set this once here; contact the founder if you need a change later.")
     return False
 
 
@@ -268,8 +427,12 @@ def render_account_sidebar() -> None:
     email = current_user_email()
     if not email:
         return
+    name = current_display_name()
     st.sidebar.markdown("---")
-    st.sidebar.markdown(f"**Signed in**  \n`{email}`")
+    if name:
+        st.sidebar.markdown(f"**{name}**  \n`{email}`")
+    else:
+        st.sidebar.markdown(f"**Signed in**  \n`{email}`")
     if st.sidebar.button("Log out", use_container_width=True):
         logout()
         st.rerun()
