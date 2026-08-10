@@ -41,6 +41,8 @@ from config import (
     BRANDING_LOGO_IMAGE,
     BRANDING_LOGO_VIDEO,
     BRANDING_LOGO_VIDEO_ALT,
+    SIDEBAR_VIDEO,
+    SIDEBAR_VIDEO_BRAND,
     SESSION_SELECTOR_VIDEO,
     SESSION_SELECTOR_VIDEO_BRAND,
     BRANDING_OFFICIAL_SEAL,
@@ -167,10 +169,14 @@ def _play_logo_video(*candidates: Path, caption: str | None = None) -> bool:
 # ══════════════════════════════════════════════════════════════════════════
 # SIDEBAR — navigation + brand
 # ══════════════════════════════════════════════════════════════════════════
-# Sidebar: compact looping logo GIF (fallback to monogram still)
-_side_gif = Path(BRANDING_LOGO_VIDEO_ALT)
-if _side_gif.is_file():
-    st.sidebar.image(str(_side_gif), use_container_width=True)
+# Sidebar: branding video (grok-video-4bdc3ca9-…mp4); fallback to still icon
+_side_video = None
+for _p in (Path(SIDEBAR_VIDEO), Path(SIDEBAR_VIDEO_BRAND), Path(BRANDING_DIR) / "cprp_logo_video_alt.mp4"):
+    if _p.is_file():
+        _side_video = _p
+        break
+if _side_video is not None:
+    st.sidebar.video(str(_side_video), format="video/mp4", start_time=0, loop=True, muted=True)
 elif Path(BRANDING_LOGO_ICON).is_file():
     st.sidebar.image(str(BRANDING_LOGO_ICON), use_container_width=True)
 st.sidebar.markdown(f"### {PROTOCOL_SHORT} DESK")

@@ -111,6 +111,9 @@ BRANDING_LOGO_VIDEO = _ASSETS / "cprp_logo_video.gif"
 BRANDING_LOGO_VIDEO_ALT = _ASSETS / "cprp_logo_video_alt.gif"
 BRANDING_LOGO_ICON = _ASSETS / "cprp_logo_icon.jpg"  # favicon / tiny fallback only
 BRANDING_LOGO_IMAGE = _ASSETS / "cprp_logo_primary.jpg"  # static fallback
+# Sidebar panel video (from CPRP_Branding grok-video-4bdc3ca9-….mp4)
+SIDEBAR_VIDEO = _ASSETS / "cprp_sidebar_video.mp4"
+SIDEBAR_VIDEO_BRAND = BRANDING_DIR / "cprp_sidebar_video.mp4"
 # Session Selector header video (from CPRP_Branding grok_video_2026-08-09-09-51-29.mp4)
 SESSION_SELECTOR_VIDEO = _ASSETS / "cprp_session_selector_video.mp4"
 SESSION_SELECTOR_VIDEO_BRAND = BRANDING_DIR / "cprp_session_selector_video.mp4"

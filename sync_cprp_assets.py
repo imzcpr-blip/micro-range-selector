@@ -82,6 +82,8 @@ BRANDING_MAP: dict[str, str] = {
     "grok_video_2026-08-09-09-51-29.mp4": "cprp_logo_video_variant_2.mp4",
     "grok_video_2026-08-09-09-53-05.mp4": "cprp_logo_video_variant_3.mp4",
     "grok_video_2026-08-09-09-53-06.mp4": "cprp_logo_video_variant_4.mp4",
+    # Sidebar panel video
+    "grok-video-4bdc3ca9-daa2-4dad-84e6-7f270bc2ca95.mp4": "cprp_sidebar_video.mp4",
 }
 
 # Primary app files kept at assets/ root (synced from branding when newer)
@@ -102,6 +104,9 @@ PRIMARY_BRANDING_LINKS: list[tuple[str, str]] = [
     # Session Selector header video (source: grok_video_2026-08-09-09-51-29.mp4)
     ("cprp_logo_video_variant_2.mp4", "cprp_session_selector_video.mp4"),
     ("cprp_session_selector_video.mp4", "cprp_session_selector_video.mp4"),
+    # Sidebar panel video
+    ("cprp_sidebar_video.mp4", "cprp_sidebar_video.mp4"),
+    ("cprp_sidebar_video.mp4", "cprp_logo_video_alt.mp4"),
     # Prefer animated candlestick brand as primary looping media when present
     ("cprp_brand_logo_candlestick_anim.gif", "cprp_logo_video.gif"),
     ("cprp_banner_horizontal_anim.gif", "cprp_logo_video_alt.gif"),
