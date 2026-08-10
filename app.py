@@ -25,6 +25,7 @@ from auth import (
     require_login,
 )
 from chat import heartbeat, render_active_users_badge, render_member_chat
+from journal import render_journal_page, render_reference_and_journal_side_by_side
 from config import (
     APP_NAME,
     BRANDING_DIR,
@@ -143,15 +144,26 @@ except Exception:
     st.sidebar.caption("Online count unavailable")
 
 PAGE_SELECTOR = "Session Selector"
+PAGE_JOURNAL = "Trading Journal"
 PAGE_CHAT = "Member Chat"
 PAGE_BRANDING = "Company Branding"
 PAGE_ABOUT = "About the Founder"
 page = st.sidebar.radio(
     "Navigate",
-    [PAGE_SELECTOR, PAGE_CHAT, PAGE_BRANDING, PAGE_ABOUT],
+    [PAGE_SELECTOR, PAGE_JOURNAL, PAGE_CHAT, PAGE_BRANDING, PAGE_ABOUT],
     index=0,
 )
 st.sidebar.markdown("---")
+
+# ── Trading Journal page (full history + side-by-side reference) ───────────
+if page == PAGE_JOURNAL:
+    _pick_for_journal = ""
+    if st.session_state.get("last_rec") is not None:
+        _lr = st.session_state.last_rec
+        if getattr(_lr, "recommended", None) and not getattr(_lr, "sit_out", True):
+            _pick_for_journal = _lr.recommended
+    render_journal_page(default_micro=_pick_for_journal)
+    st.stop()
 
 # ── Member Chat page ──────────────────────────────────────────────────────
 if page == PAGE_CHAT:
@@ -1049,82 +1061,29 @@ with st.expander("RSI rules & exits (Quick Reference v1.5)"):
 """
     )
 
-# ── Official documents (downloadable) ────────────────────────────────────
-st.markdown("---")
-st.subheader("Official documents (v1.5)")
-st.caption(
-    f"CPRP Official Quick Reference v{RULEBOOK_VERSION} and Rulebook Update v{RULEBOOK_VERSION} "
-    f"(base rulebook v{RULEBOOK_BASE_VERSION}). Use as on-desk / second-monitor sources while trading."
-)
+# ── Quick Reference + Trading Journal (side-by-side) ─────────────────────
+# Users can write journal notes without leaving the reference card.
+_default_jr_micro = ""
+if rec.recommended and not rec.sit_out:
+    _default_jr_micro = rec.recommended
+render_reference_and_journal_side_by_side(default_micro=_default_jr_micro)
 
-_qr_img = Path(QUICK_REFERENCE_IMAGE)
-_qr_pdf = Path(QUICK_REFERENCE_PDF)
-_rb_pdf = Path(RULEBOOK_UPDATE_PDF)
-
-if _qr_img.is_file():
-    qr_bytes = _qr_img.read_bytes()
-    col_preview, col_dl = st.columns([3, 1])
-    with col_preview:
-        with st.expander("Preview Quick Reference v1.5", expanded=False):
-            st.image(
-                str(_qr_img),
-                caption=f"CPRP Quick Reference v{RULEBOOK_VERSION}",
-                use_container_width=True,
-            )
-    with col_dl:
+# Extra rulebook base download (optional)
+_rb_base_main = Path(RULEBOOK_BASE_PDF)
+if _rb_base_main.is_file():
+    with st.expander("More documents (Official Rulebook base)"):
         st.download_button(
-            label="Download Quick Reference (JPG)",
-            data=qr_bytes,
-            file_name=QUICK_REFERENCE_DOWNLOAD_NAME,
-            mime="image/jpeg",
-            type="primary",
+            label="Download Official Rulebook base (PDF)",
+            data=_rb_base_main.read_bytes(),
+            file_name=RULEBOOK_BASE_DOWNLOAD_NAME,
+            mime="application/pdf",
             use_container_width=True,
-            help="Save the Quick Reference card image for offline / second-screen use.",
+            help=f"Official Rulebook base v{RULEBOOK_BASE_VERSION}.",
         )
-        if _qr_pdf.is_file():
-            st.download_button(
-                label="Download Quick Reference (PDF)",
-                data=_qr_pdf.read_bytes(),
-                file_name=f"CPRP_Quick_Reference_v{RULEBOOK_VERSION}.pdf",
-                mime="application/pdf",
-                use_container_width=True,
-                help="Official Quick Reference v1.5 PDF.",
-            )
-        if _rb_pdf.is_file():
-            st.download_button(
-                label="Download Rulebook Update (PDF)",
-                data=_rb_pdf.read_bytes(),
-                file_name=RULEBOOK_UPDATE_DOWNLOAD_NAME,
-                mime="application/pdf",
-                use_container_width=True,
-                help=f"Official Rulebook Update & Changelog to Version {RULEBOOK_VERSION}.",
-            )
-        _rb_base_main = Path(RULEBOOK_BASE_PDF)
-        if _rb_base_main.is_file():
-            st.download_button(
-                label="Download Official Rulebook base (PDF)",
-                data=_rb_base_main.read_bytes(),
-                file_name=RULEBOOK_BASE_DOWNLOAD_NAME,
-                mime="application/pdf",
-                use_container_width=True,
-                help=f"Official Rulebook base v{RULEBOOK_BASE_VERSION}.",
-            )
-        st.markdown(
-            f"""
-**How to use these documents**
-- Keep the **Quick Reference** open while selecting a micro and taking entries  
-- Apply **confirmation hierarchy**: S/R → PA → volume → RSI  
-- Approved charts only: **15m + 5m** (default) or **30m + 15m** (larger/slower)  
-- Hard risk **−${HARD_STOP_MIN_USD:.0f} to −${HARD_STOP_MAX_USD:.0f}** — no averaging down  
-- Structure break → flatten + **{STRUCTURE_BREAK_PAUSE_MINUTES}-min** pause (or new clear range)  
-- See strategy expander above for the full operating process  
-"""
+        st.caption(
+            "Open **Trading Journal** in the sidebar for full history, filters, and edit/delete. "
+            "On this page the journal sits next to the Quick Reference so you can take notes live."
         )
-else:
-    st.warning(
-        "Quick Reference image not found in `assets/`. "
-        "Expected `CPRP_Quick_Reference_v1.5.jpg`."
-    )
 
 st.caption(
     f"Disclaimer: Personal trading tool aligned to {PROTOCOL_NAME} "

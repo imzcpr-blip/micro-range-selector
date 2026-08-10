@@ -47,7 +47,8 @@ Visitors must **sign up or log in** before using the tool.
 - **Login** = email + password (min 8 characters; password hashed)  
 - **Public username** = chosen after first login (3–20 chars: letters, numbers, `_`)  
 - On **sign up**, an email is sent to you with the new subscriber address  
-- **Member Chat** = live member panel with messages + **online member count** (green active icon)
+- **Member Chat** = live member panel with messages + **online member count** (green active icon)  
+- **Trading Journal** = private session notes (saved per account); also shown **side-by-side** with the Quick Reference on the Session Selector
 
 ### Configure email (required for signup alerts)
 
