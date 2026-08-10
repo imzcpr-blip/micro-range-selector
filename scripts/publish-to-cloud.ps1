@@ -48,15 +48,22 @@ if ($SyncAssets) {
 $status = & $git status --porcelain
 if (-not $status) {
     Write-Host "[publish] Nothing to commit - local tree matches last commit."
-    $ahead = & $git rev-list --count "@{u}..HEAD" 2>$null
-    if ($ahead -and [int]$ahead -gt 0) {
-        Write-Host "[publish] Local is $ahead commit(s) ahead - pushing..."
-        if (-not $DryRun) {
-            & $git push origin HEAD
-            if ($LASTEXITCODE -ne 0) { exit 1 }
+    if (-not $DryRun) {
+        Write-Host "[publish] Fetching origin and rebasing onto latest main..."
+        & $git fetch origin
+        & $git pull --rebase origin main
+        if ($LASTEXITCODE -ne 0) {
+            Write-Error "git pull --rebase failed. Resolve conflicts, then retry."
+            exit 1
         }
-        Write-Host "[publish] Done. Streamlit Cloud will redeploy from main shortly."
-        exit 0
+        $ahead = & $git rev-list --count "origin/main..HEAD" 2>$null
+        if ($ahead -and [int]$ahead -gt 0) {
+            Write-Host "[publish] Local is $ahead commit(s) ahead - pushing..."
+            & $git push origin main
+            if ($LASTEXITCODE -ne 0) { exit 1 }
+            Write-Host "[publish] Done. Streamlit Cloud will redeploy from main shortly."
+            exit 0
+        }
     }
     Write-Host "[publish] Already in sync with origin. Public app needs no update."
     exit 0
@@ -82,8 +89,25 @@ if ($LASTEXITCODE -ne 0) {
     exit 1
 }
 
+# Integrate any remote commits before push (avoids "rejected non-fast-forward")
+Write-Host "[publish] Fetching origin and rebasing onto latest main..."
+& $git fetch origin
+if ($LASTEXITCODE -ne 0) {
+    Write-Error "git fetch failed."
+    exit 1
+}
+& $git pull --rebase origin main
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "[publish] Rebase hit conflicts. Resolve them, then run:"
+    Write-Host "  git add -A"
+    Write-Host "  git rebase --continue"
+    Write-Host "  git push origin main"
+    Write-Error "git pull --rebase failed."
+    exit 1
+}
+
 Write-Host "[publish] Pushing to GitHub (origin)..."
-& $git push origin HEAD
+& $git push origin main
 if ($LASTEXITCODE -ne 0) {
     Write-Error "git push failed. Check GitHub sign-in / credentials, then retry."
     exit 1
