@@ -69,10 +69,21 @@ if "doc_sync_report" not in st.session_state:
 if "doc_sync_done" not in st.session_state:
     st.session_state.doc_sync_done = False
 
-# Auto-sync CPRP Trading documents + branding once per app session
+# Auto-sync local CPRP Trading docs/branding once per session (desktop only).
+# On Streamlit Community Cloud there is no local CPRP Trading folder — skip silently.
 if not st.session_state.doc_sync_done:
     try:
-        st.session_state.doc_sync_report = sync_cprp_assets()
+        import os
+
+        _is_cloud = bool(
+            os.environ.get("STREAMLIT_SHARING_MODE")
+            or os.environ.get("STREAMLIT_SERVER_PORT")
+            and not Path(r"C:\Users\imzcp\OneDrive\Desktop\CPRP Trading").is_dir()
+        )
+        if Path(r"C:\Users\imzcp\OneDrive\Desktop\CPRP Trading").is_dir():
+            st.session_state.doc_sync_report = sync_cprp_assets()
+        else:
+            st.session_state.doc_sync_report = None
     except Exception as _sync_exc:  # noqa: BLE001
         st.session_state.doc_sync_report = None
         st.session_state.doc_sync_error = str(_sync_exc)
