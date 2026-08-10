@@ -17,6 +17,7 @@ from typing import Optional
 import streamlit as st
 
 from auth import DATA_DIR, DB_PATH, current_user_email, get_display_name
+from wallstreet_ui import candle_expander, page_hero
 
 # Path is used for optional hero media on the chat page
 
@@ -277,9 +278,11 @@ def render_member_chat(
         st.image(str(hero_image), use_container_width=True, caption="CPRP Member Chat")
         shown = True
 
-    st.title("Member Chat")
-    st.caption(
-        "Live chat for signed-in CPRP members. Be respectful — this is a community space, not financial advice."
+    page_hero(
+        "Member Chat",
+        "Live desk chat for signed-in CPRP members · respectful community space — not financial advice",
+        side="bull",
+        desk_tag="COMMS DESK · LIVE TAPE",
     )
     from disclosure import render_disclosure
 

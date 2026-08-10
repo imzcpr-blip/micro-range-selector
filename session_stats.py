@@ -18,6 +18,7 @@ import streamlit as st
 
 from auth import DATA_DIR, DB_PATH, current_display_name, current_user_email, is_admin
 from disclosure import render_disclosure
+from wallstreet_ui import candle_expander, desk_section, page_hero
 
 UPLOAD_DIR = DATA_DIR / "session_stats_uploads"
 MAX_IMAGE_BYTES = 8 * 1024 * 1024  # 8 MB
@@ -176,59 +177,58 @@ def render_session_wl_panel() -> None:
 
     display = current_display_name() or "Member"
 
-    st.title("CPRP Session Statistics")
-    st.caption(
-        "Upload and share **session statistics** images for **Winning vs. Losing Trades** "
-        "(and related session charts). Illustrative only — not a performance guarantee."
+    page_hero(
+        "CPRP Session Statistics",
+        "Winning vs. Losing Trades gallery · illustrative only — not a performance guarantee",
+        side="bull",
+        desk_tag="PERFORMANCE DESK · W/L TAPE",
     )
     render_disclosure(expanded=False)
 
-    st.markdown(f"Uploading as **{display}**")
+    st.caption(f"Uploading as **{display}**")
 
-    # ── Upload section ───────────────────────────────────────────────────
-    st.subheader("Upload session statistics")
-    st.markdown(
-        "Add a chart or screenshot of your **winning vs. losing trades** "
-        "(or contracts-by-instrument) for a session."
-    )
-
-    with st.form("session_stats_upload", clear_on_submit=True):
-        c1, c2 = st.columns(2)
-        with c1:
-            session_d = st.date_input("Session date", value=date.today())
-        with c2:
-            caption = st.text_input(
-                "Caption (optional)",
-                max_chars=MAX_CAPTION,
-                placeholder="e.g. Winning vs losing trades · Session 08.10.26",
+    desk_section("Upload", side="bull")
+    with candle_expander("Upload session statistics image", side="bull", expanded=True):
+        st.markdown(
+            "Add a chart or screenshot of your **winning vs. losing trades** "
+            "(or contracts-by-instrument) for a session."
+        )
+        with st.form("session_stats_upload", clear_on_submit=True):
+            c1, c2 = st.columns(2)
+            with c1:
+                session_d = st.date_input("Session date", value=date.today())
+            with c2:
+                caption = st.text_input(
+                    "Caption (optional)",
+                    max_chars=MAX_CAPTION,
+                    placeholder="e.g. Winning vs losing trades · Session 08.10.26",
+                )
+            image = st.file_uploader(
+                "Session statistics image",
+                type=["jpg", "jpeg", "png", "webp", "gif"],
+                accept_multiple_files=False,
+                help="Win/loss pie charts, contracts by instrument, etc. Max 8 MB.",
             )
-        image = st.file_uploader(
-            "Session statistics image",
-            type=["jpg", "jpeg", "png", "webp", "gif"],
-            accept_multiple_files=False,
-            help="Win/loss pie charts, contracts by instrument, etc. Max 8 MB.",
-        )
-        submitted = st.form_submit_button(
-            "Upload statistics image",
-            type="primary",
-            use_container_width=True,
-        )
+            submitted = st.form_submit_button(
+                "Upload statistics image",
+                type="primary",
+                use_container_width=True,
+            )
 
-    if submitted:
-        try:
-            if image is None:
-                st.error("Please choose an image to upload.")
-            else:
-                rel = save_uploaded_image(image)
-                sid = session_d.isoformat() if hasattr(session_d, "isoformat") else str(session_d)
-                img_id = create_stat_image(email, display, sid, caption, rel)
-                st.success(f"Uploaded session statistics image #{img_id}.")
-                st.rerun()
-        except Exception as exc:  # noqa: BLE001
-            st.error(str(exc))
+        if submitted:
+            try:
+                if image is None:
+                    st.error("Please choose an image to upload.")
+                else:
+                    rel = save_uploaded_image(image)
+                    sid = session_d.isoformat() if hasattr(session_d, "isoformat") else str(session_d)
+                    img_id = create_stat_image(email, display, sid, caption, rel)
+                    st.success(f"Uploaded session statistics image #{img_id}.")
+                    st.rerun()
+            except Exception as exc:  # noqa: BLE001
+                st.error(str(exc))
 
-    st.markdown("---")
-    st.subheader("Session statistics gallery")
+    desk_section("Gallery", side="bear")
     st.caption("Winning vs. losing trades and related session charts uploaded by members.")
 
     items = list_stat_images(limit=100)
@@ -245,13 +245,18 @@ def render_session_wl_panel() -> None:
         with cols[i % 2]:
             path = _resolve_image(item.image_path)
             label = item.caption or "Winning vs. Losing Trades"
-            st.markdown(f"**{item.session_date}** · {label}")
-            st.caption(f"{item.display_name} · {item.created_at}")
-            if path is not None:
-                st.image(str(path), use_container_width=True)
-                st.download_button(
-                    "Download",
-                    data=path.read_bytes(),
+            side = "bull" if i % 2 == 0 else "bear"
+            with candle_expander(
+                f"{item.session_date} · {label}",
+                side=side,
+                expanded=True,
+            ):
+                st.caption(f"{item.display_name} · {item.created_at}")
+                if path is not None:
+                    st.image(str(path), use_container_width=True)
+                    st.download_button(
+                        "Download",
+                        data=path.read_bytes(),
                     file_name=path.name,
                     mime="image/png",
                     key=f"dl_stat_{item.id}",

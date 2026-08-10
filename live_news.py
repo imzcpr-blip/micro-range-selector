@@ -10,6 +10,8 @@ from __future__ import annotations
 import streamlit as st
 import streamlit.components.v1 as components
 
+from wallstreet_ui import candle_expander, desk_section, page_hero
+
 BLOOMBERG_VIDEO_ID = "QB5BNdBFujE"
 BLOOMBERG_WATCH_URL = f"https://www.youtube.com/watch?v={BLOOMBERG_VIDEO_ID}"
 BLOOMBERG_EMBED_BASE = f"https://www.youtube.com/embed/{BLOOMBERG_VIDEO_ID}"
@@ -114,29 +116,35 @@ def render_bloomberg_player(
 
 def render_bloomberg_panel() -> None:
     """Dedicated full-page Bloomberg Live experience."""
-    st.title("Bloomberg Business News Live")
-    st.markdown(
-        """
-Watch or listen to **Bloomberg Business News Live** while you trade.  
-This is an external YouTube live stream — CPRP is not affiliated with Bloomberg or YouTube.
-"""
+    page_hero(
+        "Bloomberg Business News Live",
+        "External YouTube live desk feed · watch or listen while you trade · not affiliated with Bloomberg",
+        side="bear",
+        desk_tag="NEWS DESK · EXTERNAL FEED",
     )
+    with candle_expander("What this desk is for", side="bull", expanded=True):
+        st.markdown(
+            """
+Watch or listen to **Bloomberg Business News Live** while you trade.  
+This is an external YouTube live stream — **CPRP is not affiliated with Bloomberg or YouTube.**
+"""
+        )
     render_bloomberg_player(
         height=520,
         key_prefix="panel",
         compact=False,
         default_on=True,
     )
-    st.markdown("---")
-    st.markdown(
-        f"""
-**Tips**
+    desk_section("Desk tips", side="bear")
+    with candle_expander("How to use the news feed", side="bear", expanded=False):
+        st.markdown(
+            f"""
 - Leave this panel open for continuous news while you work.
 - Or enable the player on **Session Selector**, **Trading Journal**, or **Member Chat**.
 - Toggle off anytime to stop audio/video.
 - Direct link: [{BLOOMBERG_WATCH_URL}]({BLOOMBERG_WATCH_URL})
 """
-    )
+        )
     st.caption(
         "External news stream only. Not affiliated with Bloomberg or YouTube. "
         "Not financial advice — see disclosures below."
@@ -149,7 +157,7 @@ This is an external YouTube live stream — CPRP is not affiliated with Bloomber
 
 def render_bloomberg_audio_option(*, key_prefix: str, height: int = 280) -> None:
     """Compact block for main / journal / chat pages."""
-    with st.expander("Bloomberg Business News Live — watch or listen", expanded=False):
+    with candle_expander("Bloomberg Business News Live — watch or listen", side="bear", expanded=False):
         render_bloomberg_player(
             height=height,
             key_prefix=key_prefix,

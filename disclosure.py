@@ -10,6 +10,7 @@ from config import (
     DISCLOSURE_THIRD_PARTY_TITLE,
     DISCLOSURE_TITLE,
 )
+from wallstreet_ui import candle_expander
 
 
 def render_disclosure(*, expanded: bool = False, key: str | None = None) -> None:
@@ -17,14 +18,14 @@ def render_disclosure(*, expanded: bool = False, key: str | None = None) -> None
     Render the official Acknowledgement & Disclosure.
     Use expanded=True on the landing page; collapsed expander on member pages.
     """
-    with st.expander(DISCLOSURE_TITLE, expanded=expanded):
+    with candle_expander(DISCLOSURE_TITLE, side="bear", expanded=expanded):
         st.markdown(f"### {DISCLOSURE_TITLE}")
         st.markdown(DISCLOSURE_BODY)
 
 
 def render_third_party_disclosure(*, expanded: bool = False) -> None:
     """Free sources, embeds, and no-partnership acknowledgement."""
-    with st.expander(DISCLOSURE_THIRD_PARTY_TITLE, expanded=expanded):
+    with candle_expander(DISCLOSURE_THIRD_PARTY_TITLE, side="bear", expanded=expanded):
         st.markdown(f"### {DISCLOSURE_THIRD_PARTY_TITLE}")
         st.markdown(DISCLOSURE_THIRD_PARTY_BODY)
 
@@ -35,7 +36,7 @@ def render_disclosure_footer() -> None:
     st.caption(
         "Not financial advice. Futures trading involves substantial risk of loss. "
         "Free third-party tools (if any) are not partnerships. "
-        "See **Acknowledgement & Disclosure** below."
+        "Expand the **BEAR** disclosure candles below for full legal text."
     )
     render_disclosure(expanded=False)
     render_third_party_disclosure(expanded=False)

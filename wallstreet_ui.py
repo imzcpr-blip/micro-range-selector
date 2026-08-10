@@ -10,6 +10,7 @@ from __future__ import annotations
 from typing import Literal
 
 import streamlit as st
+import streamlit.components.v1 as components
 
 # Bullish = green candle, Bearish = red candle
 CandleSide = Literal["bull", "bear"]
@@ -50,7 +51,6 @@ html, body, [data-testid="stAppViewContainer"], .stApp {
 [data-testid="stSidebar"] .stRadio label:hover {
   background: rgba(15, 23, 42, 0.9) !important;
 }
-/* Alternating bull / bear accent on nav rows via nth-child of radio options */
 [data-testid="stSidebar"] .stRadio > div > label:nth-child(odd) {
   border-left-color: #22c55e !important;
 }
@@ -89,34 +89,41 @@ div[data-testid="stVerticalBlockBorderWrapper"] {
   margin-bottom: 0.65rem !important;
   overflow: hidden;
   box-shadow: inset 0 1px 0 rgba(255,255,255,0.03), 0 6px 18px rgba(0,0,0,0.25);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 [data-testid="stExpander"] summary {
   font-weight: 600 !important;
   font-family: 'IBM Plex Mono', monospace !important;
-  font-size: 0.95rem !important;
+  font-size: 0.92rem !important;
   letter-spacing: 0.03em;
-  padding: 0.65rem 0.85rem !important;
+  padding: 0.7rem 0.9rem !important;
+  cursor: pointer !important;
 }
 [data-testid="stExpander"] summary:hover {
-  background: rgba(30, 41, 59, 0.5) !important;
+  background: rgba(30, 41, 59, 0.55) !important;
 }
-
-/* Bullish candle expanders (green) */
-.ws-bull + div [data-testid="stExpander"],
-div.ws-bull [data-testid="stExpander"] {
-  border-left: 4px solid #22c55e !important;
-  border-color: rgba(34, 197, 94, 0.35) !important;
-}
-/* Bearish candle expanders (red) */
-.ws-bear + div [data-testid="stExpander"],
-div.ws-bear [data-testid="stExpander"] {
-  border-left: 4px solid #ef4444 !important;
-  border-color: rgba(239, 68, 68, 0.35) !important;
-}
-
-/* Streamlit doesn't parent expander under our div reliably — style summary text prefixes via global */
 [data-testid="stExpander"] summary p {
   margin: 0 !important;
+}
+
+/* JS-applied candle classes (reliable) */
+[data-testid="stExpander"].ws-candle-bull {
+  border-left: 5px solid #22c55e !important;
+  border-color: rgba(34, 197, 94, 0.4) !important;
+  box-shadow: inset 0 0 0 1px rgba(34,197,94,0.08), 0 6px 18px rgba(0,0,0,0.25);
+}
+[data-testid="stExpander"].ws-candle-bull summary {
+  color: #86efac !important;
+  background: linear-gradient(90deg, rgba(34,197,94,0.12), transparent 55%);
+}
+[data-testid="stExpander"].ws-candle-bear {
+  border-left: 5px solid #ef4444 !important;
+  border-color: rgba(239, 68, 68, 0.4) !important;
+  box-shadow: inset 0 0 0 1px rgba(239,68,68,0.08), 0 6px 18px rgba(0,0,0,0.25);
+}
+[data-testid="stExpander"].ws-candle-bear summary {
+  color: #fca5a5 !important;
+  background: linear-gradient(90deg, rgba(239,68,68,0.12), transparent 55%);
 }
 
 /* ── Primary / secondary buttons ──────────────────────────────────────── */
@@ -199,47 +206,74 @@ button[data-baseweb="tab"][aria-selected="true"] {
 .ws-tape .sep { opacity: 0.35; }
 
 .ws-page-hero {
-  padding: 0.85rem 1rem 0.65rem 1rem;
-  margin-bottom: 1rem;
+  padding: 0.95rem 1.1rem 0.75rem 1.1rem;
+  margin-bottom: 1.1rem;
   background: linear-gradient(135deg, rgba(15,23,42,0.98) 0%, rgba(10,18,14,0.95) 50%, rgba(22,12,12,0.95) 100%);
-  border: 1px solid rgba(34, 197, 94, 0.2);
+  border: 1px solid rgba(34, 197, 94, 0.22);
   border-left: 5px solid #22c55e;
   border-radius: 10px;
   box-shadow: 0 10px 30px rgba(0,0,0,0.35);
 }
 .ws-page-hero.bear-edge {
   border-left-color: #ef4444;
-  border-color: rgba(239, 68, 68, 0.22);
+  border-color: rgba(239, 68, 68, 0.25);
 }
 .ws-page-hero h1 {
-  margin: 0 0 0.25rem 0 !important;
+  margin: 0 0 0.3rem 0 !important;
   border: none !important;
   padding: 0 !important;
-  font-size: 1.65rem !important;
+  font-size: 1.55rem !important;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 .ws-page-hero .sub {
   font-family: 'IBM Plex Mono', monospace;
   font-size: 0.82rem;
   color: #94a3b8;
   margin: 0;
+  line-height: 1.45;
+}
+.ws-page-hero .desk-tag {
+  display: inline-block;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #64748b;
+  margin-bottom: 0.35rem;
 }
 .ws-candle-mark {
   display: inline-block;
   width: 0.55rem;
-  height: 1.1rem;
-  margin-right: 0.45rem;
+  height: 1.15rem;
+  margin-right: 0.15rem;
   vertical-align: middle;
   border-radius: 1px;
   position: relative;
+  flex-shrink: 0;
 }
 .ws-candle-mark.bull {
   background: #22c55e;
-  box-shadow: 0 -4px 0 0 #22c55e, 0 4px 0 0 #22c55e;
+  box-shadow: 0 -5px 0 0 #22c55e, 0 5px 0 0 #22c55e;
 }
 .ws-candle-mark.bear {
   background: #ef4444;
-  box-shadow: 0 -4px 0 0 #ef4444, 0 4px 0 0 #ef4444;
+  box-shadow: 0 -5px 0 0 #ef4444, 0 5px 0 0 #ef4444;
 }
+
+.ws-section {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.75rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #64748b;
+  border-bottom: 1px solid rgba(148,163,184,0.12);
+  padding-bottom: 0.35rem;
+  margin: 1.25rem 0 0.75rem 0;
+}
+.ws-section .bull { color: #4ade80; }
+.ws-section .bear { color: #f87171; }
 
 /* ── Links ────────────────────────────────────────────────────────────── */
 a { color: #4ade80 !important; }
@@ -249,13 +283,58 @@ a:hover { color: #86efac !important; }
 hr {
   border-color: rgba(148, 163, 184, 0.12) !important;
 }
+
+/* ── Auth / landing polish ────────────────────────────────────────────── */
+[data-testid="stForm"] {
+  background: rgba(15, 23, 42, 0.65);
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  border-radius: 10px;
+  padding: 0.75rem 1rem 1rem 1rem;
+}
 </style>
+"""
+
+# Colors expanders that contain bull/bear candle labels (runs in parent via components)
+_CANDLE_COLORIZER_JS = """
+<script>
+(function() {
+  function paint() {
+    try {
+      var doc = window.parent && window.parent.document ? window.parent.document : document;
+      var nodes = doc.querySelectorAll('[data-testid="stExpander"]');
+      nodes.forEach(function(el) {
+        var t = (el.innerText || el.textContent || '');
+        el.classList.remove('ws-candle-bull', 'ws-candle-bear');
+        if (t.indexOf('🟢') !== -1 || t.indexOf('BULL') !== -1 || t.indexOf('▲') === 0) {
+          el.classList.add('ws-candle-bull');
+        } else if (t.indexOf('🔴') !== -1 || t.indexOf('BEAR') !== -1 || t.indexOf('▼') === 0) {
+          el.classList.add('ws-candle-bear');
+        } else {
+          /* alternate remaining plain expanders for desk feel */
+          var idx = Array.prototype.indexOf.call(nodes, el);
+          el.classList.add(idx % 2 === 0 ? 'ws-candle-bull' : 'ws-candle-bear');
+        }
+      });
+    } catch (e) { /* cross-frame may fail in some hosts */ }
+  }
+  paint();
+  setTimeout(paint, 400);
+  setTimeout(paint, 1200);
+  try {
+    var doc = window.parent && window.parent.document ? window.parent.document : document;
+    var obs = new MutationObserver(function() { paint(); });
+    obs.observe(doc.body, { childList: true, subtree: true });
+  } catch (e2) {}
+})();
+</script>
 """
 
 
 def inject_wallstreet_theme() -> None:
-    """Inject global Wall Street CSS once per run."""
+    """Inject global Wall Street CSS + candle expander colorizer once per run."""
     st.markdown(WS_CSS, unsafe_allow_html=True)
+    # Tiny zero-height component so JS can reach parent DOM expanders
+    components.html(_CANDLE_COLORIZER_JS, height=0)
 
 
 def market_tape(
@@ -286,17 +365,30 @@ def page_hero(
     subtitle: str = "",
     *,
     side: CandleSide = "bull",
+    desk_tag: str = "CPRP TRADING DESK",
 ) -> None:
     """Professional market page header with bull/bear edge."""
     edge = "bear-edge" if side == "bear" else ""
     mark = "bear" if side == "bear" else "bull"
+    sub_html = f'<p class="sub">{subtitle}</p>' if subtitle else ""
     st.markdown(
         f"""
 <div class="ws-page-hero {edge}">
+  <div class="desk-tag">{desk_tag}</div>
   <h1><span class="ws-candle-mark {mark}"></span>{title}</h1>
-  <p class="sub">{subtitle}</p>
+  {sub_html}
 </div>
 """,
+        unsafe_allow_html=True,
+    )
+
+
+def desk_section(title: str, *, side: CandleSide = "bull") -> None:
+    """Small mono section label between panels."""
+    cls = "bull" if side == "bull" else "bear"
+    glyph = "▲" if side == "bull" else "▼"
+    st.markdown(
+        f'<div class="ws-section"><span class="{cls}">{glyph}</span> {title}</div>',
         unsafe_allow_html=True,
     )
 
@@ -304,8 +396,8 @@ def page_hero(
 def candle_label(text: str, *, side: CandleSide = "bull") -> str:
     """Label for nav / expanders with bullish or bearish candle glyph."""
     if side == "bull":
-        return f"🟢🕯️ {text}"
-    return f"🔴🕯️ {text}"
+        return f"🟢🕯️ BULL · {text}"
+    return f"🔴🕯️ BEAR · {text}"
 
 
 def candle_expander(
@@ -319,9 +411,6 @@ def candle_expander(
     Bull = green open · Bear = red open.
     """
     label = candle_label(title, side=side)
-    # Marker div helps CSS target following expander when Streamlit allows
-    marker = "ws-bull" if side == "bull" else "ws-bear"
-    st.markdown(f'<div class="{marker}"></div>', unsafe_allow_html=True)
     return st.expander(label, expanded=expanded)
 
 
@@ -330,13 +419,24 @@ def nav_candle_pages(pages: list[str]) -> list[str]:
     out = []
     for i, name in enumerate(pages):
         side: CandleSide = "bull" if i % 2 == 0 else "bear"
-        out.append(candle_label(name, side=side))
+        # Nav keeps shorter labels (candle + name only)
+        if side == "bull":
+            out.append(f"🟢🕯️ {name}")
+        else:
+            out.append(f"🔴🕯️ {name}")
     return out
 
 
 def strip_candle_prefix(label: str) -> str:
     """Map candle-prefixed nav label back to clean page name."""
-    for prefix in ("🟢🕯️ ", "🔴🕯️ ", "🟢 ", "🔴 "):
+    for prefix in (
+        "🟢🕯️ BULL · ",
+        "🔴🕯️ BEAR · ",
+        "🟢🕯️ ",
+        "🔴🕯️ ",
+        "🟢 ",
+        "🔴 ",
+    ):
         if label.startswith(prefix):
             return label[len(prefix) :]
     return label

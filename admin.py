@@ -23,6 +23,7 @@ from config import (
     RULEBOOK_VERSION,
 )
 from journal import count_entries, journal_max_entries
+from wallstreet_ui import candle_expander, desk_section, page_hero
 
 
 def is_current_user_admin() -> bool:
@@ -74,11 +75,16 @@ def render_admin_panel() -> None:
     email = current_user_email() or ""
     name = current_display_name() or FOUNDER_NAME
 
-    st.title("Admin / Founder")
+    page_hero(
+        "Admin / Founder",
+        f"Restricted control desk · {name} · {email}",
+        side="bear",
+        desk_tag="FOUNDER DESK · RESTRICTED ACCESS",
+    )
     st.markdown(
         f"""
 <span style="
-  display:inline-block;background:linear-gradient(90deg,#1d4ed8,#7c3aed);
+  display:inline-block;background:linear-gradient(90deg,#b91c1c,#7c3aed);
   color:white;font-weight:700;font-size:0.85rem;letter-spacing:0.04em;
   padding:0.35rem 0.75rem;border-radius:999px;">
   ADMIN / FOUNDER
@@ -101,8 +107,7 @@ def render_admin_panel() -> None:
     c3.metric("Chat messages", _chat_message_count())
     c4.metric("Rulebook", f"v{RULEBOOK_VERSION}")
 
-    st.markdown("---")
-    st.subheader("Subscriber list")
+    desk_section("Subscriber list", side="bull")
     st.caption("Accounts that signed up (email list). Also emailed to you on each new signup.")
     if not subs:
         st.info("No members yet.")

@@ -24,6 +24,7 @@ from typing import Optional
 import streamlit as st
 
 from auth import DATA_DIR, DB_PATH, current_display_name, current_user_email
+from wallstreet_ui import candle_expander, desk_section, page_hero
 
 MICROS = ["", "MES", "MNQ", "MYM", "SIT OUT", "Multiple", "Other"]
 RESULTS = ["", "Open", "Win", "Loss", "Scratch", "No trade", "Lesson only"]
@@ -630,7 +631,7 @@ def render_journal_history(*, key_prefix: str = "jhist", show_edit: bool = True)
     st.markdown(f"**Past sessions** ({total} / {max_n})")
 
     if is_journal_full(email):
-        with st.expander("Journal full — export options", expanded=True):
+        with candle_expander("Journal full — export options", side="bear", expanded=True):
             render_journal_full_export_prompt(key_prefix=f"{key_prefix}_histfull")
 
     if not entries:
@@ -662,12 +663,17 @@ def render_journal_history(*, key_prefix: str = "jhist", show_edit: bool = True)
         st.caption("No entries match this filter.")
         return
 
-    for e in filtered:
+    for i, e in enumerate(filtered):
         header = f"{e.session_date} · {e.title}"
         meta_bits = [b for b in (e.micro, e.result) if b]
         if meta_bits:
             header += " · " + " · ".join(meta_bits)
-        with st.expander(header, expanded=False):
+        side = "bull" if (e.result or "").lower() in {"win", "scratch", ""} and i % 2 == 0 else "bear"
+        if (e.result or "").lower() == "win":
+            side = "bull"
+        elif (e.result or "").lower() == "loss":
+            side = "bear"
+        with candle_expander(header, side=side, expanded=False):
             st.caption(f"Created {e.created_at} · Updated {e.updated_at} · ID #{e.id}")
             if e.notes:
                 st.markdown("**Notes**")
@@ -784,7 +790,7 @@ def render_quick_reference_panel() -> None:
 def render_reference_and_journal_side_by_side(default_micro: str = "") -> None:
     """Main dual-pane: Quick Reference | Trading Journal composer + recent list."""
     st.markdown("---")
-    st.subheader("Quick Reference + Trading Journal")
+    desk_section("Quick Reference + Trading Journal", side="bull")
     st.caption(
         "Write session notes while viewing the official card — no need to leave this page."
     )
@@ -807,9 +813,14 @@ def render_reference_and_journal_side_by_side(default_micro: str = "") -> None:
             if not recent:
                 st.caption("No saved sessions yet.")
             else:
-                for e in recent:
+                for i, e in enumerate(recent):
                     bits = " · ".join(x for x in (e.session_date, e.micro, e.result, e.title) if x)
-                    with st.expander(bits or f"Entry #{e.id}", expanded=False):
+                    side = "bull" if i % 2 == 0 else "bear"
+                    if (e.result or "").lower() == "win":
+                        side = "bull"
+                    elif (e.result or "").lower() == "loss":
+                        side = "bear"
+                    with candle_expander(bits or f"Entry #{e.id}", side=side, expanded=False):
                         if e.notes:
                             st.write(e.notes)
                         if e.lessons:
@@ -819,10 +830,11 @@ def render_reference_and_journal_side_by_side(default_micro: str = "") -> None:
 
 def render_journal_page(default_micro: str = "") -> None:
     """Full Trading Journal navigation page."""
-    st.title("Trading Journal")
-    st.caption(
-        "Your private session log. Review past trades, results, and lessons. "
-        "On the Session Selector page, the journal also sits side-by-side with the Quick Reference."
+    page_hero(
+        "Trading Journal",
+        "Private session log · review trades, results, and lessons · pairs with Quick Reference",
+        side="bull",
+        desk_tag="JOURNAL DESK · PRIVATE LOG",
     )
     from disclosure import render_disclosure
 

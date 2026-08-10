@@ -16,6 +16,7 @@ from typing import Optional
 import streamlit as st
 
 from auth import DATA_DIR, DB_PATH, current_display_name, current_user_email, is_admin
+from wallstreet_ui import candle_expander, desk_section, page_hero
 
 UPLOAD_DIR = DATA_DIR / "community_uploads"
 MAX_TITLE = 120
@@ -194,62 +195,65 @@ def render_community_panel() -> None:
         return
 
     display = current_display_name() or "Member"
-    st.title("Community")
-    st.caption(
-        "Share trading ideas with other CPRP members — text and optional chart images. "
-        "Be respectful. Ideas only — not financial advice."
+    page_hero(
+        "Community",
+        "Member idea board · text + charts · respectful ideas only — not financial advice",
+        side="bull",
+        desk_tag="IDEA DESK · MEMBER BOARD",
     )
     from disclosure import render_disclosure
 
     render_disclosure(expanded=False)
 
-    st.markdown(f"Posting as **{display}**")
+    st.caption(f"Posting as **{display}**")
 
-    # ── Compose ──────────────────────────────────────────────────────────
-    st.subheader("New post")
-    with st.form("community_new_post", clear_on_submit=True):
-        title = st.text_input(
-            "Title",
-            max_chars=MAX_TITLE,
-            placeholder="e.g. MES support bounce setup — mid-session",
-        )
-        body = st.text_area(
-            "Your idea / notes",
-            height=140,
-            max_chars=MAX_BODY,
-            placeholder="Describe the structure, levels, timeframe pair, risk, and what you're watching…",
-        )
-        image = st.file_uploader(
-            "Upload chart or image (optional)",
-            type=["jpg", "jpeg", "png", "webp", "gif"],
-            accept_multiple_files=False,
-            help="Max 5 MB. JPG / PNG / WEBP / GIF.",
-        )
-        submitted = st.form_submit_button("Publish post", type="primary", use_container_width=True)
+    desk_section("Compose", side="bull")
+    with candle_expander("New post — publish a trading idea", side="bull", expanded=True):
+        with st.form("community_new_post", clear_on_submit=True):
+            title = st.text_input(
+                "Title",
+                max_chars=MAX_TITLE,
+                placeholder="e.g. MES support bounce setup — mid-session",
+            )
+            body = st.text_area(
+                "Your idea / notes",
+                height=140,
+                max_chars=MAX_BODY,
+                placeholder="Describe the structure, levels, timeframe pair, risk, and what you're watching…",
+            )
+            image = st.file_uploader(
+                "Upload chart or image (optional)",
+                type=["jpg", "jpeg", "png", "webp", "gif"],
+                accept_multiple_files=False,
+                help="Max 5 MB. JPG / PNG / WEBP / GIF.",
+            )
+            submitted = st.form_submit_button("Publish post", type="primary", use_container_width=True)
 
-    if submitted:
-        try:
-            rel = None
-            if image is not None:
-                rel = save_uploaded_image(image)
-            post_id = create_post(email, display, title, body, rel)
-            st.success(f"Published post #{post_id}.")
-            st.rerun()
-        except Exception as exc:  # noqa: BLE001
-            st.error(str(exc))
+        if submitted:
+            try:
+                rel = None
+                if image is not None:
+                    rel = save_uploaded_image(image)
+                post_id = create_post(email, display, title, body, rel)
+                st.success(f"Published post #{post_id}.")
+                st.rerun()
+            except Exception as exc:  # noqa: BLE001
+                st.error(str(exc))
 
-    st.markdown("---")
-    st.subheader("Member posts")
-
+    desk_section("Tape of member posts", side="bear")
     posts = list_posts(limit=60)
     if not posts:
         st.info("No community posts yet — share the first trading idea.")
         return
 
-    for p in posts:
+    for i, p in enumerate(posts):
         header = p.title or "Trading idea"
-        with st.container(border=True):
-            st.markdown(f"### {header}")
+        side = "bull" if i % 2 == 0 else "bear"
+        with candle_expander(
+            f"{header} · {p.display_name}",
+            side=side,
+            expanded=False,
+        ):
             st.caption(f"**{p.display_name}** · {p.created_at}")
             if p.body:
                 st.write(p.body)

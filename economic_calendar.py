@@ -10,6 +10,7 @@ import streamlit as st
 import streamlit.components.v1 as components
 
 from disclosure import render_disclosure, render_third_party_disclosure
+from wallstreet_ui import candle_expander, desk_section, page_hero
 
 FOREX_FACTORY_CALENDAR_URL = "https://www.forexfactory.com/calendar"
 # Some browsers/providers block full-page iframes; still try + always offer direct link.
@@ -18,16 +19,17 @@ FOREX_FACTORY_EMBED_URL = "https://www.forexfactory.com/calendar"
 
 def render_economic_calendar_panel() -> None:
     """Dedicated Economic Calendar page."""
-    st.title("Economic Calendar")
-    st.caption(
-        "Free third-party calendar for high-impact news and event timing · "
-        f"[Open Forex Factory Calendar]({FOREX_FACTORY_CALENDAR_URL})"
+    page_hero(
+        "Economic Calendar",
+        f"High-impact news risk filter · free Forex Factory source · "
+        f"[Open calendar]({FOREX_FACTORY_CALENDAR_URL})",
+        side="bear",
+        desk_tag="EVENT RISK DESK · THIRD-PARTY",
     )
 
-    st.markdown(
-        """
-### What this is
-
+    with candle_expander("What this is & CPRP use", side="bull", expanded=True):
+        st.markdown(
+            """
 An **economic calendar** lists scheduled macroeconomic releases and events
 (e.g. CPI, employment, FOMC, GDP, central-bank speeches) with expected impact levels.
 
@@ -40,21 +42,19 @@ For the **Cooper Precision Reversion Protocol**, the calendar is best used as a
 **risk / context filter**, not as a trade signal:
 
 1. **Know when high-impact news hits** — volatility and false structure breaks are common around major releases.  
-2. **Protect the hard risk rule** — avoid forcing boundary fades in the minutes around red-folder / high-impact events unless your plan explicitly allows it.  
-3. **Structure-break awareness** — after news, ranges often expand; respect the **30-minute pause** (or wait for a new clear structure) if levels fail.  
-4. **Session selection** — if multiple micros look similar, prefer the calmer tape *after* major risk events have passed, when structure is clearer.  
-5. **Journal context** — note which events were on the calendar when you log wins/losses so you can learn from event-driven days.
+2. **Protect the hard risk rule** — avoid forcing boundary fades around red-folder events unless your plan allows it.  
+3. **Structure-break awareness** — after news, ranges often expand; respect the **30-minute pause**.  
+4. **Session selection** — prefer clearer tape *after* major risk events when structure re-forms.  
+5. **Journal context** — note which events were live when you log wins/losses.
 
-**Not recommended as:** an entry trigger by itself, a substitute for confirmed S/R structure, or a reason to ignore the −$50 to −$100 hard stop.
+**Not recommended as:** an entry trigger, a substitute for confirmed S/R, or a reason to ignore the hard stop.
 """
-    )
+        )
 
     render_disclosure(expanded=False)
-    render_third_party_disclosure(expanded=True)
+    render_third_party_disclosure(expanded=False)
 
-    st.markdown("---")
-    st.subheader("Forex Factory Economic Calendar")
-
+    desk_section("Live calendar feed", side="bear")
     st.info(
         "If the calendar does not appear inside the window below, your browser or Forex Factory "
         "may block embedding. Use **Open full calendar** — the live site always works in a new tab."
@@ -67,7 +67,6 @@ For the **Cooper Precision Reversion Protocol**, the calendar is best used as a
         use_container_width=True,
     )
 
-    # Attempt embed for members who can view it in-frame
     height = 720
     iframe = f"""
     <div style="width:100%;border:1px solid rgba(148,163,184,0.3);border-radius:10px;overflow:hidden;">
@@ -88,10 +87,9 @@ For the **Cooper Precision Reversion Protocol**, the calendar is best used as a
     """
     components.html(iframe, height=height + 60, scrolling=True)
 
-    st.markdown("---")
-    st.markdown(
-        f"""
-### Quick CPRP checklist around news
+    with candle_expander("Quick CPRP checklist around news", side="bear", expanded=False):
+        st.markdown(
+            f"""
 | Step | Action |
 |------|--------|
 | Before high-impact release | Reduce new risk; avoid mid-structure trades |
@@ -101,12 +99,12 @@ For the **Cooper Precision Reversion Protocol**, the calendar is best used as a
 
 **Source:** [{FOREX_FACTORY_CALENDAR_URL}]({FOREX_FACTORY_CALENDAR_URL}) — free third-party resource.
 """
-    )
+        )
 
 
 def render_economic_calendar_compact(*, key_prefix: str = "econ") -> None:
     """Optional compact expander for other pages."""
-    with st.expander("Economic Calendar (Forex Factory) — news risk filter", expanded=False):
+    with candle_expander("Economic Calendar (Forex Factory) — news risk filter", side="bear", expanded=False):
         st.markdown(
             "Use the calendar to **avoid or respect high-impact news** around CPRP range fades. "
             "Not a trade signal. Free third-party source — **no partnership** with Forex Factory."
