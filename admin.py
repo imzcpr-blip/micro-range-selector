@@ -123,89 +123,86 @@ def render_admin_panel() -> None:
         ]
         st.dataframe(rows, use_container_width=True, hide_index=True)
 
-    st.markdown("---")
-    st.subheader("Application edits (Founder only)")
+    desk_section("Application edits (Founder only)", side="bear")
 
-    # Document / branding sync
-    st.markdown("##### Sync official documents & branding")
-    st.caption("Pull latest files from your CPRP Trading folder into the app assets.")
-    if st.button("Sync branding & documents now", type="primary", key="admin_sync"):
+    with candle_expander("Sync official documents & branding", side="bull", expanded=True):
+        st.caption("Pull latest files from your CPRP Trading folder into the app assets.")
+        if st.button("Sync branding & documents now", type="primary", key="admin_sync"):
+            try:
+                from sync_cprp_assets import sync_cprp_assets
+
+                with st.spinner("Scanning CPRP Trading…"):
+                    rep = sync_cprp_assets()
+                st.session_state.doc_sync_report = rep
+                for line in rep.summary_lines():
+                    st.markdown(f"- {line}")
+                if rep.copied:
+                    st.success(f"Updated {len(rep.copied)} file(s).")
+                else:
+                    st.info("Already up to date (or no newer source files found).")
+            except Exception as exc:  # noqa: BLE001
+                st.error(f"Sync failed: {exc}")
+
+    with candle_expander("Member Chat moderation", side="bear", expanded=False):
+        st.caption("Remove individual messages or clear the room.")
         try:
-            from sync_cprp_assets import sync_cprp_assets
+            from chat import delete_message, list_recent_for_admin, clear_all_messages
 
-            with st.spinner("Scanning CPRP Trading…"):
-                rep = sync_cprp_assets()
-            st.session_state.doc_sync_report = rep
-            for line in rep.summary_lines():
-                st.markdown(f"- {line}")
-            if rep.copied:
-                st.success(f"Updated {len(rep.copied)} file(s).")
+            msgs = list_recent_for_admin(limit=40)
+            if not msgs:
+                st.caption("No chat messages.")
             else:
-                st.info("Already up to date (or no newer source files found).")
+                for m in msgs:
+                    cols = st.columns([4, 1])
+                    with cols[0]:
+                        st.markdown(
+                            f"**{m['display_name']}** · `{m['created_at']}`  \n"
+                            f"{m['body']}"
+                        )
+                    with cols[1]:
+                        if st.button("Delete", key=f"adm_del_msg_{m['id']}"):
+                            delete_message(int(m["id"]))
+                            st.rerun()
+            if st.button("Clear entire Member Chat", key="adm_clear_chat"):
+                n = clear_all_messages()
+                st.warning(f"Deleted {n} chat messages.")
+                st.rerun()
         except Exception as exc:  # noqa: BLE001
-            st.error(f"Sync failed: {exc}")
+            st.caption(f"Chat moderation unavailable: {exc}")
 
-    st.markdown("##### Member Chat moderation")
-    st.caption("Remove individual messages or clear the room.")
-    try:
-        from chat import delete_message, list_recent_for_admin, clear_all_messages
+    with candle_expander("Community board moderation", side="bear", expanded=False):
+        st.caption("Remove member trading-idea posts (text + images).")
+        try:
+            from community import count_posts, delete_post, list_posts_admin
 
-        msgs = list_recent_for_admin(limit=40)
-        if not msgs:
-            st.caption("No chat messages.")
-        else:
-            for m in msgs:
-                cols = st.columns([4, 1])
-                with cols[0]:
-                    st.markdown(
-                        f"**{m['display_name']}** · `{m['created_at']}`  \n"
-                        f"{m['body']}"
-                    )
-                with cols[1]:
-                    if st.button("Delete", key=f"adm_del_msg_{m['id']}"):
-                        delete_message(int(m["id"]))
-                        st.rerun()
-        if st.button("Clear entire Member Chat", key="adm_clear_chat"):
-            n = clear_all_messages()
-            st.warning(f"Deleted {n} chat messages.")
-            st.rerun()
-    except Exception as exc:  # noqa: BLE001
-        st.caption(f"Chat moderation unavailable: {exc}")
+            st.metric("Community posts", count_posts())
+            posts = list_posts_admin(limit=25)
+            if not posts:
+                st.caption("No community posts.")
+            else:
+                for p in posts:
+                    cols = st.columns([4, 1])
+                    with cols[0]:
+                        st.markdown(
+                            f"**{p.title}** · {p.display_name} · `{p.created_at}`  \n"
+                            f"{(p.body or '')[:160]}"
+                        )
+                    with cols[1]:
+                        if st.button("Delete", key=f"adm_del_post_{p.id}"):
+                            delete_post(p.id, email, as_admin=True)
+                            st.rerun()
+        except Exception as exc:  # noqa: BLE001
+            st.caption(f"Community moderation unavailable: {exc}")
 
-    st.markdown("##### Community board moderation")
-    st.caption("Remove member trading-idea posts (text + images).")
-    try:
-        from community import count_posts, delete_post, list_posts_admin
+    with candle_expander("Journal capacity", side="bull", expanded=False):
+        st.caption(
+            f"Per-member journal limit is currently **{journal_max_entries()}** entries. "
+            "Override in Streamlit secrets: `[journal] max_entries = 50`."
+        )
 
-        st.metric("Community posts", count_posts())
-        posts = list_posts_admin(limit=25)
-        if not posts:
-            st.caption("No community posts.")
-        else:
-            for p in posts:
-                cols = st.columns([4, 1])
-                with cols[0]:
-                    st.markdown(
-                        f"**{p.title}** · {p.display_name} · `{p.created_at}`  \n"
-                        f"{(p.body or '')[:160]}"
-                    )
-                with cols[1]:
-                    if st.button("Delete", key=f"adm_del_post_{p.id}"):
-                        delete_post(p.id, email, as_admin=True)
-                        st.rerun()
-    except Exception as exc:  # noqa: BLE001
-        st.caption(f"Community moderation unavailable: {exc}")
-
-    st.markdown("##### Journal capacity")
-    st.caption(
-        f"Per-member journal limit is currently **{journal_max_entries()}** entries. "
-        "Override in Streamlit secrets: `[journal] max_entries = 50`."
-    )
-
-    st.markdown("---")
-    st.subheader("Domain & code ownership")
-    st.markdown(
-        f"""
+    with candle_expander("Domain & code ownership", side="bear", expanded=False):
+        st.markdown(
+            f"""
 | Control | Owner |
 |---------|--------|
 | Application admin panel | **ADMIN / FOUNDER only** ({FOUNDER_NAME}) |
@@ -217,10 +214,10 @@ def render_admin_panel() -> None:
 **GitHub:** [imzcpr-blip/micro-range-selector](https://github.com/imzcpr-blip/micro-range-selector)  
 **Founder:** {CREATOR}
 """
-    )
-    st.info(
-        "To keep the **public domain app** under your control: only your GitHub account "
-        "should have write access, and only you should hold Streamlit Cloud admin on the app. "
-        "This in-app role does not replace GitHub/Streamlit account security — it protects "
-        "in-app administrative actions."
-    )
+        )
+        st.info(
+            "To keep the **public domain app** under your control: only your GitHub account "
+            "should have write access, and only you should hold Streamlit Cloud admin on the app. "
+            "This in-app role does not replace GitHub/Streamlit account security — it protects "
+            "in-app administrative actions."
+        )

@@ -350,23 +350,25 @@ def require_login() -> bool:
     if is_logged_in():
         return True
 
-    # ── Landing / welcome ────────────────────────────────────────────────
+    # ── Landing / welcome (Wall Street desk feel) ────────────────────────
+    from wallstreet_ui import candle_expander, inject_wallstreet_theme, market_tape, page_hero
+
+    inject_wallstreet_theme()
     _render_landing_branding()
-
+    market_tape()
+    page_hero(
+        "CPRP Trading Strategies",
+        "Session Micro Range Selector · Cooper Precision Reversion Protocol · by Raymon Michael Cooper",
+        side="bull",
+        desk_tag="MEMBER GATE · TRADING DESK",
+    )
     st.markdown(
-        """
-# Welcome to CPRP Trading Strategies, Session Micro Range Selector Tool
-
-**Cooper Precision Reversion Protocol (CPRP)** · Personal trading aid by Raymon Michael Cooper  
-
-*Trade the boundaries. Respect the structure. Control the risk.*
-"""
+        "*Trade the boundaries. Respect the structure. Control the risk.*"
     )
 
-    st.markdown(
-        f"""
-### Access the Tool / Site
-
+    with candle_expander("Access the Tool / Site", side="bull", expanded=True):
+        st.markdown(
+            f"""
 To use this site you need a free member account:
 
 1. **Sign up** with a valid **email address** and a **password** (at least {MIN_PASSWORD_LEN} characters).  
@@ -374,9 +376,12 @@ To use this site you need a free member account:
 3. **Log in** anytime with the same email and password.
 
 Without signing up or logging in, the Session Micro Range Selector, Trading Journal, Community, Member Chat, and other member tools stay locked.
+"""
+        )
 
-### After you sign up — create a custom username
-
+    with candle_expander("After you sign up — create a custom username", side="bear", expanded=False):
+        st.markdown(
+            """
 Right after your account is created, you’ll be asked to choose a **custom public username**  
 (3–20 characters: letters, numbers, and underscores).
 
@@ -386,7 +391,7 @@ Right after your account is created, you’ll be asked to choose a **custom publ
 
 Then you’ll have full access to the tool.
 """
-    )
+        )
 
     # Full disclosure on landing (always visible / open)
     from disclosure import render_disclosure, render_third_party_disclosure

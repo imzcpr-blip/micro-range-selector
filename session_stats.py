@@ -257,19 +257,19 @@ def render_session_wl_panel() -> None:
                     st.download_button(
                         "Download",
                         data=path.read_bytes(),
-                    file_name=path.name,
-                    mime="image/png",
-                    key=f"dl_stat_{item.id}",
-                    use_container_width=True,
-                )
-            else:
-                st.warning("Image file missing.")
+                        file_name=path.name,
+                        mime="image/png",
+                        key=f"dl_stat_{item.id}",
+                        use_container_width=True,
+                    )
+                else:
+                    st.warning("Image file missing.")
 
-            can_delete = is_admin(email) or item.email.lower() == email.lower()
-            if can_delete:
-                if st.button("Delete", key=f"del_stat_{item.id}"):
-                    delete_stat_image(item.id, email, as_admin=is_admin(email))
-                    st.rerun()
+                can_delete = is_admin(email) or item.email.lower() == email.lower()
+                if can_delete:
+                    if st.button("Delete", key=f"del_stat_{item.id}"):
+                        delete_stat_image(item.id, email, as_admin=is_admin(email))
+                        st.rerun()
 
     st.markdown("---")
     st.caption(

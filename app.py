@@ -69,6 +69,7 @@ from config import (
 from sync_cprp_assets import list_branding_images, list_branding_videos, sync_cprp_assets
 from wallstreet_ui import (
     candle_expander,
+    desk_section,
     inject_wallstreet_theme,
     market_tape,
     nav_candle_pages,
@@ -225,7 +226,7 @@ market_tape(version=RULEBOOK_VERSION)
 # ── Admin / Founder only (hard gate — not visible or usable by members) ───
 if page == PAGE_ADMIN:
     if not _is_founder:
-        st.session_state["nav_page"] = PAGE_SELECTOR
+        st.session_state["nav_page"] = nav_candle_pages([PAGE_SELECTOR])[0]
         st.warning("The Admin / Founder panel is only available to the founder account.")
         st.rerun()
     render_admin_panel()
@@ -284,10 +285,11 @@ if page == PAGE_CHAT:
 
 # ── Company Branding page ─────────────────────────────────────────────────
 if page == PAGE_BRANDING:
-    st.title("CPRP Company Branding")
-    st.caption(
-        f"Official **looping logo GIFs** and stills for **{PROTOCOL_NAME}**. "
-        "The app uses animated GIFs by default."
+    page_hero(
+        "CPRP Company Branding",
+        f"Official looping logo GIFs and stills for **{PROTOCOL_NAME}** · animated GIFs by default",
+        side="bull",
+        desk_tag="BRAND DESK · CORPORATE IDENTITY",
     )
 
     # Hero GIF at top of branding page
@@ -298,43 +300,43 @@ if page == PAGE_BRANDING:
         caption="Primary logo GIF (looping)",
     )
 
-    col_sync, col_info = st.columns([1, 2])
-    with col_sync:
-        if is_current_user_admin():
-            if st.button(
-                "Sync branding & documents now",
-                type="primary",
-                use_container_width=True,
-            ):
-                with st.spinner("Scanning CPRP Trading and related folders…"):
-                    st.session_state.doc_sync_report = sync_cprp_assets()
-                    st.session_state.doc_sync_done = True
-                st.rerun()
-        else:
-            st.caption(
-                f"Brand media is view-only for members. "
-                f"Only **{ADMIN_ROLE_LABEL}** can sync or edit application assets."
-            )
-    with col_info:
-        if is_current_user_admin():
-            rep = st.session_state.doc_sync_report
-            if rep is not None:
-                for line in rep.summary_lines():
-                    st.markdown(f"- {line}")
-                if rep.copied:
-                    with st.expander("Files updated this session", expanded=False):
-                        for c in rep.copied:
-                            st.markdown(f"- `{c}`")
+    with candle_expander("Brand sync & access control", side="bear", expanded=False):
+        col_sync, col_info = st.columns([1, 2])
+        with col_sync:
+            if is_current_user_admin():
+                if st.button(
+                    "Sync branding & documents now",
+                    type="primary",
+                    use_container_width=True,
+                ):
+                    with st.spinner("Scanning CPRP Trading and related folders…"):
+                        st.session_state.doc_sync_report = sync_cprp_assets()
+                        st.session_state.doc_sync_done = True
+                    st.rerun()
             else:
-                st.info("No sync report yet. Click **Sync branding & documents now**.")
-        else:
-            st.info(
-                f"You are browsing as a **member**. Application edits are reserved for "
-                f"**{ADMIN_ROLE_LABEL}** ({CREATOR})."
-            )
+                st.caption(
+                    f"Brand media is view-only for members. "
+                    f"Only **{ADMIN_ROLE_LABEL}** can sync or edit application assets."
+                )
+        with col_info:
+            if is_current_user_admin():
+                rep = st.session_state.doc_sync_report
+                if rep is not None:
+                    for line in rep.summary_lines():
+                        st.markdown(f"- {line}")
+                    if rep.copied:
+                        with candle_expander("Files updated this session", side="bull", expanded=False):
+                            for c in rep.copied:
+                                st.markdown(f"- `{c}`")
+                else:
+                    st.info("No sync report yet. Click **Sync branding & documents now**.")
+            else:
+                st.info(
+                    f"You are browsing as a **member**. Application edits are reserved for "
+                    f"**{ADMIN_ROLE_LABEL}** ({CREATOR})."
+                )
 
-    st.markdown("---")
-    st.subheader("Logo GIFs (primary brand media — looping)")
+    desk_section("Logo GIFs (primary brand media — looping)", side="bull")
     gifs = list_branding_videos()  # now returns .gif (and leftover .mp4)
     ordered: list[Path] = []
     for p in (
@@ -382,8 +384,7 @@ if page == PAGE_BRANDING:
     else:
         st.warning("No logo GIFs found. Run `python scripts/convert_videos_to_gifs.py`.")
 
-    st.markdown("---")
-    st.subheader("Still logo suite (fallback / download)")
+    desk_section("Still logo suite (fallback / download)", side="bear")
     imgs = list_branding_images()
     if not imgs:
         for name in (
@@ -425,10 +426,9 @@ if page == PAGE_BRANDING:
     else:
         st.caption("No still images found.")
 
-    st.markdown("---")
-    st.subheader("Brand usage notes")
-    st.markdown(
-        f"""
+    with candle_expander("Brand usage notes", side="bull", expanded=False):
+        st.markdown(
+            f"""
 - Prefer **looping logo GIFs** for headers, branding, and Member Chat.
 - Still images remain available for favicon, downloads, and offline use.
 - Brand name: **{PROTOCOL_NAME} ({PROTOCOL_SHORT})**
@@ -436,13 +436,18 @@ if page == PAGE_BRANDING:
 - Rulebook: **Official Rulebook v{RULEBOOK_VERSION} (Final)**
 - Tagline: *Trade the boundaries. Respect the structure. Control the risk.*
 """
-    )
+        )
     st.caption(f"© 2026 {CREATOR}. Personal branding for CPRP.")
     st.stop()
 
 # ── About the Founder page ────────────────────────────────────────────────
 if page == PAGE_ABOUT:
-    st.title("About the Founder")
+    page_hero(
+        "About the Founder",
+        f"{FOUNDER_NAME} · {FOUNDER_TITLE} · {FOUNDER_TAGLINE}",
+        side="bull",
+        desk_tag="FOUNDER PROFILE · CPRP",
+    )
     head_l, head_r = st.columns([1, 2])
     with head_l:
         if not _play_logo_video(
@@ -465,39 +470,36 @@ if page == PAGE_ABOUT:
 """
         )
 
-    st.markdown("---")
-    st.subheader("My story")
-    st.markdown(FOUNDER_BIO)
+    with candle_expander("My story", side="bull", expanded=True):
+        st.markdown(FOUNDER_BIO)
 
-    st.markdown("---")
-    st.subheader("What drives CPRP")
-    c1, c2, c3, c4 = st.columns(4)
-    c1.markdown(
-        """
+    with candle_expander("What drives CPRP", side="bear", expanded=True):
+        c1, c2, c3, c4 = st.columns(4)
+        c1.markdown(
+            """
 **Family**  
 Father first — grounded by responsibility at home.
 """
-    )
-    c2.markdown(
-        """
+        )
+        c2.markdown(
+            """
 **Research & data**  
 Patterns, structure, and probability — applied to the markets.
 """
-    )
-    c3.markdown(
-        """
+        )
+        c3.markdown(
+            """
 **Structure**  
 Confirmed range/channel S/R, multi-TF confluence, strict risk.
 """
-    )
-    c4.markdown(
-        """
+        )
+        c4.markdown(
+            """
 **Ownership**  
 A craft built, tested, and refined — not copied.
 """
-    )
+        )
 
-    st.markdown("---")
     st.info(
         "This application is a personal session-selection tool for CPRP. "
         "It does not place orders and is not financial advice. "
@@ -811,23 +813,21 @@ if not _play_logo_video(
 # Bloomberg Live audio/video option on main Session Selector page
 render_bloomberg_audio_option(key_prefix="main_bb", height=280)
 
-st.title(f"{PROTOCOL_NAME} — Session Micro Selector")
+page_hero(
+    f"{PROTOCOL_NAME} — Session Micro Selector",
+    f"Official Rulebook v{RULEBOOK_VERSION} (Final) · rank MES · MNQ · MYM for range/channel reversion — or sit out",
+    side="bull",
+    desk_tag="SESSION DESK · MICRO SELECTOR",
+)
 
 st.markdown(
     f"""
-### What this app is
-
-A **personal session-selection dashboard** for the **{PROTOCOL_NAME} (CPRP)**
-(Official Rulebook **v{RULEBOOK_VERSION} (Final)**). It analyzes the three approved
-micro futures — **MES**, **MNQ**, and **MYM** — and answers one question:
-
-> *“Which micro should I focus on for range/channel reversion right now — or should I sit out?”*
-
+> *“Which micro should I focus on for range/channel reversion right now — or should I sit out?”*  
 > *Trade the boundaries. Respect the structure. Control the risk.*
 """
 )
 
-with st.expander("Purpose, who it’s for, and how it fits your process", expanded=True):
+with candle_expander("Purpose, who it’s for, and how it fits your process", side="bull", expanded=True):
     st.markdown(
         f"""
 **Purpose**
@@ -860,13 +860,13 @@ with st.expander("Purpose, who it’s for, and how it fits your process", expand
 
 st.info(
     "💡 **New here?** Open the left sidebar → **Help & navigation** for section-by-section "
-    "app instructions, and **How to operate the strategy (official Quick Reference)** for "
-    "the full CPRP trading process. Collapse this description anytime with the arrow above."
+    "app instructions, and the **BULL / BEAR** candle panels for full CPRP operating steps."
 )
 
 # ── Strategy operating instructions (Official Quick Reference v1.5) ──────
-with st.expander(
+with candle_expander(
     "How to properly operate the strategy (CPRP Official Quick Reference v1.5)",
+    side="bear",
     expanded=False,
 ):
     st.markdown(
@@ -998,8 +998,8 @@ c5.metric("Trade threshold", f"{MIN_SCORE_TO_TRADE:.0f}+")
 st.markdown("---")
 
 # ── Per-instrument cards ─────────────────────────────────────────────────
-st.subheader("Micro comparison cards")
-st.caption("⭐ marks the current pick. Expand **Score breakdown** on any card for reasons and warnings.")
+desk_section("Micro comparison cards", side="bull")
+st.caption("⭐ marks the current pick. Expand the candle **Score breakdown** on any card for reasons and warnings.")
 
 if not rec.scores:
     st.warning("No scores available. Check internet / Yahoo Finance availability.")
@@ -1022,7 +1022,8 @@ else:
             )
             st.write(f"1H context: **{s.htf_label}**")
             st.progress(min(s.score / 100.0, 1.0))
-            with st.expander("Score breakdown"):
+            card_side = "bull" if is_pick or s.at_extreme else "bear"
+            with candle_expander("Score breakdown", side=card_side):
                 st.write(f"Structure / range-channel quality: {s.structure_score}")
                 st.write(f"Risk fit: {s.risk_fit_score} — {s.range_fit_label}")
                 st.write(f"1H trend context: {s.trend_context_score} — {s.htf_label}")
@@ -1045,7 +1046,7 @@ st.markdown("---")
 if rec.scores:
     left, right = st.columns([1, 1.2])
     with left:
-        st.subheader("Head-to-head")
+        desk_section("Head-to-head", side="bull")
         st.caption("Sorted by score. Use this to see how close the race is between micros.")
         table = pd.DataFrame(
             [
@@ -1097,7 +1098,7 @@ if rec.scores:
         st.plotly_chart(fig_bar, use_container_width=True)
 
     with right:
-        st.subheader("Price structure (5m)")
+        desk_section("Price structure (5m)", side="bear")
         st.caption(
             "Green/red dotted lines mark the analyzed window high/low (proxy support/resistance). "
             "Confirm real levels on NinjaTrader. Keep a separate **1-Hour** chart for long-term context (§2)."
@@ -1158,7 +1159,7 @@ if rec.scores:
 
 # ── Pre-trade checklist (Official Quick Reference v1.5) ──────────────────
 st.markdown("---")
-st.subheader("Pre-trade confirmation checklist (Quick Reference v1.5)")
+desk_section("Pre-trade confirmation checklist (Quick Reference v1.5)", side="bear")
 st.caption(
     "Confirmation hierarchy from CPRP Quick Reference v1.5 — apply in order. "
     "If any item fails, stand aside. "
@@ -1178,7 +1179,7 @@ checks = [
 for item in checks:
     st.checkbox(item, key=f"chk_{item[:28]}")
 
-with st.expander("RSI rules & exits (Quick Reference v1.5)"):
+with candle_expander("RSI rules & exits (Quick Reference v1.5)", side="bear", expanded=False):
     st.markdown(
         f"""
 **RSI (v1.5)**
@@ -1208,7 +1209,7 @@ render_reference_and_journal_side_by_side(default_micro=_default_jr_micro)
 # Extra rulebook base download (optional)
 _rb_base_main = Path(RULEBOOK_BASE_PDF)
 if _rb_base_main.is_file():
-    with st.expander("More documents (Official Rulebook base)"):
+    with candle_expander("More documents (Official Rulebook base)", side="bull", expanded=False):
         st.download_button(
             label="Download Official Rulebook base (PDF)",
             data=_rb_base_main.read_bytes(),
