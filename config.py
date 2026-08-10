@@ -157,7 +157,7 @@ DISCLOSURE_TITLE = "Acknowledgement & Disclosure"
 DISCLOSURE_BODY = """
 The Cooper Precision Reversion Protocol (CPRP), including all related tools, rulebooks, guidelines, applications, and educational materials, has been developed solely for my personal use as an independent day trader. I am freely sharing these resources with others who may find them useful.
 
-Nothing contained in this protocol, its tools, or any associated community discussions constitutes personalized financial, investment, or trading advice. Every trader is solely responsible for his or her own decisions, risk management, and results. Futures trading involves substantial risk of loss and is not suitable for all individuals. Past performance is not indicative of future results.
+Nothing contained in this protocol, its tools, or any associated community discussions constitutes personalized financial, investment, or trading advice. Every trader is solely responsible for their own decisions, risk management, and results. Futures trading involves substantial risk of loss and is not suitable for all individuals. Past performance is not indicative of future results.
 
 This is a free, informal community of independent day traders who choose to share ideas, observations, and understanding with one another. Participation is voluntary. No one is obligated to follow any strategy, rule, or suggestion shared here.
 
