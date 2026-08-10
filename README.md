@@ -93,8 +93,30 @@ From **any** PowerShell or Command Prompt window:
 RUNCPRP              # start dashboard → http://localhost:8501
 RUNCPRP once         # one-shot CLI pick + alert
 RUNCPRP watch        # re-score every 60s + alerts
+RUNCPRP sync         # pull latest docs/branding from CPRP Trading folder
+RUNCPRP push         # commit + push to GitHub → public Streamlit app redeploys
+RUNCPRP push "msg"   # same, with commit message
+RUNCPRP push --sync  # sync assets, then push
 RUNCPRP help
 ```
+
+### Keep the public app in sync with local edits
+
+Streamlit Cloud does **not** watch your PC. It rebuilds from **GitHub `main`**.
+
+| You do locally | Public app |
+|----------------|------------|
+| Edit files under `C:\Users\imzcp\micro-range-selector` | Unchanged until push |
+| `RUNCPRP push` | Auto-redeploys in ~1–3 minutes |
+
+```powershell
+# After you change the app locally:
+RUNCPRP push
+# or:
+RUNCPRP push "Update strategy help text"
+```
+
+Helper script: `scripts\publish-to-cloud.ps1`
 
 Installed as:
 - `C:\Users\imzcp\.grok\bin\RUNCPRP.cmd` (on your user PATH)

@@ -48,17 +48,40 @@ python -m streamlit run app.py --server.headless true
 | One-shot CLI pick | `python run_once.py --alert` |
 | Watch + alerts | `python run_once.py --watch 60 --alert` |
 | Custom hard stop | add `--stop 75` (or 50–100) to `run_once.py` |
+| **Publish local → public app** | `RUNCPRP push` or `scripts/publish-to-cloud.ps1` |
+| Sync docs/branding only | `RUNCPRP sync` or `python sync_cprp_assets.py` |
 
 Use `Start-Dashboard.bat` / `Start-Watch.bat` only if the user prefers double-click launch outside the agent.
+
+## Publish to public Streamlit app
+
+Streamlit Community Cloud **does not read your PC live**. It deploys from **GitHub**.  
+Local changes reach the public `.streamlit.app` URL only after they are **committed and pushed** to `main`. Cloud then auto-redeploys (usually 1–3 minutes).
+
+When the user says **push**, **publish**, **update the public app**, or **deploy my local changes**:
+
+1. `cd` to `C:\Users\imzcp\micro-range-selector`
+2. Run:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\publish-to-cloud.ps1
+```
+
+Or: `RUNCPRP push` / `RUNCPRP push "commit message"` / `RUNCPRP push --sync`
+
+3. Confirm push succeeded; tell them to refresh the public Streamlit URL after a short wait.
 
 ## Windows shell command
 
 The user can also type **`RUNCPRP`** in PowerShell or Command Prompt (installed at `%USERPROFILE%\.grok\bin\RUNCPRP.cmd`, on PATH). Prefer launching via that when they ask for a shell command, or start Streamlit yourself as above when they invoke this skill in chat.
 
 ```text
-RUNCPRP              → dashboard
+RUNCPRP              → dashboard (local)
 RUNCPRP once         → CLI one-shot
 RUNCPRP watch        → watch + alerts
+RUNCPRP sync         → sync CPRP Trading docs/branding into assets
+RUNCPRP push         → commit + push → public Streamlit redeploy
+RUNCPRP publish      → same as push
 RUNCPRP help
 ```
 
@@ -67,4 +90,5 @@ RUNCPRP help
 - Do **not** modify trading rules or place orders — this only launches the personal session-selector tool.
 - Prefer the primary project path (`C:\Users\imzcp\micro-range-selector`) when both copies exist.
 - After starting Streamlit in the background, confirm the process is up; if it exits with an error, surface stderr and fix missing deps once, then retry.
-- Keep responses short: URL + mode started + stop instructions.
+- When publishing, never force-push; use the publish script.
+- Keep responses short: URL + mode started + stop instructions (or push result + “public app refreshes shortly”).
