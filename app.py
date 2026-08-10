@@ -30,6 +30,7 @@ from journal import render_journal_page, render_reference_and_journal_side_by_si
 from community import render_community_panel
 from economic_calendar import render_economic_calendar_panel
 from live_news import render_bloomberg_audio_option, render_bloomberg_panel
+from platforms_brokers import render_platforms_brokers_panel
 from session_stats import render_session_wl_panel
 from config import (
     ADMIN_ROLE_LABEL,
@@ -161,6 +162,7 @@ PAGE_COMMUNITY = "Community"
 PAGE_CHAT = "Member Chat"
 PAGE_CALENDAR = "Economic Calendar"
 PAGE_NEWS = "Bloomberg Live"
+PAGE_PLATFORMS = "Platforms & Brokers"
 PAGE_BRANDING = "Company Branding"
 PAGE_ABOUT = "About the Founder"
 PAGE_ADMIN = "Admin / Founder"
@@ -174,6 +176,7 @@ _nav_pages = [
     PAGE_CHAT,
     PAGE_CALENDAR,
     PAGE_NEWS,
+    PAGE_PLATFORMS,
     PAGE_BRANDING,
     PAGE_ABOUT,
 ]
@@ -209,6 +212,11 @@ if page == PAGE_NEWS:
 # ── Economic Calendar (Forex Factory — free third-party) ──────────────────
 if page == PAGE_CALENDAR:
     render_economic_calendar_panel()
+    st.stop()
+
+# ── Platforms & Brokers (popular w/ micro traders — no partnership) ───────
+if page == PAGE_PLATFORMS:
+    render_platforms_brokers_panel()
     st.stop()
 
 # ── CPRP Session Statistics (W/L image uploads) ───────────────────────────
