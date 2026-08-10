@@ -755,7 +755,7 @@ def render_quick_reference_panel() -> None:
             use_container_width=True,
         )
         st.download_button(
-            "Download Quick Reference (JPG)",
+            "📄 Download Quick Reference (JPG)",
             data=qr.read_bytes(),
             file_name=QUICK_REFERENCE_DOWNLOAD_NAME,
             mime="image/jpeg",
@@ -768,7 +768,7 @@ def render_quick_reference_panel() -> None:
     pdf = Path(QUICK_REFERENCE_PDF)
     if pdf.is_file():
         st.download_button(
-            "Download Quick Reference (PDF)",
+            "📃 Download Quick Reference (PDF)",
             data=pdf.read_bytes(),
             file_name=f"CPRP_Quick_Reference_v{RULEBOOK_VERSION}.pdf",
             mime="application/pdf",
@@ -778,7 +778,7 @@ def render_quick_reference_panel() -> None:
     rb = Path(RULEBOOK_UPDATE_PDF)
     if rb.is_file():
         st.download_button(
-            "Download Rulebook Update (PDF)",
+            "📂 Download Rulebook Update (PDF)",
             data=rb.read_bytes(),
             file_name=RULEBOOK_UPDATE_DOWNLOAD_NAME,
             mime="application/pdf",
