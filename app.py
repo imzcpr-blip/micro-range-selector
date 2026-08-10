@@ -111,7 +111,12 @@ if not st.session_state.doc_sync_done:
     st.session_state.doc_sync_done = True
 
 def _play_logo_video(*candidates: Path, caption: str | None = None) -> bool:
-    """Play the first available logo video (looping, muted). Falls back to static image."""
+    """Show the first available looping logo GIF (or MP4 fallback). Then static image."""
+    # Prefer GIFs (true browser looping via st.image)
+    for p in candidates:
+        if p and Path(p).is_file() and Path(p).suffix.lower() == ".gif":
+            st.image(str(p), use_container_width=True, caption=caption)
+            return True
     for p in candidates:
         if p and Path(p).is_file() and Path(p).suffix.lower() == ".mp4":
             st.video(str(p), format="video/mp4", start_time=0, loop=True, muted=True)
@@ -128,10 +133,10 @@ def _play_logo_video(*candidates: Path, caption: str | None = None) -> bool:
 # ══════════════════════════════════════════════════════════════════════════
 # SIDEBAR — navigation + brand
 # ══════════════════════════════════════════════════════════════════════════
-# Sidebar: compact animated logo when available (fallback to monogram still)
-_side_vid = Path(BRANDING_LOGO_VIDEO_ALT)
-if _side_vid.is_file():
-    st.sidebar.video(str(_side_vid), format="video/mp4", start_time=0, loop=True, muted=True)
+# Sidebar: compact looping logo GIF (fallback to monogram still)
+_side_gif = Path(BRANDING_LOGO_VIDEO_ALT)
+if _side_gif.is_file():
+    st.sidebar.image(str(_side_gif), use_container_width=True)
 elif Path(BRANDING_LOGO_ICON).is_file():
     st.sidebar.image(str(BRANDING_LOGO_ICON), use_container_width=True)
 st.sidebar.title(f"{PROTOCOL_SHORT}")
@@ -178,15 +183,16 @@ if page == PAGE_CHAT:
 if page == PAGE_BRANDING:
     st.title("CPRP Company Branding")
     st.caption(
-        f"Official **logo videos** and stills for **{PROTOCOL_NAME}**. "
-        "The app uses animated logo videos by default."
+        f"Official **looping logo GIFs** and stills for **{PROTOCOL_NAME}**. "
+        "The app uses animated GIFs by default."
     )
 
-    # Hero video at top of branding page
+    # Hero GIF at top of branding page
     _play_logo_video(
         Path(BRANDING_LOGO_VIDEO),
+        Path(BRANDING_DIR) / "cprp_logo_video_main.gif",
         Path(BRANDING_DIR) / "cprp_logo_video_main.mp4",
-        caption="Primary logo video",
+        caption="Primary logo GIF (looping)",
     )
 
     col_sync, col_info = st.columns([1, 2])
@@ -209,31 +215,31 @@ if page == PAGE_BRANDING:
             st.info("No sync report yet. Click **Sync branding & documents now**.")
 
     st.markdown("---")
-    st.subheader("Logo videos (primary brand media)")
-    vids = list_branding_videos()
-    # Ensure root primary/alt included first
+    st.subheader("Logo GIFs (primary brand media — looping)")
+    gifs = list_branding_videos()  # now returns .gif (and leftover .mp4)
     ordered: list[Path] = []
     for p in (
         Path(BRANDING_LOGO_VIDEO),
         Path(BRANDING_LOGO_VIDEO_ALT),
-        Path(BRANDING_DIR) / "cprp_logo_video_main.mp4",
-        Path(BRANDING_DIR) / "cprp_logo_video_alt.mp4",
+        Path(BRANDING_DIR) / "cprp_logo_video_main.gif",
+        Path(BRANDING_DIR) / "cprp_logo_video_alt.gif",
+        Path(MEMBER_CHAT_HERO_VIDEO),
     ):
         if p.is_file() and p not in ordered:
             ordered.append(p)
-    for v in vids:
-        if v not in ordered:
+    for v in gifs:
+        if v not in ordered and v.suffix.lower() == ".gif":
             ordered.append(v)
 
     video_labels = {
-        "cprp_logo_video": "Primary logo video",
-        "cprp_logo_video_main": "Main CPRP logo video",
-        "cprp_logo_video_alt": "Alternate logo video",
-        "cprp_logo_video_variant_1": "Logo motion variant 1",
-        "cprp_logo_video_variant_2": "Logo motion variant 2",
-        "cprp_logo_video_variant_3": "Logo motion variant 3",
-        "cprp_logo_video_variant_4": "Logo motion variant 4",
-        "cprp_member_chat_hero": "Member Chat hero video",
+        "cprp_logo_video": "Primary logo GIF",
+        "cprp_logo_video_main": "Main CPRP logo GIF",
+        "cprp_logo_video_alt": "Alternate logo GIF",
+        "cprp_logo_video_variant_1": "Logo motion GIF 1",
+        "cprp_logo_video_variant_2": "Logo motion GIF 2",
+        "cprp_logo_video_variant_3": "Logo motion GIF 3",
+        "cprp_logo_video_variant_4": "Logo motion GIF 4",
+        "cprp_member_chat_hero": "Member Chat hero GIF",
     }
 
     if ordered:
@@ -242,17 +248,20 @@ if page == PAGE_BRANDING:
             with cols[i % 2]:
                 title = video_labels.get(v.stem.lower(), v.stem.replace("_", " ").title())
                 st.markdown(f"**{title}**")
-                st.video(str(v), format="video/mp4", start_time=0, loop=True, muted=True)
-                st.download_button(
-                    label="Download MP4",
-                    data=v.read_bytes(),
-                    file_name=v.name,
-                    mime="video/mp4",
-                    key=f"dl_brand_vid_{v.name}",
-                    use_container_width=True,
-                )
+                if v.suffix.lower() == ".gif":
+                    st.image(str(v), use_container_width=True)
+                    st.download_button(
+                        label="Download GIF",
+                        data=v.read_bytes(),
+                        file_name=v.name,
+                        mime="image/gif",
+                        key=f"dl_brand_gif_{v.name}",
+                        use_container_width=True,
+                    )
+                else:
+                    st.video(str(v), format="video/mp4", start_time=0, loop=True, muted=True)
     else:
-        st.warning("No logo videos found. Sync from `CPRP Trading\\CPRP_Branding`.")
+        st.warning("No logo GIFs found. Run `python scripts/convert_videos_to_gifs.py`.")
 
     st.markdown("---")
     st.subheader("Still logo suite (fallback / download)")
@@ -301,7 +310,7 @@ if page == PAGE_BRANDING:
     st.subheader("Brand usage notes")
     st.markdown(
         f"""
-- Prefer **logo videos** (muted, looping) for headers, branding, and Member Chat.
+- Prefer **looping logo GIFs** for headers, branding, and Member Chat.
 - Still images remain available for favicon, downloads, and offline use.
 - Brand name: **{PROTOCOL_NAME} ({PROTOCOL_SHORT})**
 - Founder: **{FOUNDER_NAME}**
@@ -665,14 +674,15 @@ st.sidebar.caption(f"Pages: Selector · Branding · About · © {CREATOR}")
 # ══════════════════════════════════════════════════════════════════════════
 # MAIN — branding logo video + description + analysis
 # ══════════════════════════════════════════════════════════════════════════
-# Branding banner: animated logo video (fallback to still)
+# Branding banner: looping logo GIF (fallback to still)
 if not _play_logo_video(
     Path(BRANDING_LOGO_VIDEO),
     Path(BRANDING_LOGO_VIDEO_ALT),
+    Path(BRANDING_DIR) / "cprp_logo_video_main.gif",
     Path(BRANDING_DIR) / "cprp_logo_video_main.mp4",
     Path(BRANDING_LOGO_IMAGE),
 ):
-    st.warning("CPRP branding logo video not found in assets/.")
+    st.warning("CPRP branding logo GIF not found in assets/.")
 
 st.title(f"{PROTOCOL_NAME} — Session Micro Selector")
 

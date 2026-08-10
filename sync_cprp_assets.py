@@ -304,11 +304,22 @@ def list_branding_images() -> list[Path]:
 
 
 def list_branding_videos() -> list[Path]:
+    """Return looping logo GIFs (preferred) plus any leftover MP4s."""
     if not BRANDING_DIR.is_dir():
         return []
-    return sorted(
-        [p for p in BRANDING_DIR.iterdir() if p.suffix.lower() == ".mp4" and p.is_file()],
-        key=lambda p: p.name.lower(),
+    gifs = [
+        p
+        for p in BRANDING_DIR.iterdir()
+        if p.suffix.lower() == ".gif" and p.is_file() and "logo" in p.name.lower()
+    ]
+    mp4s = [
+        p
+        for p in BRANDING_DIR.iterdir()
+        if p.suffix.lower() == ".mp4" and p.is_file()
+    ]
+    # GIFs first
+    return sorted(gifs, key=lambda p: p.name.lower()) + sorted(
+        mp4s, key=lambda p: p.name.lower()
     )
 
 

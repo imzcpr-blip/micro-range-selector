@@ -166,8 +166,11 @@ Open a **new** terminal if an old session was already open before install.
 | `config.py` | Protocol metadata, instruments, hard stop, founder bio |
 | `sync_cprp_assets.py` | Scans CPRP Trading / related folders; syncs docs + branding into `assets/` |
 | `run_once.py` | CLI / watch mode |
-| `assets/cprp_logo_video.mp4` | Branding logo video (dashboard header) |
-| `assets/cprp_logo_icon.jpg` | Favicon / sidebar monogram |
+| `assets/cprp_logo_video.gif` | Looping logo GIF (dashboard header) |
+| `assets/cprp_logo_video_alt.gif` | Looping logo GIF (sidebar) |
+| `assets/cprp_member_chat_hero.gif` | Member Chat hero GIF |
+| `assets/cprp_logo_icon.jpg` | Favicon / sidebar monogram fallback |
+| `scripts/convert_videos_to_gifs.py` | Rebuild looping GIFs from MP4 sources |
 | `assets/CPRP_Quick_Reference_v1.5.jpg` | Downloadable Quick Reference card |
 | `assets/CPRP_Quick_Reference_v1.5.pdf` | Official Quick Reference v1.5 PDF |
 | `assets/CPRP_Rulebook_Update_v1.5.pdf` | Official Rulebook Update & Changelog v1.5 |

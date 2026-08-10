@@ -221,10 +221,17 @@ def render_member_chat(
     display = get_display_name(email) or st.session_state.get("display_name") or "Member"
     heartbeat(email, display)
 
-    # Branding header for Member Chat (video preferred, image fallback)
+    # Branding header for Member Chat (looping GIF preferred, then MP4, then still)
     shown = False
     for p in (hero_video, logo_video):
-        if p is not None and Path(p).is_file() and Path(p).suffix.lower() == ".mp4":
+        if p is None or not Path(p).is_file():
+            continue
+        suf = Path(p).suffix.lower()
+        if suf == ".gif":
+            st.image(str(p), use_container_width=True, caption="CPRP Member Chat")
+            shown = True
+            break
+        if suf == ".mp4":
             st.video(str(p), format="video/mp4", start_time=0, loop=True, muted=True)
             shown = True
             break

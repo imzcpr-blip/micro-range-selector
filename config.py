@@ -101,12 +101,12 @@ APP_NOTIFY_NAME = "CPRP Micro Selector"
 # Local branding / reference assets (relative to project root)
 _ASSETS = Path(__file__).resolve().parent / "assets"
 BRANDING_DIR = _ASSETS / "branding"
-# Prefer animated logo videos over static images in the UI
-BRANDING_LOGO_VIDEO = _ASSETS / "cprp_logo_video.mp4"
-BRANDING_LOGO_VIDEO_ALT = _ASSETS / "cprp_logo_video_alt.mp4"
+# Prefer looping logo GIFs over MP4 / static stills in the UI
+BRANDING_LOGO_VIDEO = _ASSETS / "cprp_logo_video.gif"
+BRANDING_LOGO_VIDEO_ALT = _ASSETS / "cprp_logo_video_alt.gif"
 BRANDING_LOGO_ICON = _ASSETS / "cprp_logo_icon.jpg"  # favicon / tiny fallback only
 BRANDING_LOGO_IMAGE = _ASSETS / "cprp_logo_primary.jpg"  # static fallback
-MEMBER_CHAT_HERO_VIDEO = _ASSETS / "cprp_member_chat_hero.mp4"
+MEMBER_CHAT_HERO_VIDEO = _ASSETS / "cprp_member_chat_hero.gif"
 MEMBER_CHAT_HERO_IMAGE = _ASSETS / "cprp_member_chat_poster.jpg"
 QUICK_REFERENCE_IMAGE = _ASSETS / f"CPRP_Quick_Reference_v{RULEBOOK_VERSION}.jpg"
 QUICK_REFERENCE_PDF = _ASSETS / f"CPRP_Quick_Reference_v{RULEBOOK_VERSION}.pdf"
