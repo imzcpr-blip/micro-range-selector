@@ -60,14 +60,20 @@ BRANDING_MAP: dict[str, str] = {
     "CPRP_Logo_Classic.jpg": "cprp_logo_classic.jpg",
     "Main CPRP Logo Video.mp4": "cprp_logo_video_main.mp4",
     "CPRP Video Logo.mp4": "cprp_logo_video_alt.mp4",
+    "grok_video_2026-08-09-09-49-22.mp4": "cprp_logo_video_variant_1.mp4",
+    "grok_video_2026-08-09-09-51-29.mp4": "cprp_logo_video_variant_2.mp4",
+    "grok_video_2026-08-09-09-53-05.mp4": "cprp_logo_video_variant_3.mp4",
+    "grok_video_2026-08-09-09-53-06.mp4": "cprp_logo_video_variant_4.mp4",
 }
 
 # Primary app files kept at assets/ root (synced from branding when newer)
 PRIMARY_BRANDING_LINKS: list[tuple[str, str]] = [
     ("cprp_logo_square_monogram.jpg", "cprp_logo_icon.jpg"),
     ("cprp_logo_primary_chart.jpg", "cprp_logo_primary.jpg"),
+    ("cprp_logo_primary_chart.jpg", "cprp_member_chat_poster.jpg"),
     ("cprp_logo_video_main.mp4", "cprp_logo_video.mp4"),
     ("cprp_logo_video_alt.mp4", "cprp_logo_video_alt.mp4"),
+    ("cprp_logo_video_variant_1.mp4", "cprp_member_chat_hero.mp4"),
 ]
 
 

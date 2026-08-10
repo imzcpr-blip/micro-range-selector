@@ -18,6 +18,8 @@ import streamlit as st
 
 from auth import DATA_DIR, DB_PATH, current_user_email, get_display_name
 
+# Path is used for optional hero media on the chat page
+
 PRESENCE_TIMEOUT_SEC = 75  # count user active if heartbeat within this window
 CHAT_HISTORY_LIMIT = 80
 MAX_MESSAGE_LEN = 500
@@ -209,11 +211,26 @@ def render_active_users_badge() -> None:
         st.caption(f"Active: {preview}{more}")
 
 
-def render_member_chat() -> None:
+def render_member_chat(
+    hero_video: Path | None = None,
+    hero_image: Path | None = None,
+    logo_video: Path | None = None,
+) -> None:
     """Full Member Chat page content."""
     email = current_user_email() or ""
     display = get_display_name(email) or st.session_state.get("display_name") or "Member"
     heartbeat(email, display)
+
+    # Branding header for Member Chat (video preferred, image fallback)
+    shown = False
+    for p in (hero_video, logo_video):
+        if p is not None and Path(p).is_file() and Path(p).suffix.lower() == ".mp4":
+            st.video(str(p), format="video/mp4", start_time=0, loop=True, muted=True)
+            shown = True
+            break
+    if not shown and hero_image is not None and Path(hero_image).is_file():
+        st.image(str(hero_image), use_container_width=True, caption="CPRP Member Chat")
+        shown = True
 
     st.title("Member Chat")
     st.caption(

@@ -31,7 +31,10 @@ from config import (
     BRANDING_LOGO_ICON,
     BRANDING_LOGO_IMAGE,
     BRANDING_LOGO_VIDEO,
+    BRANDING_LOGO_VIDEO_ALT,
     CREATOR,
+    MEMBER_CHAT_HERO_IMAGE,
+    MEMBER_CHAT_HERO_VIDEO,
     FOUNDER_BIO,
     FOUNDER_NAME,
     FOUNDER_TAGLINE,
@@ -106,10 +109,29 @@ if not st.session_state.doc_sync_done:
         st.session_state.doc_sync_error = str(_sync_exc)
     st.session_state.doc_sync_done = True
 
+def _play_logo_video(*candidates: Path, caption: str | None = None) -> bool:
+    """Play the first available logo video (looping, muted). Falls back to static image."""
+    for p in candidates:
+        if p and Path(p).is_file() and Path(p).suffix.lower() == ".mp4":
+            st.video(str(p), format="video/mp4", start_time=0, loop=True, muted=True)
+            if caption:
+                st.caption(caption)
+            return True
+    for p in candidates:
+        if p and Path(p).is_file() and Path(p).suffix.lower() in {".jpg", ".jpeg", ".png"}:
+            st.image(str(p), use_container_width=True, caption=caption)
+            return True
+    return False
+
+
 # ══════════════════════════════════════════════════════════════════════════
 # SIDEBAR — navigation + brand
 # ══════════════════════════════════════════════════════════════════════════
-if Path(BRANDING_LOGO_ICON).is_file():
+# Sidebar: compact animated logo when available (fallback to monogram still)
+_side_vid = Path(BRANDING_LOGO_VIDEO_ALT)
+if _side_vid.is_file():
+    st.sidebar.video(str(_side_vid), format="video/mp4", start_time=0, loop=True, muted=True)
+elif Path(BRANDING_LOGO_ICON).is_file():
     st.sidebar.image(str(BRANDING_LOGO_ICON), use_container_width=True)
 st.sidebar.title(f"{PROTOCOL_SHORT}")
 st.sidebar.caption(f"Rulebook v{RULEBOOK_VERSION} · {CREATOR}")
@@ -133,15 +155,26 @@ st.sidebar.markdown("---")
 
 # ── Member Chat page ──────────────────────────────────────────────────────
 if page == PAGE_CHAT:
-    render_member_chat()
+    render_member_chat(
+        hero_video=Path(MEMBER_CHAT_HERO_VIDEO),
+        hero_image=Path(MEMBER_CHAT_HERO_IMAGE),
+        logo_video=Path(BRANDING_LOGO_VIDEO),
+    )
     st.stop()
 
 # ── Company Branding page ─────────────────────────────────────────────────
 if page == PAGE_BRANDING:
     st.title("CPRP Company Branding")
     st.caption(
-        f"Official logo suite and media for **{PROTOCOL_NAME}**. "
-        "Synced from the CPRP Trading branding folder."
+        f"Official **logo videos** and stills for **{PROTOCOL_NAME}**. "
+        "The app uses animated logo videos by default."
+    )
+
+    # Hero video at top of branding page
+    _play_logo_video(
+        Path(BRANDING_LOGO_VIDEO),
+        Path(BRANDING_DIR) / "cprp_logo_video_main.mp4",
+        caption="Primary logo video",
     )
 
     col_sync, col_info = st.columns([1, 2])
@@ -164,9 +197,54 @@ if page == PAGE_BRANDING:
             st.info("No sync report yet. Click **Sync branding & documents now**.")
 
     st.markdown("---")
-    st.subheader("Logo suite")
+    st.subheader("Logo videos (primary brand media)")
+    vids = list_branding_videos()
+    # Ensure root primary/alt included first
+    ordered: list[Path] = []
+    for p in (
+        Path(BRANDING_LOGO_VIDEO),
+        Path(BRANDING_LOGO_VIDEO_ALT),
+        Path(BRANDING_DIR) / "cprp_logo_video_main.mp4",
+        Path(BRANDING_DIR) / "cprp_logo_video_alt.mp4",
+    ):
+        if p.is_file() and p not in ordered:
+            ordered.append(p)
+    for v in vids:
+        if v not in ordered:
+            ordered.append(v)
+
+    video_labels = {
+        "cprp_logo_video": "Primary logo video",
+        "cprp_logo_video_main": "Main CPRP logo video",
+        "cprp_logo_video_alt": "Alternate logo video",
+        "cprp_logo_video_variant_1": "Logo motion variant 1",
+        "cprp_logo_video_variant_2": "Logo motion variant 2",
+        "cprp_logo_video_variant_3": "Logo motion variant 3",
+        "cprp_logo_video_variant_4": "Logo motion variant 4",
+        "cprp_member_chat_hero": "Member Chat hero video",
+    }
+
+    if ordered:
+        cols = st.columns(2)
+        for i, v in enumerate(ordered):
+            with cols[i % 2]:
+                title = video_labels.get(v.stem.lower(), v.stem.replace("_", " ").title())
+                st.markdown(f"**{title}**")
+                st.video(str(v), format="video/mp4", start_time=0, loop=True, muted=True)
+                st.download_button(
+                    label="Download MP4",
+                    data=v.read_bytes(),
+                    file_name=v.name,
+                    mime="video/mp4",
+                    key=f"dl_brand_vid_{v.name}",
+                    use_container_width=True,
+                )
+    else:
+        st.warning("No logo videos found. Sync from `CPRP Trading\\CPRP_Branding`.")
+
+    st.markdown("---")
+    st.subheader("Still logo suite (fallback / download)")
     imgs = list_branding_images()
-    # Fallback to root assets if branding/ not populated
     if not imgs:
         for name in (
             BRANDING_LOGO_ICON,
@@ -179,7 +257,6 @@ if page == PAGE_BRANDING:
                 imgs.append(p)
 
     if imgs:
-        # Friendly labels
         label_map = {
             "cprp_logo_square_monogram": "Square monogram",
             "cprp_logo_primary_chart": "Primary chart logo",
@@ -188,6 +265,7 @@ if page == PAGE_BRANDING:
             "cprp_logo_classic": "Classic wordmark",
             "cprp_logo_icon": "App icon",
             "cprp_logo_primary": "Primary logo",
+            "cprp_member_chat_poster": "Member Chat poster",
         }
         cols = st.columns(3)
         for i, img in enumerate(imgs):
@@ -205,30 +283,14 @@ if page == PAGE_BRANDING:
                     use_container_width=True,
                 )
     else:
-        st.warning(
-            "No branding images found. Place logos in `CPRP Trading\\CPRP_Branding` "
-            "and click **Sync branding & documents now**."
-        )
-
-    st.markdown("---")
-    st.subheader("Logo video")
-    vids = list_branding_videos()
-    primary_vid = Path(BRANDING_LOGO_VIDEO)
-    if primary_vid.is_file() and primary_vid not in vids:
-        vids = [primary_vid] + vids
-    if vids:
-        for v in vids:
-            st.markdown(f"**{v.stem.replace('_', ' ').title()}**")
-            st.video(str(v), format="video/mp4", start_time=0, loop=True, muted=True)
-    else:
-        st.caption("No logo video files found in assets/branding.")
+        st.caption("No still images found.")
 
     st.markdown("---")
     st.subheader("Brand usage notes")
     st.markdown(
         f"""
-- Prefer the **primary chart logo** and **square monogram** for app / social presence.
-- Keep the **logo video** muted and looping for dashboard headers.
+- Prefer **logo videos** (muted, looping) for headers, branding, and Member Chat.
+- Still images remain available for favicon, downloads, and offline use.
 - Brand name: **{PROTOCOL_NAME} ({PROTOCOL_SHORT})**
 - Founder: **{FOUNDER_NAME}**
 - Rulebook alignment: base **v{RULEBOOK_BASE_VERSION}** + update **v{RULEBOOK_VERSION}**
@@ -243,12 +305,14 @@ if page == PAGE_ABOUT:
     st.title("About the Founder")
     head_l, head_r = st.columns([1, 2])
     with head_l:
-        portrait = Path(BRANDING_LOGO_IMAGE)
-        icon = Path(BRANDING_LOGO_ICON)
-        if portrait.is_file():
-            st.image(str(portrait), use_container_width=True)
-        elif icon.is_file():
-            st.image(str(icon), use_container_width=True)
+        if not _play_logo_video(
+            Path(BRANDING_LOGO_VIDEO),
+            Path(BRANDING_LOGO_VIDEO_ALT),
+            Path(BRANDING_LOGO_IMAGE),
+            Path(BRANDING_LOGO_ICON),
+            caption="CPRP brand",
+        ):
+            st.caption("Brand media not found.")
     with head_r:
         st.markdown(f"## {FOUNDER_NAME}")
         st.markdown(f"**{FOUNDER_TITLE}**")
@@ -589,18 +653,13 @@ st.sidebar.caption(f"Pages: Selector · Branding · About · © {CREATOR}")
 # ══════════════════════════════════════════════════════════════════════════
 # MAIN — branding logo video + description + analysis
 # ══════════════════════════════════════════════════════════════════════════
-# Branding banner: logo *video* (not a static dashboard screenshot / emoji)
-_logo_video = Path(BRANDING_LOGO_VIDEO)
-if _logo_video.is_file():
-    st.video(
-        str(_logo_video),
-        format="video/mp4",
-        start_time=0,
-        loop=True,
-        autoplay=True,
-        muted=True,
-    )
-else:
+# Branding banner: animated logo video (fallback to still)
+if not _play_logo_video(
+    Path(BRANDING_LOGO_VIDEO),
+    Path(BRANDING_LOGO_VIDEO_ALT),
+    Path(BRANDING_DIR) / "cprp_logo_video_main.mp4",
+    Path(BRANDING_LOGO_IMAGE),
+):
     st.warning("CPRP branding logo video not found in assets/.")
 
 st.title(f"{PROTOCOL_NAME} — Session Micro Selector")
