@@ -900,16 +900,22 @@ st.sidebar.caption(f"Pages: Selector · Branding · About · © {CREATOR}")
 # ══════════════════════════════════════════════════════════════════════════
 # MAIN — Session Selector header video + description + analysis
 # ══════════════════════════════════════════════════════════════════════════
-# Session Selector banner: official branding video (grok_video …09-51-29.mp4)
-if not _play_logo_video(
+# Session Selector banner: branding video (grok_video_2026-08-09-09-51-29.mp4)
+# Prefer this MP4 only — do not fall back to other logo GIFs for this header.
+_ss_video_shown = False
+for _ss_path in (
     Path(SESSION_SELECTOR_VIDEO),
     Path(SESSION_SELECTOR_VIDEO_BRAND),
     Path(BRANDING_DIR) / "cprp_logo_video_variant_2.mp4",
-    Path(BRANDING_LOGO_VIDEO),
-    Path(BRANDING_LOGO_VIDEO_ALT),
-    Path(BRANDING_LOGO_IMAGE),
 ):
-    st.warning("CPRP Session Selector video not found in assets/.")
+    if _ss_path.is_file():
+        st.video(str(_ss_path), format="video/mp4", start_time=0, loop=True, muted=True)
+        st.caption("CPRP Session Selector")
+        _ss_video_shown = True
+        break
+if not _ss_video_shown:
+    if not _play_logo_video(Path(BRANDING_LOGO_IMAGE), Path(BRANDING_LOGO_ICON)):
+        st.warning("CPRP Session Selector video not found in assets/.")
 
 # Bloomberg Live audio/video option on main Session Selector page
 render_bloomberg_audio_option(key_prefix="main_bb", height=280)
