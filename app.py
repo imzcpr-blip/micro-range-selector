@@ -200,19 +200,20 @@ PAGE_BRANDING = "Company Branding"
 PAGE_ABOUT = "About the Founder"
 PAGE_ADMIN = "Admin / Founder"
 
-# Member nav — Admin / Founder page is NEVER listed for non-admins
+# Member nav order: intro → brand → education → tools → trade → news → log → community
+# Admin / Founder page is NEVER listed for non-admins
 _nav_pages_clean = [
-    PAGE_SELECTOR,
-    PAGE_JOURNAL,
-    PAGE_SESSION_WL,
-    PAGE_COMMUNITY,
-    PAGE_CHAT,
-    PAGE_CALENDAR,
-    PAGE_NEWS,
-    PAGE_PLATFORMS,
-    PAGE_MICROS,
-    PAGE_BRANDING,
-    PAGE_ABOUT,
+    PAGE_ABOUT,          # 1. Who built CPRP
+    PAGE_BRANDING,       # 2. Brand identity
+    PAGE_MICROS,         # 3. Instrument education
+    PAGE_PLATFORMS,      # 4. Charting / broker links
+    PAGE_SELECTOR,       # 5. Main session tool
+    PAGE_CALENDAR,       # 6. Event risk filter
+    PAGE_NEWS,           # 7. Live news
+    PAGE_JOURNAL,        # 8. Private session notes
+    PAGE_SESSION_WL,     # 9. Shared session stats
+    PAGE_COMMUNITY,      # 10. Ideas board
+    PAGE_CHAT,           # 11. Live member chat
 ]
 _is_founder = is_current_user_admin()
 if _is_founder:
@@ -224,7 +225,7 @@ _nav_pages = nav_candle_pages(_nav_pages_clean)
 # Clear stale Streamlit radio state if a non-admin still has Admin selected
 _nav_raw = st.session_state.get("nav_page", "")
 if not _is_founder and PAGE_ADMIN in str(_nav_raw):
-    st.session_state["nav_page"] = nav_candle_pages([PAGE_SELECTOR])[0]
+    st.session_state["nav_page"] = nav_candle_pages([PAGE_ABOUT])[0]
 
 page_label = st.sidebar.radio(
     "Trading desk",
