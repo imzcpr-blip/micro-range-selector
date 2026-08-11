@@ -22,6 +22,7 @@ from pathlib import Path
 from typing import Optional
 
 import streamlit as st
+import streamlit.components.v1 as components
 
 from auth import DATA_DIR, DB_PATH, current_display_name, current_user_email
 from wallstreet_ui import candle_expander, desk_section, page_hero
@@ -31,6 +32,15 @@ RESULTS = ["", "Open", "Win", "Loss", "Scratch", "No trade", "Lesson only"]
 
 # Soft capacity per user — when full, prompt to export session notes
 JOURNAL_MAX_ENTRIES = 50
+
+# TradingView continuous micro futures (LIVE advanced chart embeds)
+# 1 Hour candles · 1 Day range — CPRP primary instruments
+TV_MICRO_SYMBOLS: dict[str, str] = {
+    "MES": "CME_MINI:MES1!",
+    "MNQ": "CME_MINI:MNQ1!",
+    "MYM": "CBOT_MINI:MYM1!",
+}
+TV_CHART_HEIGHT = 520  # tall enough to see full 1D / 1H without inner scroll
 
 
 @dataclass
@@ -787,6 +797,135 @@ def render_quick_reference_panel() -> None:
         )
 
 
+def _tradingview_1d_1h_html(symbol: str, *, height: int = TV_CHART_HEIGHT) -> str:
+    """
+    TradingView Advanced Chart: 1-Hour interval, 1-Day range, dark CPRP theme.
+    `symbol` is a full TradingView id, e.g. CME_MINI:MES1!
+    """
+    # height for chart body (footer strip below)
+    chart_h = max(360, int(height) - 28)
+    return f"""
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    html, body {{
+      margin: 0; padding: 0;
+      background: #0A1628;
+      height: 100%;
+      overflow: hidden;
+      font-family: 'IBM Plex Sans', system-ui, sans-serif;
+    }}
+    .tradingview-widget-container {{
+      width: 100%;
+      height: {height}px;
+    }}
+    .tradingview-widget-container__widget {{
+      width: 100%;
+      height: {chart_h}px;
+    }}
+    .tv-footer {{
+      height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      padding: 0 10px;
+      font-size: 11px;
+      color: #8B9BB4;
+      background: #0A1628;
+      border-top: 1px solid rgba(201,168,76,0.18);
+    }}
+    .tv-footer a {{ color: #C9A84C; text-decoration: none; }}
+  </style>
+</head>
+<body>
+  <div class="tradingview-widget-container">
+    <div class="tradingview-widget-container__widget"></div>
+    <div class="tv-footer">
+      <a href="https://www.tradingview.com/chart/?symbol={symbol}"
+         target="_blank" rel="noopener noreferrer">
+        {symbol} · 1H · 1D · TradingView
+      </a>
+    </div>
+    <script type="text/javascript"
+      src="https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js"
+      async>
+    {{
+      "autosize": true,
+      "symbol": "{symbol}",
+      "interval": "60",
+      "range": "1D",
+      "timezone": "America/New_York",
+      "theme": "dark",
+      "style": "1",
+      "locale": "en",
+      "backgroundColor": "rgba(10, 22, 40, 1)",
+      "gridColor": "rgba(201, 168, 76, 0.08)",
+      "hide_top_toolbar": false,
+      "hide_legend": false,
+      "hide_side_toolbar": true,
+      "allow_symbol_change": false,
+      "save_image": false,
+      "calendar": false,
+      "details": false,
+      "hotlist": false,
+      "withdateranges": true,
+      "support_host": "https://www.tradingview.com",
+      "width": "100%",
+      "height": {chart_h}
+    }}
+    </script>
+  </div>
+</body>
+</html>
+"""
+
+
+def render_live_micro_charts(
+    *,
+    key_prefix: str = "tvjr",
+    height: int = TV_CHART_HEIGHT,
+    default_micro: str = "MES",
+) -> None:
+    """
+    Bottom-right LIVE TradingView charts: MES / MNQ / MYM at 1 Hour on a 1 Day range.
+    One large chart at a time (tabs) so the full 1D/1H view fits without scrolling.
+    """
+    desk_section("LIVE Charts · 1 Day / 1 Hour", side="bull")
+    st.caption(
+        "TradingView **1-Hour** candles · **1-Day** range · MES · MNQ · MYM continuous.  "
+        "Switch micro with the tabs — chart fills this panel (no scroll needed)."
+    )
+
+    # Prefer recommended micro as the default open tab when valid
+    order = ["MES", "MNQ", "MYM"]
+    pick = (default_micro or "MES").strip().upper()
+    if pick not in TV_MICRO_SYMBOLS:
+        pick = "MES"
+
+    # Streamlit tabs open left-to-right; put preferred micro first so it shows fully
+    ordered = [pick] + [s for s in order if s != pick]
+    tabs = st.tabs([f"● {s}" for s in ordered])
+
+    for tab, short in zip(tabs, ordered):
+        with tab:
+            tv_sym = TV_MICRO_SYMBOLS[short]
+            st.markdown(
+                f"<div style='font-size:12px;color:#C9A84C;margin:0 0 6px 0;"
+                f"letter-spacing:0.04em;'>"
+                f"<strong>{short}</strong> · {tv_sym} · LIVE · 1H / 1D"
+                f"</div>",
+                unsafe_allow_html=True,
+            )
+            components.html(
+                _tradingview_1d_1h_html(tv_sym, height=height),
+                height=height + 8,
+                scrolling=False,
+            )
+
+
 def render_reference_and_journal_side_by_side(default_micro: str = "") -> None:
     """Main dual-pane: Quick Reference | Trading Journal composer + recent list."""
     st.markdown("---")
@@ -840,7 +979,8 @@ def render_journal_page(default_micro: str = "") -> None:
 
     render_disclosure(expanded=False)
 
-    # Side-by-side on this page too for convenience
+    # Top row: Quick Reference (left) | Journal composer (right)
+    # Bottom-right of this pair: LIVE 1D/1H charts filling the remaining space
     left, right = st.columns([1, 1], gap="large")
     with left:
         render_quick_reference_panel()
@@ -849,6 +989,13 @@ def render_journal_page(default_micro: str = "") -> None:
             key_prefix="page",
             default_micro=default_micro,
             compact=False,
+        )
+        st.markdown("---")
+        # Bottom-right panel — large enough to show full 1 Day / 1 Hour chart
+        render_live_micro_charts(
+            key_prefix="page_tv",
+            height=TV_CHART_HEIGHT,
+            default_micro=default_micro or "MES",
         )
 
     st.markdown("---")
