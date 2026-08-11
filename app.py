@@ -260,7 +260,7 @@ _nav_pages_clean = [
     PAGE_PLATFORMS,      # 4. Charting / broker links
     PAGE_SELECTOR,       # 5. Main session tool
     PAGE_CALENDAR,       # 6. Event risk filter
-    PAGE_MICRO_NEWS,     # 7. Yahoo micro futures headlines
+    PAGE_MICRO_NEWS,     # 7. TradingView micro futures news
     PAGE_NEWS,           # 8. Live news desk
     PAGE_JOURNAL,        # 9. Private session notes
     PAGE_SESSION_WL,     # 10. Shared session stats
@@ -304,7 +304,7 @@ if page == PAGE_NEWS:
     render_bloomberg_panel()
     st.stop()
 
-# ── Micro Futures News (Yahoo Finance headlines for MES/MNQ/MYM) ──────────
+# ── Micro Futures News (TradingView Top Stories for MES/MNQ/MYM) ──────────
 if page == PAGE_MICRO_NEWS:
     render_micro_futures_news_panel()
     st.stop()
