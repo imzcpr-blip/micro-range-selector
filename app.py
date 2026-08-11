@@ -289,7 +289,8 @@ if page == PAGE_JOURNAL:
 
 # ── Member Chat page ──────────────────────────────────────────────────────
 if page == PAGE_CHAT:
-    render_bloomberg_audio_option(key_prefix="chat_bb", height=260)
+    # Larger player on Member Chat so news is easy to watch while chatting
+    render_bloomberg_audio_option(key_prefix="chat_bb", height=520)
     # No hero video/image on Member Chat — desk header only
     render_member_chat()
     st.stop()
