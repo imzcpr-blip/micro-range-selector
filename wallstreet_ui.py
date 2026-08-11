@@ -766,6 +766,7 @@ NAV_PAGE_ICONS: dict[str, str] = {
     "Member Chat": ICON_UP,
     "Economic Calendar": ICON_DOWN,
     "Bloomberg Live": ICON_TV,
+    "Micro Futures News": "📃",
     "Platforms & Brokers": ICON_LINK,
     "Micro E-mini Futures": ICON_UP,
     "Company Branding": "📁",
