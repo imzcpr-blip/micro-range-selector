@@ -39,12 +39,22 @@ RESULTS = ["", "Open", "Win", "Loss", "Scratch", "No trade", "Lesson only"]
 # Soft capacity per user — when full, prompt to export session notes
 JOURNAL_MAX_ENTRIES = 50
 
-# TradingView continuous micro futures (LIVE advanced chart embeds)
-# 1 Hour candles · 1 Day range — CPRP primary instruments
+# TradingView continuous Micro E-mini futures (LIVE advanced chart embeds)
+# Official continuous contracts (1! = front continuous) — required for live charts:
+#   MES → CME_MINI:MES1!   https://www.tradingview.com/symbols/CME_MINI-MES1!/
+#   MNQ → CME_MINI:MNQ1!   https://www.tradingview.com/symbols/CME_MINI-MNQ1!/
+#   MYM → CBOT_MINI:MYM1!  https://www.tradingview.com/symbols/CBOT_MINI-MYM1!/
+# (Do not use MES! / MNQ! / MYM! without the "1" — those are not valid TV continuous ids.)
 TV_MICRO_SYMBOLS: dict[str, str] = {
     "MES": "CME_MINI:MES1!",
     "MNQ": "CME_MINI:MNQ1!",
     "MYM": "CBOT_MINI:MYM1!",
+}
+# Short continuous tickers shown on tabs / labels
+TV_MICRO_TICKERS: dict[str, str] = {
+    "MES": "MES1!",
+    "MNQ": "MNQ1!",
+    "MYM": "MYM1!",
 }
 TV_CHART_HEIGHT = 520  # tall enough to see full 1D / 1H without inner scroll
 
@@ -906,30 +916,36 @@ def render_live_micro_charts(
     """
     desk_section("Quote Board · 1 Day / 1 Hour", side="bull")
     st.caption(
-        "TradingView **1-Hour** candles · **1-Day** range · MES · MNQ · MYM continuous.  "
-        "Switch micro with the tabs — chart fills this booth (no scroll needed)."
+        "TradingView continuous Micro E-minis: **MES1!** · **MNQ1!** · **MYM1!**  ·  "
+        "**1-Hour** candles · **1-Day** range. Switch with the tabs — full chart, no scroll."
     )
 
     # Prefer recommended micro as the default open tab when valid
     order = ["MES", "MNQ", "MYM"]
     pick = (default_micro or "MES").strip().upper()
+    # Accept "MES1!" / "MES1" style picks from elsewhere
+    pick = pick.replace("1!", "").replace("!", "").strip()
     if pick not in TV_MICRO_SYMBOLS:
         pick = "MES"
 
     # Streamlit tabs open left-to-right; put preferred micro first so it shows fully
     ordered = [pick] + [s for s in order if s != pick]
 
-    quote_board_header("Floor Quote Board · Micro Futures", live_label="LIVE · 1H / 1D")
-    tabs = st.tabs([f"● {s}" for s in ordered])
+    quote_board_header(
+        "Floor Quote Board · MES1! · MNQ1! · MYM1!",
+        live_label="LIVE · 1H / 1D",
+    )
+    tabs = st.tabs([f"● {TV_MICRO_TICKERS[s]}" for s in ordered])
 
     for tab, short in zip(tabs, ordered):
         with tab:
             tv_sym = TV_MICRO_SYMBOLS[short]
+            ticker = TV_MICRO_TICKERS[short]
+            exchange = tv_sym.split(":")[0]
             st.markdown(
                 f"<div style='font-size:11px;color:#C9A84C;margin:0 0 6px 0;"
-                f"font-family:IBM Plex Mono,monospace;letter-spacing:0.08em;"
-                f"text-transform:uppercase;'>"
-                f"<strong>{short}</strong> · {tv_sym} · Continuous · Live Feed"
+                f"font-family:IBM Plex Mono,monospace;letter-spacing:0.06em;'>"
+                f"<strong>{ticker}</strong> · {tv_sym} · {exchange} continuous · Micro E-mini · Live"
                 f"</div>",
                 unsafe_allow_html=True,
             )
@@ -938,7 +954,9 @@ def render_live_micro_charts(
                 height=height + 8,
                 scrolling=False,
             )
-    quote_board_footer()
+    quote_board_footer(
+        "MES1! CME_MINI · MNQ1! CME_MINI · MYM1! CBOT_MINI · TradingView continuous"
+    )
 
 
 def render_reference_and_journal_side_by_side(default_micro: str = "") -> None:
