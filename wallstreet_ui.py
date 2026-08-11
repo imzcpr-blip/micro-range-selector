@@ -43,8 +43,19 @@ html, body, [data-testid="stAppViewContainer"], .stApp {
 [data-testid="stSidebar"] {
   background: linear-gradient(180deg, #0a1628 0%, #070e1a 55%, #060b16 100%) !important;
   border-right: 1px solid rgba(201, 168, 76, 0.18) !important;
+  font-family: 'IBM Plex Sans', system-ui, sans-serif !important;
 }
-[data-testid="stSidebar"] * {
+/* Do NOT set font-family on * — that breaks Material Symbols (shows keyboard_double_arrow as text) */
+[data-testid="stSidebar"] p,
+[data-testid="stSidebar"] span,
+[data-testid="stSidebar"] label,
+[data-testid="stSidebar"] div,
+[data-testid="stSidebar"] h1,
+[data-testid="stSidebar"] h2,
+[data-testid="stSidebar"] h3,
+[data-testid="stSidebar"] h4,
+[data-testid="stSidebar"] li,
+[data-testid="stSidebar"] button {
   font-family: 'IBM Plex Sans', system-ui, sans-serif !important;
 }
 [data-testid="stSidebar"] .stRadio label {
@@ -121,31 +132,58 @@ div[data-testid="stVerticalBlockBorderWrapper"] {
   color: inherit !important;
 }
 
-/* Force Streamlit expander chevron / arrow icons visible (gold on navy) */
+/* Force Streamlit expander chevron / Material arrow icons to render as icons (not text) */
+@import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0,0&display=swap');
+
 [data-testid="stExpander"] summary svg,
 [data-testid="stExpander"] summary [data-testid="stExpanderToggleIcon"],
-[data-testid="stExpander"] summary span[data-testid="stIconMaterial"],
-[data-testid="stSidebar"] [data-testid="stExpander"] summary svg,
-[data-testid="stSidebar"] [data-testid="stExpander"] svg {
+[data-testid="stSidebar"] [data-testid="stExpander"] summary svg {
   color: #C9A84C !important;
   fill: #C9A84C !important;
   stroke: #C9A84C !important;
   opacity: 1 !important;
   visibility: visible !important;
   display: inline-block !important;
-  width: 1.1rem !important;
-  height: 1.1rem !important;
-  min-width: 1.1rem !important;
+  width: 1.15rem !important;
+  height: 1.15rem !important;
+  min-width: 1.15rem !important;
   flex-shrink: 0 !important;
 }
-/* Some Streamlit builds use a material icon font for expand arrows */
-[data-testid="stExpander"] summary .material-icons,
-[data-testid="stSidebar"] [data-testid="stExpander"] .material-icons {
+
+/* Material Symbols / material icons (keyboard_double_arrow_right, etc.) */
+.material-icons,
+.material-symbols-rounded,
+.material-symbols-outlined,
+[data-testid="stIconMaterial"],
+[data-testid="stExpanderToggleIcon"],
+[data-testid="stExpander"] summary [class*="material"],
+[data-testid="stSidebar"] [class*="material-icons"],
+[data-testid="stSidebar"] [class*="material-symbols"],
+[data-testid="stSidebar"] span[translate="no"] {
+  font-family: "Material Symbols Rounded", "Material Icons", "Material Symbols Outlined" !important;
+  font-weight: normal !important;
+  font-style: normal !important;
+  font-size: 1.25rem !important;
+  line-height: 1 !important;
+  letter-spacing: normal !important;
+  text-transform: none !important;
+  display: inline-block !important;
+  white-space: nowrap !important;
+  word-wrap: normal !important;
+  direction: ltr !important;
+  -webkit-font-feature-settings: "liga" !important;
+  font-feature-settings: "liga" !important;
+  -webkit-font-smoothing: antialiased !important;
   color: #C9A84C !important;
   opacity: 1 !important;
-  font-size: 1.15rem !important;
   visibility: visible !important;
-  display: inline-flex !important;
+}
+
+/* Expander toggle specifically */
+[data-testid="stExpander"] summary > div:first-child,
+[data-testid="stExpander"] summary > span:first-child {
+  color: #C9A84C !important;
+  flex-shrink: 0 !important;
 }
 
 /* Gold accent panels (📈 / docs / primary) */
