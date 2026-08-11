@@ -33,11 +33,16 @@ OVERVIEW_IMG = EDU_DIR / "micro_emini_overview.png"
 TICKS_IMG = EDU_DIR / "micro_tick_values.png"
 SIZING_IMG = EDU_DIR / "micro_position_sizing.png"
 
-# CME reference links (public contract pages)
+# Public contract / education references (no partnership)
 CME_MES_URL = "https://www.cmegroup.com/markets/equities/sp/micro-e-mini-sandp-500.html"
 CME_MNQ_URL = "https://www.cmegroup.com/markets/equities/nasdaq/micro-e-mini-nasdaq-100.html"
 CME_MICROS_URL = "https://www.cmegroup.com/markets/equities/micro-emini-equity.html"
 IRONBEAM_SPECS_URL = "https://www.ironbeam.com/micro-e-mini-futures-contract-specs/"
+NINJATRADER_MICROS_URL = "https://ninjatrader.com/futures/futures-contracts/micro-emini/"
+NINJATRADER_MICRO_FUTURES_URL = "https://ninjatrader.com/futures/futures-contracts/micro-futures/"
+NINJATRADER_MES_BLOG_URL = (
+    "https://ninjatrader.com/futures/blogs/what-are-micro-e-mini-s-p-500-futures-mes/"
+)
 
 
 def _stop_pts(point_value: float, hard_stop: float) -> float:
@@ -136,7 +141,7 @@ A **tick** is the minimum price increment. **Tick value** = min tick size × $ /
             )
 
         st.markdown("##### Official / broker reference (free public pages)")
-        c1, c2, c3 = st.columns(3)
+        c1, c2, c3, c4 = st.columns(4)
         with c1:
             st.link_button(
                 link_label("CME Micro E-mini hub"),
@@ -151,15 +156,62 @@ A **tick** is the minimum price increment. **Tick value** = min tick size × $ /
             )
         with c3:
             st.link_button(
+                link_label("NinjaTrader Micro Specs"),
+                NINJATRADER_MICROS_URL,
+                use_container_width=True,
+            )
+        with c4:
+            st.link_button(
                 link_label("Ironbeam Micro specs"),
                 IRONBEAM_SPECS_URL,
                 use_container_width=True,
             )
         st.caption(
-            "Values above match CME Group published multipliers and Ironbeam’s Micro E-mini specs table. "
-            "Always re-confirm live contract specifications with your broker and CME before trading — "
-            "specifications can change."
+            "Values above match CME Group published multipliers and common broker education pages "
+            "(NinjaTrader, Ironbeam). Always re-confirm live contract specifications with your broker "
+            "and CME before trading — specifications, margins, and fees can change."
         )
+
+    with candle_expander("NinjaTrader Micro Specs", side="bull", expanded=True, kind="link"):
+        st.markdown(
+            """
+**NinjaTrader** publishes education and contract pages for **Micro E-mini** products
+(MES, MNQ, MYM, and related micros). Specs on those pages align with **CME** multipliers:
+
+| Symbol | Contract | $ / Point (NinjaTrader / CME) | Tick | Tick $ |
+|--------|----------|-------------------------------|------|--------|
+| **MES** | Micro E-mini S&P 500 | **$5.00** | 0.25 | **$1.25** |
+| **MNQ** | Micro E-mini Nasdaq-100 | **$2.00** | 0.25 | **$0.50** |
+| **MYM** | Micro E-mini Dow | **$0.50** | 1.00 | **$0.50** |
+
+NinjaTrader often highlights Micro E-minis as **1/10th** the size of full E-minis (e.g. MES vs ES),
+with lower notional exposure per contract — useful under CPRP’s hard dollar stop.
+
+**CPRP Strategies is not affiliated with, partnered with, or endorsed by NinjaTrader.**
+Links are for convenience and education only. Margins and fees are set by your broker account
+and can change.
+"""
+        )
+        n1, n2, n3 = st.columns(3)
+        with n1:
+            st.link_button(
+                link_label("NinjaTrader Micro E-mini"),
+                NINJATRADER_MICROS_URL,
+                type="primary",
+                use_container_width=True,
+            )
+        with n2:
+            st.link_button(
+                link_label("NinjaTrader Micro Futures hub"),
+                NINJATRADER_MICRO_FUTURES_URL,
+                use_container_width=True,
+            )
+        with n3:
+            st.link_button(
+                link_label("NinjaTrader MES overview"),
+                NINJATRADER_MES_BLOG_URL,
+                use_container_width=True,
+            )
 
     with candle_expander("Position sizing under the CPRP hard stop", side="bear", expanded=True, kind="down"):
         st.markdown(
