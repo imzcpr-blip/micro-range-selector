@@ -1,5 +1,5 @@
 """
-Micro Futures News panel — Yahoo Finance headlines for MES / MNQ / MYM.
+Micro Futures News panel — Yahoo Finance + TradingView news for MES / MNQ / MYM.
 
 Yahoo rarely attaches a dedicated news stream to micro continuous tickers
 (MES=F, MNQ=F, MYM=F). When a micro symbol has no articles, we fall back to
@@ -7,8 +7,12 @@ the related full-size continuous futures (ES=F, NQ=F, YM=F) and equity
 proxies (SPY, QQQ, DIA) that drive the same underlyings — labeled clearly
 so members know the source symbol.
 
-No partnership with Yahoo Finance. Headlines link out to Yahoo; we do not
-republish full article text.
+TradingView news uses the free Top Stories / Timeline embed widget, scoped
+to continuous Micro futures symbols (MES1! / MNQ1! / MYM1!), with related
+full-size continuous contracts as a secondary feed when needed.
+
+No partnership with Yahoo Finance or TradingView. Headlines link out; we do
+not republish full article text.
 """
 
 from __future__ import annotations
@@ -19,6 +23,7 @@ from typing import Any, Optional
 from zoneinfo import ZoneInfo
 
 import streamlit as st
+import streamlit.components.v1 as components
 import yfinance as yf
 
 from config import INSTRUMENTS, PROTOCOL_SHORT
@@ -34,24 +39,35 @@ MICRO_NEWS_QUERIES: dict[str, dict[str, Any]] = {
         "related": ["ES=F", "SPY"],  # full-size S&P + ETF proxy
         "label": "Micro E-mini S&P 500",
         "index": "S&P 500",
+        # TradingView continuous micros + full-size parent
+        "tv_primary": "CME_MINI:MES1!",
+        "tv_related": "CME_MINI:ES1!",
+        "tv_url": "https://www.tradingview.com/symbols/CME_MINI-MES1!/news/",
     },
     "MNQ": {
         "primary": "MNQ=F",
         "related": ["NQ=F", "QQQ"],
         "label": "Micro E-mini Nasdaq-100",
         "index": "Nasdaq-100",
+        "tv_primary": "CME_MINI:MNQ1!",
+        "tv_related": "CME_MINI:NQ1!",
+        "tv_url": "https://www.tradingview.com/symbols/CME_MINI-MNQ1!/news/",
     },
     "MYM": {
         "primary": "MYM=F",
         "related": ["YM=F", "DIA"],
         "label": "Micro E-mini Dow",
         "index": "Dow Jones",
+        "tv_primary": "CBOT_MINI:MYM1!",
+        "tv_related": "CBOT_MINI:YM1!",
+        "tv_url": "https://www.tradingview.com/symbols/CBOT_MINI-MYM1!/news/",
     },
 }
 
 YAHOO_QUOTE_URL = "https://finance.yahoo.com/quote/{symbol}"
 NEWS_PER_SYMBOL = 12
 CACHE_TTL_SEC = 180  # 3 minutes
+TV_NEWS_HEIGHT = 620
 
 
 @dataclass
@@ -264,6 +280,151 @@ def _fmt_when(dt: Optional[datetime]) -> str:
         return str(dt)[:16]
 
 
+def _tradingview_timeline_html(
+    symbol: str,
+    *,
+    height: int = TV_NEWS_HEIGHT,
+    label: str = "",
+) -> str:
+    """
+    TradingView Top Stories / Timeline widget for one symbol (dark desk theme).
+    feedMode=symbol scopes news to that continuous futures contract.
+    """
+    chart_h = max(360, int(height) - 30)
+    tag = label or symbol
+    return f"""
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    html, body {{
+      margin: 0; padding: 0;
+      background: #060a0e;
+      overflow: hidden;
+      font-family: 'IBM Plex Mono', system-ui, sans-serif;
+    }}
+    .tv-news {{
+      width: 100%;
+      height: {height}px;
+      border: 2px solid rgba(201,168,76,0.4);
+      box-sizing: border-box;
+      background: #060a0e;
+      display: flex;
+      flex-direction: column;
+    }}
+    .tv-news-head {{
+      flex: 0 0 30px;
+      height: 30px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 12px;
+      background: linear-gradient(180deg, #1a160e, #0a0c10);
+      border-bottom: 1px solid rgba(201,168,76,0.4);
+      font-size: 10px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: #C9A84C;
+    }}
+    .tv-news-head a {{ color: #C9A84C; text-decoration: none; }}
+    .tradingview-widget-container {{
+      flex: 1 1 auto;
+      width: 100%;
+      height: {chart_h}px;
+    }}
+    .tradingview-widget-container__widget {{
+      width: 100% !important;
+      height: {chart_h}px !important;
+    }}
+  </style>
+</head>
+<body>
+  <div class="tv-news">
+    <div class="tv-news-head">
+      <span>TradingView News · {tag}</span>
+      <a href="https://www.tradingview.com/symbols/{symbol.replace(':', '-')}/news/"
+         target="_blank" rel="noopener noreferrer">{symbol}</a>
+    </div>
+    <div class="tradingview-widget-container">
+      <div class="tradingview-widget-container__widget"></div>
+      <script type="text/javascript"
+        src="https://s3.tradingview.com/external-embedding/embed-widget-timeline.js"
+        async>
+      {{
+        "feedMode": "symbol",
+        "symbol": "{symbol}",
+        "colorTheme": "dark",
+        "isTransparent": false,
+        "displayMode": "regular",
+        "width": "100%",
+        "height": {chart_h},
+        "locale": "en"
+      }}
+      </script>
+    </div>
+  </div>
+</body>
+</html>
+"""
+
+
+def _render_tradingview_news_for_micro(short: str, *, height: int = TV_NEWS_HEIGHT) -> None:
+    """Embed TradingView timeline for micro + related full-size continuous."""
+    cfg = MICRO_NEWS_QUERIES[short]
+    tv_primary = cfg["tv_primary"]
+    tv_related = cfg["tv_related"]
+
+    st.markdown(
+        f"**TradingView** · `{tv_primary}` continuous  \n"
+        f"Related full-size feed: `{tv_related}` · same {cfg['index']} risk as **{short}**"
+    )
+    l1, l2 = st.columns(2)
+    with l1:
+        st.link_button(
+            link_label(f"Open {short} news on TradingView"),
+            cfg["tv_url"],
+            use_container_width=True,
+            type="primary",
+            key=f"mfn_tv_open_{short}",
+        )
+    with l2:
+        st.link_button(
+            link_label(f"Open {tv_related} on TradingView"),
+            f"https://www.tradingview.com/symbols/{tv_related.replace(':', '-')}/news/",
+            use_container_width=True,
+            key=f"mfn_tv_rel_{short}",
+        )
+
+    sub_p, sub_r = st.tabs(
+        [f"● {short} · {tv_primary}", f"● Related · {tv_related}"]
+    )
+    with sub_p:
+        components.html(
+            _tradingview_timeline_html(
+                tv_primary,
+                height=height,
+                label=f"{short} · {tv_primary}",
+            ),
+            height=height + 8,
+            scrolling=False,
+        )
+    with sub_r:
+        st.caption(
+            f"Full-size continuous **{tv_related}** — often has denser news than the micro ticker."
+        )
+        components.html(
+            _tradingview_timeline_html(
+                tv_related,
+                height=height,
+                label=f"{short} related · {tv_related}",
+            ),
+            height=height + 8,
+            scrolling=False,
+        )
+
+
 def _render_article_card(art: NewsArticle, *, key: str) -> None:
     via = f" · {art.related_via}" if art.related_via else ""
     with st.container(border=True):
@@ -297,54 +458,25 @@ def _render_article_card(art: NewsArticle, *, key: str) -> None:
             )
 
 
-def render_micro_futures_news_panel() -> None:
-    """Full-page Micro Futures News desk (Yahoo Finance)."""
-    page_hero(
-        "Micro Futures News",
-        "Yahoo Finance headlines for MES=F · MNQ=F · MYM=F and related market tape",
-        side="bull",
-        desk_tag="NEWS DESK · YAHOO FINANCE · MICROS",
-    )
-
-    st.caption(
-        "Headlines from **Yahoo Finance** for CPRP micros. "
-        "Yahoo often has little/no dedicated news on micro tickers — when that happens we show "
-        "**related full-size futures** (ES=F / NQ=F / YM=F) and liquid ETFs (SPY / QQQ / DIA) "
-        "that move the same indexes. Open any story on Yahoo for the full article."
-    )
-
-    render_disclosure(expanded=False)
-    render_third_party_disclosure(expanded=False)
-
-    desk_section("Yahoo quote pages", side="bull")
-    q1, q2, q3 = st.columns(3)
-    for col, short in zip((q1, q2, q3), ("MES", "MNQ", "MYM")):
-        inst = INSTRUMENTS[short]
-        with col:
-            st.link_button(
-                link_label(f"{short} · {inst.symbol}"),
-                YAHOO_QUOTE_URL.format(symbol=inst.symbol),
-                use_container_width=True,
-                type="primary" if short == "MES" else "secondary",
-            )
-
-    desk_section("Live headlines", side="bear")
+def _render_yahoo_section(all_news: dict[str, list[NewsArticle]]) -> None:
+    """Yahoo Finance card list (existing behavior)."""
+    desk_section("Yahoo Finance headlines", side="bear")
     c_ref, c_n = st.columns([1, 3])
     with c_ref:
-        if st.button("Refresh news", use_container_width=True, key="mfn_refresh"):
+        if st.button("Refresh Yahoo news", use_container_width=True, key="mfn_refresh"):
             _fetch_yahoo_news.clear()
             st.rerun()
     with c_n:
-        st.caption(f"Cache ~{CACHE_TTL_SEC // 60} min · {PROTOCOL_SHORT} desk display only · not a broker feed")
-
-    with st.spinner("Pulling Yahoo Finance news for MES / MNQ / MYM…"):
-        all_news = fetch_all_micro_news(max_per=12)
+        st.caption(
+            f"Cache ~{CACHE_TTL_SEC // 60} min · {PROTOCOL_SHORT} desk · "
+            "Yahoo primary MES=F / MNQ=F / MYM=F · related ES/NQ/YM + ETFs"
+        )
 
     tabs = st.tabs(
         [
-            f"● MES (MES=F)",
-            f"● MNQ (MNQ=F)",
-            f"● MYM (MYM=F)",
+            "● MES (MES=F)",
+            "● MNQ (MNQ=F)",
+            "● MYM (MYM=F)",
             "● Combined tape",
         ]
     )
@@ -352,7 +484,6 @@ def render_micro_futures_news_panel() -> None:
     for tab, short in zip(tabs[:3], ("MES", "MNQ", "MYM")):
         with tab:
             cfg = MICRO_NEWS_QUERIES[short]
-            inst = INSTRUMENTS[short]
             st.markdown(
                 f"**{short}** · `{cfg['primary']}` · {cfg['label']} · {cfg['index']}  \n"
                 f"Related feeds if micro is empty: "
@@ -362,7 +493,7 @@ def render_micro_futures_news_panel() -> None:
             if not articles:
                 st.warning(
                     f"No Yahoo headlines available right now for **{cfg['primary']}** "
-                    f"or related symbols. Try **Refresh news**, or open the Yahoo quote page."
+                    f"or related symbols. Try **Refresh Yahoo news**, or open the Yahoo quote page."
                 )
                 st.link_button(
                     link_label(f"Open {cfg['primary']} on Yahoo"),
@@ -383,9 +514,7 @@ def render_micro_futures_news_panel() -> None:
                     _render_article_card(art, key=f"mfn_{short}_{i}_{art.id[:24]}")
 
     with tabs[3]:
-        st.markdown(
-            "**Combined** MES · MNQ · MYM tape (deduped by URL, newest first)."
-        )
+        st.markdown("**Combined** MES · MNQ · MYM tape (deduped by URL, newest first).")
         combined: list[NewsArticle] = []
         seen_u: set[str] = set()
         for short in ("MES", "MNQ", "MYM"):
@@ -400,25 +529,151 @@ def render_micro_futures_news_panel() -> None:
             reverse=True,
         )
         if not combined:
-            st.warning("No combined headlines available. Try Refresh news.")
+            st.warning("No combined headlines available. Try Refresh Yahoo news.")
         else:
             st.caption(f"{len(combined)} unique articles")
             for i, art in enumerate(combined[:24]):
                 st.caption(f"Tagged · **{art.micro}**")
                 _render_article_card(art, key=f"mfn_all_{i}_{art.id[:24]}")
 
+
+def _render_tradingview_section() -> None:
+    """TradingView Top Stories embeds for micro continuous symbols."""
+    desk_section("TradingView news (Top Stories)", side="bull")
+    st.caption(
+        "Official **TradingView Timeline** widget · **symbol feed** for continuous micros "
+        "**MES1!** · **MNQ1!** · **MYM1!** (plus related full-size ES1! / NQ1! / YM1!).  "
+        "Click a story inside the widget to open it on TradingView."
+    )
+
+    h = st.select_slider(
+        "TradingView news height",
+        options=[480, 560, 620, 720, 840],
+        value=TV_NEWS_HEIGHT,
+        key="mfn_tv_height",
+        help="Taller = more stories visible without scrolling the embed.",
+    )
+
+    tv_tabs = st.tabs(
+        [
+            "● MES · MES1!",
+            "● MNQ · MNQ1!",
+            "● MYM · MYM1!",
+            "● All three",
+        ]
+    )
+    for tab, short in zip(tv_tabs[:3], ("MES", "MNQ", "MYM")):
+        with tab:
+            _render_tradingview_news_for_micro(short, height=int(h))
+
+    with tv_tabs[3]:
+        st.caption(
+            "Side-by-side continuous micro feeds. Use individual tabs for related full-size news."
+        )
+        c1, c2, c3 = st.columns(3)
+        for col, short in zip((c1, c2, c3), ("MES", "MNQ", "MYM")):
+            with col:
+                cfg = MICRO_NEWS_QUERIES[short]
+                st.markdown(f"**{short}** · `{cfg['tv_primary']}`")
+                components.html(
+                    _tradingview_timeline_html(
+                        cfg["tv_primary"],
+                        height=min(int(h), 560),
+                        label=f"{short}",
+                    ),
+                    height=min(int(h), 560) + 8,
+                    scrolling=False,
+                )
+
+
+def render_micro_futures_news_panel() -> None:
+    """Full-page Micro Futures News desk (Yahoo Finance + TradingView)."""
+    page_hero(
+        "Micro Futures News",
+        "Yahoo Finance + TradingView news for MES · MNQ · MYM continuous micros",
+        side="bull",
+        desk_tag="NEWS DESK · YAHOO · TRADINGVIEW · MICROS",
+    )
+
+    st.caption(
+        "Headlines for CPRP micros from **Yahoo Finance** (`MES=F` / `MNQ=F` / `MYM=F`) and "
+        "**TradingView** continuous symbols (`MES1!` / `MNQ1!` / `MYM1!`).  "
+        "When a micro ticker has little dedicated news, related full-size futures and ETFs "
+        "fill the tape — same underlying index risk."
+    )
+
+    render_disclosure(expanded=False)
+    render_third_party_disclosure(expanded=False)
+
+    desk_section("Quick links", side="bull")
+    q1, q2, q3 = st.columns(3)
+    for col, short in zip((q1, q2, q3), ("MES", "MNQ", "MYM")):
+        inst = INSTRUMENTS[short]
+        cfg = MICRO_NEWS_QUERIES[short]
+        with col:
+            st.link_button(
+                link_label(f"Yahoo · {inst.symbol}"),
+                YAHOO_QUOTE_URL.format(symbol=inst.symbol),
+                use_container_width=True,
+                key=f"mfn_yq_{short}",
+            )
+            st.link_button(
+                link_label(f"TV · {cfg['tv_primary'].split(':')[-1]}"),
+                cfg["tv_url"],
+                use_container_width=True,
+                key=f"mfn_tq_{short}",
+            )
+
+    source = st.radio(
+        "News source",
+        [
+            "Both (Yahoo + TradingView)",
+            "TradingView only",
+            "Yahoo Finance only",
+        ],
+        horizontal=True,
+        key="mfn_source",
+        help="TradingView = live Top Stories widget. Yahoo = card list from yfinance.",
+    )
+
+    show_tv = source.startswith("Both") or source.startswith("TradingView")
+    show_yahoo = source.startswith("Both") or source.startswith("Yahoo")
+
+    if show_tv:
+        _render_tradingview_section()
+
+    if show_yahoo:
+        with st.spinner("Pulling Yahoo Finance news for MES / MNQ / MYM…"):
+            all_news = fetch_all_micro_news(max_per=12)
+        _render_yahoo_section(all_news)
+
     with candle_expander("How this feed works", side="bull", expanded=False, kind="doc"):
         st.markdown(
             """
+### Yahoo Finance
+
 | Micro | Yahoo primary | Related market news |
 |-------|---------------|---------------------|
 | **MES** | `MES=F` | `ES=F` (E-mini S&P), `SPY` |
 | **MNQ** | `MNQ=F` | `NQ=F` (E-mini Nasdaq), `QQQ` |
 | **MYM** | `MYM=F` | `YM=F` (E-mini Dow), `DIA` |
 
-- Data: **Yahoo Finance** via `yfinance` (same stack as Session Selector quotes).  
-- We show **title, summary, publisher, time** and a **Read on Yahoo Finance** link.  
-- Full article text stays on Yahoo (we do not scrape/republish bodies).  
-- **CPRP Strategies is not affiliated with Yahoo Finance.**
+- Via `yfinance` (same stack as Session Selector quotes).  
+- Cards: title, summary, publisher, time + **Read on Yahoo Finance**.  
+- Full article text stays on Yahoo.
+
+### TradingView
+
+| Micro | TV continuous | Related full-size |
+|-------|---------------|-------------------|
+| **MES** | `CME_MINI:MES1!` | `CME_MINI:ES1!` |
+| **MNQ** | `CME_MINI:MNQ1!` | `CME_MINI:NQ1!` |
+| **MYM** | `CBOT_MINI:MYM1!` | `CBOT_MINI:YM1!` |
+
+- Free **Top Stories / Timeline** embed (`feedMode: symbol`).  
+- Stories open on TradingView inside the widget.  
+- Related full-size continuous often has denser news coverage than the micro.
+
+**CPRP Strategies is not affiliated with Yahoo Finance or TradingView.**
 """
         )
