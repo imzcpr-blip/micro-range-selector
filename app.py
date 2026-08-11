@@ -402,7 +402,7 @@ if page == PAGE_BRANDING:
                     data=img.read_bytes(),
                     file_name=img.name,
                     mime="image/jpeg",
-                    key=f"dl_suite_{img.name}",
+                    key=f"dl_suite_{i}_{img.stem}",
                     use_container_width=True,
                 )
     else:
@@ -423,7 +423,7 @@ if page == PAGE_BRANDING:
                         data=media.read_bytes(),
                         file_name=media.name,
                         mime="image/gif",
-                        key=f"dl_anim_{media.name}",
+                        key=f"dl_anim_{i}_{media.stem}",
                         use_container_width=True,
                     )
                 elif media.suffix.lower() == ".mp4":
@@ -432,7 +432,7 @@ if page == PAGE_BRANDING:
                         data=media.read_bytes(),
                         file_name=media.name,
                         mime="video/mp4",
-                        key=f"dl_anim_{media.name}",
+                        key=f"dl_anim_mp4_{i}_{media.stem}",
                         use_container_width=True,
                     )
     else:
@@ -487,6 +487,18 @@ if page == PAGE_BRANDING:
     desk_section("Logo GIFs (primary brand media — looping)", side="bull")
     gifs = list_branding_videos()  # now returns .gif (and leftover .mp4)
     ordered: list[Path] = []
+    seen_names: set[str] = set()
+
+    def _add_media(p: Path) -> None:
+        if not p.is_file():
+            return
+        # Dedupe by filename so assets/ and assets/branding/ copies don't collide
+        key_name = p.name.lower()
+        if key_name in seen_names:
+            return
+        seen_names.add(key_name)
+        ordered.append(p)
+
     for p in (
         Path(BRANDING_LOGO_VIDEO),
         Path(BRANDING_LOGO_VIDEO_ALT),
@@ -494,11 +506,10 @@ if page == PAGE_BRANDING:
         Path(BRANDING_DIR) / "cprp_logo_video_alt.gif",
         Path(MEMBER_CHAT_HERO_VIDEO),
     ):
-        if p.is_file() and p not in ordered:
-            ordered.append(p)
+        _add_media(Path(p))
     for v in gifs:
-        if v not in ordered and v.suffix.lower() == ".gif":
-            ordered.append(v)
+        if v.suffix.lower() in {".gif", ".mp4"}:
+            _add_media(Path(v))
 
     video_labels = {
         "cprp_logo_video": "Primary logo GIF",
@@ -514,6 +525,8 @@ if page == PAGE_BRANDING:
         "cprp_icon_minimal_anim": "Minimal icon (animated)",
         "cprp_banner_horizontal_anim": "Horizontal banner (animated)",
         "cprp_official_seal_anim": "Official Seal (animated)",
+        "cprp_session_selector_video": "Session Selector media",
+        "cprp_sidebar_video": "Sidebar media",
     }
 
     if ordered:
@@ -523,13 +536,14 @@ if page == PAGE_BRANDING:
                 title = video_labels.get(v.stem.lower(), v.stem.replace("_", " ").title())
                 st.markdown(f"**{title}**")
                 render_loop_media(v, height=280)
+                # Unique keys: index + stem (never filename alone — duplicates crash Streamlit)
                 if v.suffix.lower() == ".gif":
                     st.download_button(
                         label="📁 Download GIF",
                         data=v.read_bytes(),
                         file_name=v.name,
                         mime="image/gif",
-                        key=f"dl_brand_gif_{v.name}",
+                        key=f"dl_brand_gif_{i}_{v.stem}",
                         use_container_width=True,
                     )
                 elif v.suffix.lower() == ".mp4":
@@ -538,7 +552,7 @@ if page == PAGE_BRANDING:
                         data=v.read_bytes(),
                         file_name=v.name,
                         mime="video/mp4",
-                        key=f"dl_brand_mp4_{v.name}",
+                        key=f"dl_brand_mp4_{i}_{v.stem}",
                         use_container_width=True,
                     )
     else:
@@ -557,7 +571,17 @@ if page == PAGE_BRANDING:
             if p.is_file() and p not in imgs:
                 imgs.append(p)
 
-    if imgs:
+    # Dedupe stills by filename
+    stills: list[Path] = []
+    seen_stills: set[str] = set()
+    for img in imgs:
+        n = img.name.lower()
+        if n in seen_stills:
+            continue
+        seen_stills.add(n)
+        stills.append(img)
+
+    if stills:
         label_map = {
             "cprp_brand_logo_candlestick": "Candlestick brand logo",
             "cprp_brand_logo_support_resistance": "Support / Resistance brand logo",
@@ -574,7 +598,7 @@ if page == PAGE_BRANDING:
             "cprp_member_chat_poster": "Member Chat poster",
         }
         cols = st.columns(3)
-        for i, img in enumerate(imgs):
+        for i, img in enumerate(stills):
             with cols[i % 3]:
                 stem = img.stem.lower()
                 title = label_map.get(stem, stem.replace("_", " ").title())
@@ -585,7 +609,7 @@ if page == PAGE_BRANDING:
                     data=img.read_bytes(),
                     file_name=img.name,
                     mime="image/jpeg" if img.suffix.lower() in {".jpg", ".jpeg"} else "image/png",
-                    key=f"dl_brand_{img.name}",
+                    key=f"dl_brand_still_{i}_{img.stem}",
                     use_container_width=True,
                 )
     else:
