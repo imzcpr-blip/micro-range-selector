@@ -179,7 +179,7 @@ if _side_video is not None:
     st.sidebar.video(str(_side_video), format="video/mp4", start_time=0, loop=True, muted=True)
 elif Path(BRANDING_LOGO_ICON).is_file():
     st.sidebar.image(str(BRANDING_LOGO_ICON), use_container_width=True)
-st.sidebar.markdown(f"### {PROTOCOL_SHORT} DESK")
+st.sidebar.markdown("### CPRP Strategies")
 st.sidebar.caption(f"Rulebook v{RULEBOOK_VERSION} · {CREATOR}")
 st.sidebar.markdown(
     '<p style="font-family:IBM Plex Mono,monospace;font-size:0.72rem;color:#64748b;">'
