@@ -23,7 +23,7 @@ CandleSide = Literal["bull", "bear"]
 
 WS_CSS = """
 <style>
-@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0,0&display=swap');
 
 /* ── Base trading-desk canvas — CPRP navy ─────────────────────────────── */
 html, body, [data-testid="stAppViewContainer"], .stApp {
@@ -45,17 +45,19 @@ html, body, [data-testid="stAppViewContainer"], .stApp {
   border-right: 1px solid rgba(201, 168, 76, 0.18) !important;
   font-family: 'IBM Plex Sans', system-ui, sans-serif !important;
 }
-/* Do NOT set font-family on * — that breaks Material Symbols (shows keyboard_double_arrow as text) */
+/*
+  Apply brand font carefully. Never override Material Symbols / icon spans —
+  otherwise Streamlit shows "keyboard_double_arrow_right" as plain text.
+*/
 [data-testid="stSidebar"] p,
-[data-testid="stSidebar"] span,
 [data-testid="stSidebar"] label,
-[data-testid="stSidebar"] div,
 [data-testid="stSidebar"] h1,
 [data-testid="stSidebar"] h2,
 [data-testid="stSidebar"] h3,
 [data-testid="stSidebar"] h4,
 [data-testid="stSidebar"] li,
-[data-testid="stSidebar"] button {
+[data-testid="stSidebar"] button,
+[data-testid="stSidebar"] [data-testid="stMarkdownContainer"] {
   font-family: 'IBM Plex Sans', system-ui, sans-serif !important;
 }
 [data-testid="stSidebar"] .stRadio label {
@@ -133,8 +135,6 @@ div[data-testid="stVerticalBlockBorderWrapper"] {
 }
 
 /* Force Streamlit expander chevron / Material arrow icons to render as icons (not text) */
-@import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0,0&display=swap');
-
 [data-testid="stExpander"] summary svg,
 [data-testid="stExpander"] summary [data-testid="stExpanderToggleIcon"],
 [data-testid="stSidebar"] [data-testid="stExpander"] summary svg {
