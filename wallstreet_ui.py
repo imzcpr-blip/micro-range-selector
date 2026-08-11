@@ -94,11 +94,13 @@ div[data-testid="stVerticalBlockBorderWrapper"] {
   border: 1px solid rgba(148, 163, 184, 0.16) !important;
   border-radius: 10px !important;
   margin-bottom: 0.65rem !important;
-  overflow: hidden;
+  overflow: visible;
   box-shadow: inset 0 1px 0 rgba(232,213,163,0.04), 0 6px 18px rgba(0,0,0,0.3);
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
-[data-testid="stExpander"] summary {
+[data-testid="stExpander"] summary,
+[data-testid="stExpander"] details summary,
+[data-testid="stExpander"] > details > summary {
   font-weight: 600 !important;
   font-family: 'IBM Plex Mono', monospace !important;
   font-size: 0.92rem !important;
@@ -106,12 +108,44 @@ div[data-testid="stVerticalBlockBorderWrapper"] {
   padding: 0.7rem 0.9rem !important;
   cursor: pointer !important;
   color: #e8edf5 !important;
+  list-style: none !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 0.4rem !important;
 }
 [data-testid="stExpander"] summary:hover {
   background: rgba(26, 39, 68, 0.65) !important;
 }
 [data-testid="stExpander"] summary p {
   margin: 0 !important;
+  color: inherit !important;
+}
+
+/* Force Streamlit expander chevron / arrow icons visible (gold on navy) */
+[data-testid="stExpander"] summary svg,
+[data-testid="stExpander"] summary [data-testid="stExpanderToggleIcon"],
+[data-testid="stExpander"] summary span[data-testid="stIconMaterial"],
+[data-testid="stSidebar"] [data-testid="stExpander"] summary svg,
+[data-testid="stSidebar"] [data-testid="stExpander"] svg {
+  color: #C9A84C !important;
+  fill: #C9A84C !important;
+  stroke: #C9A84C !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  display: inline-block !important;
+  width: 1.1rem !important;
+  height: 1.1rem !important;
+  min-width: 1.1rem !important;
+  flex-shrink: 0 !important;
+}
+/* Some Streamlit builds use a material icon font for expand arrows */
+[data-testid="stExpander"] summary .material-icons,
+[data-testid="stSidebar"] [data-testid="stExpander"] .material-icons {
+  color: #C9A84C !important;
+  opacity: 1 !important;
+  font-size: 1.15rem !important;
+  visibility: visible !important;
+  display: inline-flex !important;
 }
 
 /* Gold accent panels (📈 / docs / primary) */

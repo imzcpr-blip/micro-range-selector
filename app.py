@@ -704,7 +704,8 @@ A craft built, tested, and refined — not copied.
 # SESSION SELECTOR — sidebar help + controls
 # ══════════════════════════════════════════════════════════════════════════
 st.sidebar.header("📖 Help & navigation")
-with st.sidebar.expander("How to use this app (start here)", expanded=True):
+st.sidebar.caption("Click ▶ to expand · ▼ when open")
+with st.sidebar.expander("▶ How to use this app (start here)", expanded=True):
     st.markdown(
         f"""
 **Intended use:** Before (and during) a trading session, open this app to
@@ -714,7 +715,7 @@ not an auto-trader and not a broker.
 
 **Typical flow**
 1. Set your **hard dollar stop** ($50–$100).
-2. Read the **green/red banner** at the top — that is your session pick (or sit out).
+2. Read the **recommendation banner** at the top — that is your session pick (or sit out).
 3. Compare the **three micro cards** (scores, structure, extreme vs mid, 1H bias).
 4. Open **Score breakdown** on a card for why/warnings.
 5. Use **Head-to-head** + **candlestick chart** to confirm range/channel structure.
@@ -730,7 +731,7 @@ not an auto-trader and not a broker.
 """
     )
 
-with st.sidebar.expander("What each screen section means"):
+with st.sidebar.expander("▶ What each screen section means"):
     st.markdown(
         f"""
 | Area | What it tells you |
@@ -740,7 +741,7 @@ with st.sidebar.expander("What each screen section means"):
 | **Three cards** | Per-micro score, last price, structure high/low, $ width, stop pts, boundary position, 1H bias |
 | **Score breakdown** | Structure, risk fit, 1H context, volume, volatility, reasons (+), warnings (!) |
 | **Head-to-head table** | Side-by-side numbers sorted by score |
-| **Bar chart** | Visual score race; orange line = trade threshold |
+| **Bar chart** | Visual score race; gold line = trade threshold |
 | **Price structure** | 5m candles with session high/low (proxy S/R zone lines) |
 | **Strategy ops expander** | Full CPRP process from the Official Quick Reference |
 | **Pre-trade checklist** | All 7 Quick Reference entry confirmations |
@@ -749,7 +750,7 @@ with st.sidebar.expander("What each screen section means"):
 """
     )
 
-with st.sidebar.expander("Sidebar controls explained"):
+with st.sidebar.expander("▶ Sidebar controls explained"):
     st.markdown(
         """
 - **Hard dollar stop** — Rulebook §5 risk cap for a single trade (−$50 to −$100).
@@ -762,7 +763,7 @@ with st.sidebar.expander("Sidebar controls explained"):
 """
     )
 
-with st.sidebar.expander("How scores are built (rulebook map)"):
+with st.sidebar.expander("▶ How scores are built (rulebook map)"):
     st.markdown(
         f"""
 Scores (0–100) blend CPRP Official Rulebook v{RULEBOOK_VERSION}:
@@ -787,7 +788,7 @@ Scores (0–100) blend CPRP Official Rulebook v{RULEBOOK_VERSION}:
 """
     )
 
-with st.sidebar.expander("Reading a recommendation"):
+with st.sidebar.expander("▶ Reading a recommendation"):
     st.markdown(
         f"""
 - **TRADE MES/MNQ/MYM** — Focus that contract for range/channel reversion setups.
@@ -807,7 +808,7 @@ with st.sidebar.expander("Reading a recommendation"):
 """
     )
 
-with st.sidebar.expander("How to operate the strategy (official Quick Reference)", expanded=False):
+with st.sidebar.expander("▶ How to operate the strategy (official Quick Reference)", expanded=False):
     st.markdown(
         f"""
 Source: **CPRP Official Quick Reference v{RULEBOOK_VERSION}**  
@@ -858,7 +859,7 @@ When in doubt, use **15m + 5m**.
 """
     )
 
-with st.sidebar.expander("Strategy hard rules (always)"):
+with st.sidebar.expander("▶ Strategy hard rules (always)"):
     st.markdown(
         f"""
 **Core philosophy**
@@ -880,7 +881,7 @@ with st.sidebar.expander("Strategy hard rules (always)"):
 """
     )
 
-with st.sidebar.expander("Troubleshooting"):
+with st.sidebar.expander("▶ Troubleshooting"):
     st.markdown(
         """
 - **No data / empty scores** — Check internet; Yahoo may be slow after hours. Wait and hit **Analyze now**.
