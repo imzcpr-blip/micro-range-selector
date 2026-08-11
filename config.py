@@ -17,7 +17,8 @@ RULEBOOK_EDITION_DATE = "2026-08-10"
 CREATOR = "Raymon Michael Cooper"
 
 # ONLY this account may see/use the Admin / Founder panel (case-insensitive).
-ADMIN_EMAILS = ("imzcpr@gmail.com",)
+# Display form: ImzCpr@gmail.com  |  normalized login key: imzcpr@gmail.com
+ADMIN_EMAILS = ("imzcpr@gmail.com", "ImzCpr@gmail.com")
 ADMIN_EMAIL = "imzcpr@gmail.com"
 ADMIN_ROLE_LABEL = "ADMIN / FOUNDER"
 

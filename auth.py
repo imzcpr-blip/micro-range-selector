@@ -38,8 +38,22 @@ from config import (
     CREATOR,
     PROTOCOL_SHORT,
 )
+from user_store import (
+    FOUNDER_EMAIL,
+    count_users as store_count_users,
+    fetch_user,
+    insert_user,
+    list_all_users,
+    storage_label,
+    update_display_name,
+    update_password_hash,
+    user_exists as store_user_exists,
+    username_taken as store_username_taken,
+    using_postgres,
+)
 
 DATA_DIR = Path(__file__).resolve().parent / "data"
+# Local SQLite path kept for journal/chat modules; accounts use user_store (Postgres when configured)
 DB_PATH = DATA_DIR / "users.db"
 SUBSCRIBERS_CSV = DATA_DIR / "subscribers.csv"
 
@@ -70,40 +84,11 @@ def _auth_secret(key: str, default: str = "") -> str:
         return default
 
 
-def _conn() -> sqlite3.Connection:
-    DATA_DIR.mkdir(parents=True, exist_ok=True)
-    con = sqlite3.connect(str(DB_PATH), check_same_thread=False, timeout=30)
-    con.execute("PRAGMA journal_mode=WAL;")
-    con.execute(
-        """
-        CREATE TABLE IF NOT EXISTS users (
-            email TEXT PRIMARY KEY COLLATE NOCASE,
-            password_hash TEXT NOT NULL,
-            salt TEXT NOT NULL,
-            created_at TEXT NOT NULL,
-            display_name TEXT
-        )
-        """
-    )
-    # Migrate older DBs that lack display_name
-    cols = {r[1] for r in con.execute("PRAGMA table_info(users)").fetchall()}
-    if "display_name" not in cols:
-        con.execute("ALTER TABLE users ADD COLUMN display_name TEXT")
-    con.execute(
-        """
-        CREATE UNIQUE INDEX IF NOT EXISTS idx_users_display_name
-        ON users (display_name COLLATE NOCASE)
-        WHERE display_name IS NOT NULL AND display_name != ''
-        """
-    )
-    con.commit()
-    return con
-
-
 def count_users() -> int:
-    with _conn() as con:
-        row = con.execute("SELECT COUNT(*) FROM users").fetchone()
-    return int(row[0] or 0) if row else 0
+    try:
+        return store_count_users()
+    except Exception:
+        return 0
 
 
 def normalize_email(email: str) -> str:
@@ -136,28 +121,27 @@ def _hash_password(password: str, salt_hex: str, *, pepper: Optional[str] = None
 
 
 def user_exists(email: str) -> bool:
-    email = normalize_email(email)
-    with _conn() as con:
-        row = con.execute(
-            "SELECT 1 FROM users WHERE email = ? COLLATE NOCASE",
-            (email,),
-        ).fetchone()
-    return row is not None
+    try:
+        return store_user_exists(normalize_email(email))
+    except Exception:
+        return False
 
 
 def ensure_bootstrap_accounts() -> None:
     """
-    Recreate founder / bootstrap accounts after Streamlit Cloud redeploys.
+    Ensure the founder account (ImzCpr@gmail.com) exists.
 
-    Community Cloud disk is ephemeral — data/users.db is wiped on each redeploy.
-    Configure secrets so the founder account is always restored:
+    With PostgreSQL secrets, accounts persist across Cloud redeploys.
+    bootstrap_password still creates the founder row if missing (first setup).
+
+      [database]
+      url = "postgresql://..."
 
       [auth]
-      admin_email = "you@example.com"
+      admin_email = "ImzCpr@gmail.com"
       bootstrap_password = "your-stable-password"
-      pepper = "long-random-stable-string"   # must NOT change after members sign up
+      pepper = "long-random-stable-string"
     """
-    # Only run once per Streamlit session
     if st.session_state.get("_auth_bootstrap_done"):
         return
     st.session_state["_auth_bootstrap_done"] = True
@@ -166,10 +150,9 @@ def ensure_bootstrap_accounts() -> None:
     if not password or len(password) < MIN_PASSWORD_LEN:
         return
 
-    emails: list[str] = []
-    # Prefer secrets admin_email, then config ADMIN_EMAILS
+    emails: list[str] = [FOUNDER_EMAIL]
     secret_admin = normalize_email(_auth_secret("admin_email", ""))
-    if secret_admin and is_valid_email(secret_admin):
+    if secret_admin and is_valid_email(secret_admin) and secret_admin not in emails:
         emails.append(secret_admin)
     for e in ADMIN_EMAILS:
         ne = normalize_email(e)
@@ -178,7 +161,6 @@ def ensure_bootstrap_accounts() -> None:
 
     for email in emails:
         if user_exists(email):
-            # Ensure founder always has a display name
             if not get_display_name(email):
                 set_display_name(email, "Founder")
             continue
@@ -188,24 +170,10 @@ def ensure_bootstrap_accounts() -> None:
 
 
 def username_taken(name: str, exclude_email: Optional[str] = None) -> bool:
-    name = normalize_username(name)
-    exclude_email = normalize_email(exclude_email or "")
-    with _conn() as con:
-        if exclude_email:
-            row = con.execute(
-                """
-                SELECT 1 FROM users
-                WHERE display_name = ? COLLATE NOCASE
-                  AND email != ?
-                """,
-                (name, exclude_email),
-            ).fetchone()
-        else:
-            row = con.execute(
-                "SELECT 1 FROM users WHERE display_name = ? COLLATE NOCASE",
-                (name,),
-            ).fetchone()
-    return row is not None
+    try:
+        return store_username_taken(normalize_username(name), normalize_email(exclude_email or ""))
+    except Exception:
+        return False
 
 
 def create_user(email: str, password: str) -> tuple[bool, str]:
@@ -223,24 +191,19 @@ def create_user(email: str, password: str) -> tuple[bool, str]:
     created = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
 
     try:
-        with _conn() as con:
-            con.execute(
-                """
-                INSERT INTO users (email, password_hash, salt, created_at, display_name)
-                VALUES (?, ?, ?, ?, NULL)
-                """,
-                (email, pw_hash, salt_hex, created),
-            )
-            con.commit()
-    except sqlite3.IntegrityError:
-        return False, "An account with this email already exists. Please log in."
+        insert_user(email, pw_hash, salt_hex, created, display_name=None)
+    except Exception as exc:
+        msg = str(exc).lower()
+        if "unique" in msg or "duplicate" in msg or "integrity" in msg:
+            return False, "An account with this email already exists. Please log in."
+        return False, f"Could not create account ({storage_label()}): {exc}"
 
     _append_subscriber_csv(email, created)
-    return True, "Account created. Choose a public username next."
+    backend = "permanent cloud database" if using_postgres() else "local database"
+    return True, f"Account created ({backend}). Choose a public username next."
 
 
 def verify_login(email: str, password: str) -> tuple[bool, str]:
-    # Restore founder account if secrets bootstrap is configured (Cloud redeploy wipe)
     try:
         ensure_bootstrap_accounts()
     except Exception:
@@ -250,24 +213,17 @@ def verify_login(email: str, password: str) -> tuple[bool, str]:
     if not is_valid_email(email):
         return False, "Please enter a valid email address."
 
-    with _conn() as con:
-        row = con.execute(
-            "SELECT password_hash, salt FROM users WHERE email = ? COLLATE NOCASE",
-            (email,),
-        ).fetchone()
+    row = None
+    try:
+        row = fetch_user(email)
+    except Exception as exc:
+        return False, f"Database error ({storage_label()}): {exc}"
 
     if not row:
-        # Last chance: bootstrap founder on the fly if this is admin email
         try:
-            ensure_bootstrap_accounts()
-            # clear one-shot flag so we can run again after intentional wipe mid-session
             st.session_state["_auth_bootstrap_done"] = False
             ensure_bootstrap_accounts()
-            with _conn() as con:
-                row = con.execute(
-                    "SELECT password_hash, salt FROM users WHERE email = ? COLLATE NOCASE",
-                    (email,),
-                ).fetchone()
+            row = fetch_user(email)
         except Exception:
             row = None
 
@@ -276,51 +232,45 @@ def verify_login(email: str, password: str) -> tuple[bool, str]:
         if n == 0:
             return (
                 False,
-                "No accounts are stored on this server yet. "
-                "Streamlit Cloud clears the member database when the app redeploys — "
-                "please **Sign up** again with the same email (or ask the founder to set "
-                "`auth.bootstrap_password` in Secrets so the founder account auto-restores).",
+                "No accounts found. "
+                + (
+                    "Sign up to create the first member account, or set auth.bootstrap_password "
+                    "in Secrets to auto-create the founder (ImzCpr@gmail.com)."
+                    if using_postgres()
+                    else "Streamlit Cloud wiped the temporary local database — "
+                    "add a permanent [database] url in Secrets, then Sign up again."
+                ),
             )
         return (
             False,
-            "No account found for that email. "
-            "If you signed up before an app update/redeploy, please **Sign up** again "
-            "(Cloud storage is temporary). Or check for typos in the email address.",
+            "No account found for that email. Check spelling, or Sign up if this is your first login "
+            f"on this server ({storage_label()}).",
         )
 
-    stored_hash, salt_hex = row
-    # Accept current pepper, empty pepper (legacy), and any prior value if secrets changed once
+    stored_hash, salt_hex = row.password_hash, row.salt
     peppers_to_try = [_pepper(), ""]
     for pep in peppers_to_try:
         candidate = _hash_password(password, salt_hex, pepper=pep)
         if hmac.compare_digest(stored_hash, candidate):
-            # Re-hash with current pepper if legacy match so future logins are stable
             if pep != _pepper():
                 try:
                     new_hash = _hash_password(password, salt_hex, pepper=_pepper())
-                    with _conn() as con:
-                        con.execute(
-                            "UPDATE users SET password_hash = ? WHERE email = ? COLLATE NOCASE",
-                            (new_hash, email),
-                        )
-                        con.commit()
+                    update_password_hash(email, new_hash)
                 except Exception:
                     pass
             return True, "Logged in."
 
-    return False, "Incorrect password. If this continues after a redeploy, Sign up again or reset via a new account."
+    return False, "Incorrect password."
 
 
 def get_display_name(email: str) -> Optional[str]:
-    email = normalize_email(email)
-    with _conn() as con:
-        row = con.execute(
-            "SELECT display_name FROM users WHERE email = ?",
-            (email,),
-        ).fetchone()
+    try:
+        row = fetch_user(normalize_email(email))
+    except Exception:
+        return None
     if not row:
         return None
-    name = (row[0] or "").strip()
+    name = (row.display_name or "").strip()
     return name or None
 
 
@@ -335,14 +285,12 @@ def set_display_name(email: str, username: str) -> tuple[bool, str]:
     if username_taken(username, exclude_email=email):
         return False, "That username is already taken. Please choose another."
     try:
-        with _conn() as con:
-            con.execute(
-                "UPDATE users SET display_name = ? WHERE email = ?",
-                (username, email),
-            )
-            con.commit()
-    except sqlite3.IntegrityError:
-        return False, "That username is already taken. Please choose another."
+        update_display_name(email, username)
+    except Exception as exc:
+        msg = str(exc).lower()
+        if "unique" in msg or "duplicate" in msg:
+            return False, "That username is already taken. Please choose another."
+        return False, f"Could not save username: {exc}"
     return True, f"Username set to {username}."
 
 
@@ -356,13 +304,10 @@ def _append_subscriber_csv(email: str, created_at: str) -> None:
 
 
 def list_subscribers() -> list[UserRecord]:
-    with _conn() as con:
-        rows = con.execute(
-            """
-            SELECT email, created_at, display_name
-            FROM users ORDER BY created_at DESC
-            """
-        ).fetchall()
+    try:
+        rows = list_all_users()
+    except Exception:
+        return []
     return [
         UserRecord(email=r[0], created_at=r[1], display_name=r[2]) for r in rows
     ]
@@ -404,12 +349,11 @@ def admin_email_set() -> set[str]:
 
 
 def is_admin(email: Optional[str] = None) -> bool:
-    """True only for ImzCpr@gmail.com (ADMIN / FOUNDER)."""
+    """True only for founder ImzCpr@gmail.com (ADMIN / FOUNDER)."""
     email = normalize_email(email or current_user_email() or "")
     if not email:
         return False
-    # Strict: only the founder Gmail account
-    return email == "imzcpr@gmail.com"
+    return email == FOUNDER_EMAIL
 
 
 def current_display_name() -> Optional[str]:
@@ -565,13 +509,25 @@ You will then have full access to the tool.
 
     with tab_login:
         st.caption("Already have an account? Log in with your email and password.")
-        if count_users() == 0:
-            st.info(
-                "**No member accounts are stored on this server right now.** "
-                "On Streamlit Community Cloud the member database is cleared when the app "
-                "redeploys. Please use the **Sign up** tab to recreate your account "
-                "(same email is fine)."
-            )
+        try:
+            backend = storage_label()
+            if using_postgres():
+                st.success(f"Account storage: **{backend}** — accounts survive Cloud redeploys.")
+            else:
+                st.warning(
+                    f"Account storage: **{backend}**. "
+                    "On Streamlit Cloud this is wiped on redeploy. "
+                    "Add a free **Neon/Supabase PostgreSQL** URL under `[database] url` in Secrets "
+                    "for permanent accounts."
+                )
+            if count_users() == 0:
+                st.info(
+                    "No members yet. Use **Sign up**, or set `auth.bootstrap_password` so "
+                    f"**{FOUNDER_EMAIL}** is created automatically as Founder."
+                )
+        except Exception as exc:
+            st.error(f"Database connection issue: {exc}")
+
         with st.form("login_form", clear_on_submit=False):
             email = st.text_input("Email", key="login_email", autocomplete="username")
             password = st.text_input(
@@ -592,19 +548,13 @@ You will then have full access to the tool.
                 st.rerun()
             else:
                 st.error(msg)
-                st.caption(
-                    "Tip: After Cloud redeploys, existing passwords are lost with the old database. "
-                    "Use **Sign up** again with the same email. Founders can set "
-                    "`auth.bootstrap_password` in Streamlit Secrets so the founder account "
-                    "auto-restores after each redeploy."
-                )
 
     with tab_signup:
         st.caption(
             f"Create a free account with your **email** and a **password** (min {MIN_PASSWORD_LEN} characters). "
             "After signup, you’ll create a **custom username** for Community and chat. "
             "The founder is notified of new members by email. "
-            "If login fails after an app update, sign up again — Cloud storage is temporary."
+            f"Founder account: **{FOUNDER_EMAIL}**."
         )
         with st.form("signup_form", clear_on_submit=False):
             email = st.text_input("Email", key="signup_email", autocomplete="username")
