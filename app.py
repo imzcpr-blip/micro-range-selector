@@ -15,6 +15,78 @@ import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
+# Load config first (local module — avoid shadowing / partial import issues on Cloud)
+import config as _cprp_cfg
+
+ADMIN_ROLE_LABEL = _cprp_cfg.ADMIN_ROLE_LABEL
+APP_NAME = _cprp_cfg.APP_NAME
+BRANDING_DIR = _cprp_cfg.BRANDING_DIR
+BRANDING_LOGO_ICON = _cprp_cfg.BRANDING_LOGO_ICON
+BRANDING_LOGO_IMAGE = _cprp_cfg.BRANDING_LOGO_IMAGE
+BRANDING_LOGO_VIDEO = _cprp_cfg.BRANDING_LOGO_VIDEO
+BRANDING_LOGO_VIDEO_ALT = _cprp_cfg.BRANDING_LOGO_VIDEO_ALT
+SIDEBAR_VIDEO = getattr(_cprp_cfg, "SIDEBAR_VIDEO", BRANDING_DIR / "cprp_sidebar_video.mp4")
+SIDEBAR_VIDEO_BRAND = getattr(_cprp_cfg, "SIDEBAR_VIDEO_BRAND", BRANDING_DIR / "cprp_sidebar_video.mp4")
+SIDEBAR_VIDEO_BRAND_GIF = getattr(
+    _cprp_cfg, "SIDEBAR_VIDEO_BRAND_GIF", BRANDING_DIR / "cprp_sidebar_video.gif"
+)
+SIDEBAR_VIDEO_GIF = getattr(_cprp_cfg, "SIDEBAR_VIDEO_GIF", Path(BRANDING_DIR).parent / "cprp_sidebar_video.gif")
+SESSION_SELECTOR_VIDEO = getattr(
+    _cprp_cfg, "SESSION_SELECTOR_VIDEO", Path(BRANDING_DIR).parent / "cprp_session_selector_video.mp4"
+)
+SESSION_SELECTOR_VIDEO_BRAND = getattr(
+    _cprp_cfg, "SESSION_SELECTOR_VIDEO_BRAND", BRANDING_DIR / "cprp_session_selector_video.mp4"
+)
+SESSION_SELECTOR_VIDEO_BRAND_GIF = getattr(
+    _cprp_cfg, "SESSION_SELECTOR_VIDEO_BRAND_GIF", BRANDING_DIR / "cprp_session_selector_video.gif"
+)
+SESSION_SELECTOR_VIDEO_GIF = getattr(
+    _cprp_cfg, "SESSION_SELECTOR_VIDEO_GIF", Path(BRANDING_DIR).parent / "cprp_session_selector_video.gif"
+)
+SESSION_SELECTOR_VARIANT_GIF = getattr(
+    _cprp_cfg, "SESSION_SELECTOR_VARIANT_GIF", BRANDING_DIR / "cprp_logo_video_variant_2.gif"
+)
+BRANDING_OFFICIAL_SEAL = getattr(_cprp_cfg, "BRANDING_OFFICIAL_SEAL", BRANDING_DIR / "cprp_official_seal.png")
+BRANDING_OFFICIAL_SEAL_ANIM = getattr(
+    _cprp_cfg, "BRANDING_OFFICIAL_SEAL_ANIM", Path(BRANDING_DIR).parent / "cprp_official_seal_anim.gif"
+)
+BRANDING_OFFICIAL_SEAL_ANIM_BRAND = getattr(
+    _cprp_cfg, "BRANDING_OFFICIAL_SEAL_ANIM_BRAND", BRANDING_DIR / "cprp_official_seal_anim.gif"
+)
+BRANDING_OFFICIAL_SEAL_BRAND = getattr(
+    _cprp_cfg, "BRANDING_OFFICIAL_SEAL_BRAND", BRANDING_DIR / "cprp_official_seal.png"
+)
+BRANDING_OFFICIAL_SEAL_BRAND_JPG = getattr(
+    _cprp_cfg, "BRANDING_OFFICIAL_SEAL_BRAND_JPG", BRANDING_DIR / "cprp_official_seal.jpg"
+)
+BRANDING_OFFICIAL_SEAL_JPG = getattr(
+    _cprp_cfg, "BRANDING_OFFICIAL_SEAL_JPG", Path(BRANDING_DIR).parent / "cprp_official_seal.jpg"
+)
+CREATOR = _cprp_cfg.CREATOR
+MEMBER_CHAT_HERO_IMAGE = _cprp_cfg.MEMBER_CHAT_HERO_IMAGE
+MEMBER_CHAT_HERO_VIDEO = _cprp_cfg.MEMBER_CHAT_HERO_VIDEO
+FOUNDER_BIO = _cprp_cfg.FOUNDER_BIO
+FOUNDER_NAME = _cprp_cfg.FOUNDER_NAME
+FOUNDER_TAGLINE = _cprp_cfg.FOUNDER_TAGLINE
+FOUNDER_TITLE = _cprp_cfg.FOUNDER_TITLE
+HARD_STOP_DEFAULT_USD = _cprp_cfg.HARD_STOP_DEFAULT_USD
+HARD_STOP_MAX_USD = _cprp_cfg.HARD_STOP_MAX_USD
+HARD_STOP_MIN_USD = _cprp_cfg.HARD_STOP_MIN_USD
+INSTRUMENTS = _cprp_cfg.INSTRUMENTS
+MIN_SCORE_TO_TRADE = _cprp_cfg.MIN_SCORE_TO_TRADE
+PROTOCOL_NAME = _cprp_cfg.PROTOCOL_NAME
+PROTOCOL_SHORT = _cprp_cfg.PROTOCOL_SHORT
+QUICK_REFERENCE_DOWNLOAD_NAME = _cprp_cfg.QUICK_REFERENCE_DOWNLOAD_NAME
+QUICK_REFERENCE_IMAGE = _cprp_cfg.QUICK_REFERENCE_IMAGE
+QUICK_REFERENCE_PDF = _cprp_cfg.QUICK_REFERENCE_PDF
+RULEBOOK_BASE_DOWNLOAD_NAME = _cprp_cfg.RULEBOOK_BASE_DOWNLOAD_NAME
+RULEBOOK_BASE_PDF = _cprp_cfg.RULEBOOK_BASE_PDF
+RULEBOOK_BASE_VERSION = _cprp_cfg.RULEBOOK_BASE_VERSION
+RULEBOOK_UPDATE_DOWNLOAD_NAME = _cprp_cfg.RULEBOOK_UPDATE_DOWNLOAD_NAME
+RULEBOOK_UPDATE_PDF = _cprp_cfg.RULEBOOK_UPDATE_PDF
+RULEBOOK_VERSION = _cprp_cfg.RULEBOOK_VERSION
+STRUCTURE_BREAK_PAUSE_MINUTES = _cprp_cfg.STRUCTURE_BREAK_PAUSE_MINUTES
+
 from alerts import RecommendationTracker
 from analyzer import analyze_all, fetch_bars
 from admin import is_current_user_admin, render_admin_panel
@@ -33,55 +105,32 @@ from live_news import render_bloomberg_audio_option, render_bloomberg_panel
 from micros_guide import render_micros_guide_panel
 from platforms_brokers import render_platforms_brokers_panel
 from session_stats import render_session_wl_panel
-from config import (
-    ADMIN_ROLE_LABEL,
-    APP_NAME,
-    BRANDING_DIR,
-    BRANDING_LOGO_ICON,
-    BRANDING_LOGO_IMAGE,
-    BRANDING_LOGO_VIDEO,
-    BRANDING_LOGO_VIDEO_ALT,
-    SIDEBAR_VIDEO,
-    SIDEBAR_VIDEO_BRAND,
-    SIDEBAR_VIDEO_BRAND_GIF,
-    SIDEBAR_VIDEO_GIF,
-    SESSION_SELECTOR_VIDEO,
-    SESSION_SELECTOR_VIDEO_BRAND,
-    SESSION_SELECTOR_VIDEO_BRAND_GIF,
-    SESSION_SELECTOR_VIDEO_GIF,
-    SESSION_SELECTOR_VARIANT_GIF,
-    BRANDING_OFFICIAL_SEAL,
-    BRANDING_OFFICIAL_SEAL_ANIM,
-    BRANDING_OFFICIAL_SEAL_ANIM_BRAND,
-    BRANDING_OFFICIAL_SEAL_BRAND,
-    BRANDING_OFFICIAL_SEAL_BRAND_JPG,
-    BRANDING_OFFICIAL_SEAL_JPG,
-    CREATOR,
-    MEMBER_CHAT_HERO_IMAGE,
-    MEMBER_CHAT_HERO_VIDEO,
-    FOUNDER_BIO,
-    FOUNDER_NAME,
-    FOUNDER_TAGLINE,
-    FOUNDER_TITLE,
-    HARD_STOP_DEFAULT_USD,
-    HARD_STOP_MAX_USD,
-    HARD_STOP_MIN_USD,
-    INSTRUMENTS,
-    MIN_SCORE_TO_TRADE,
-    PROTOCOL_NAME,
-    PROTOCOL_SHORT,
-    QUICK_REFERENCE_DOWNLOAD_NAME,
-    QUICK_REFERENCE_IMAGE,
-    QUICK_REFERENCE_PDF,
-    RULEBOOK_BASE_DOWNLOAD_NAME,
-    RULEBOOK_BASE_PDF,
-    RULEBOOK_BASE_VERSION,
-    RULEBOOK_UPDATE_DOWNLOAD_NAME,
-    RULEBOOK_UPDATE_PDF,
-    RULEBOOK_VERSION,
-    STRUCTURE_BREAK_PAUSE_MINUTES,
-)
-from loop_media import render_loop_media
+
+try:
+    from loop_media import render_loop_media
+except ImportError:  # pragma: no cover — safety for partial deploys
+    def render_loop_media(*candidates, caption=None, height=320, sidebar=False):  # type: ignore
+        from pathlib import Path as _P
+        for p in candidates:
+            if p is None:
+                continue
+            path = _P(p)
+            if path.is_file() and path.suffix.lower() in {".gif", ".jpg", ".jpeg", ".png", ".webp"}:
+                if sidebar:
+                    st.sidebar.image(str(path), use_container_width=True, caption=caption)
+                else:
+                    st.image(str(path), use_container_width=True, caption=caption)
+                return True
+            if path.is_file() and path.suffix.lower() == ".mp4":
+                if sidebar:
+                    st.sidebar.video(str(path), format="video/mp4", start_time=0, loop=True, muted=True)
+                else:
+                    st.video(str(path), format="video/mp4", start_time=0, loop=True, muted=True)
+                if caption and not sidebar:
+                    st.caption(caption)
+                return True
+        return False
+
 from sync_cprp_assets import (
     list_branding_images,
     list_branding_videos,

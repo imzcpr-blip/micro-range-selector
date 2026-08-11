@@ -35,7 +35,7 @@ class Instrument:
 
 
 # Approved instruments only (Rulebook §2) — Micro futures only
-INSTRUMENTS: dict[str, Instrument] = {
+INSTRUMENTS = {
     "MES": Instrument(
         symbol="MES=F",
         short="MES",
