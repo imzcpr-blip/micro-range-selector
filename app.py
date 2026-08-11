@@ -43,8 +43,13 @@ from config import (
     BRANDING_LOGO_VIDEO_ALT,
     SIDEBAR_VIDEO,
     SIDEBAR_VIDEO_BRAND,
+    SIDEBAR_VIDEO_BRAND_GIF,
+    SIDEBAR_VIDEO_GIF,
     SESSION_SELECTOR_VIDEO,
     SESSION_SELECTOR_VIDEO_BRAND,
+    SESSION_SELECTOR_VIDEO_BRAND_GIF,
+    SESSION_SELECTOR_VIDEO_GIF,
+    SESSION_SELECTOR_VARIANT_GIF,
     BRANDING_OFFICIAL_SEAL,
     BRANDING_OFFICIAL_SEAL_ANIM,
     BRANDING_OFFICIAL_SEAL_ANIM_BRAND,
@@ -76,6 +81,7 @@ from config import (
     RULEBOOK_VERSION,
     STRUCTURE_BREAK_PAUSE_MINUTES,
 )
+from loop_media import render_loop_media
 from sync_cprp_assets import (
     list_branding_images,
     list_branding_videos,
@@ -146,39 +152,27 @@ if not st.session_state.doc_sync_done:
         st.session_state.doc_sync_error = str(_sync_exc)
     st.session_state.doc_sync_done = True
 
-def _play_logo_video(*candidates: Path, caption: str | None = None) -> bool:
-    """Show the first available looping logo GIF (or MP4 fallback). Then static image."""
-    # Prefer GIFs (true browser looping via st.image)
-    for p in candidates:
-        if p and Path(p).is_file() and Path(p).suffix.lower() == ".gif":
-            st.image(str(p), use_container_width=True, caption=caption)
-            return True
-    for p in candidates:
-        if p and Path(p).is_file() and Path(p).suffix.lower() == ".mp4":
-            st.video(str(p), format="video/mp4", start_time=0, loop=True, muted=True)
-            if caption:
-                st.caption(caption)
-            return True
-    for p in candidates:
-        if p and Path(p).is_file() and Path(p).suffix.lower() in {".jpg", ".jpeg", ".png"}:
-            st.image(str(p), use_container_width=True, caption=caption)
-            return True
-    return False
+def _play_logo_video(*candidates: Path, caption: str | None = None, height: int = 360) -> bool:
+    """Show clean autoplay looping GIF/video (no play button) or still image."""
+    return render_loop_media(*candidates, caption=caption, height=height, sidebar=False)
 
 
 # ══════════════════════════════════════════════════════════════════════════
 # SIDEBAR — navigation + brand
 # ══════════════════════════════════════════════════════════════════════════
-# Sidebar: branding video (grok-video-4bdc3ca9-…mp4); fallback to still icon
-_side_video = None
-for _p in (Path(SIDEBAR_VIDEO), Path(SIDEBAR_VIDEO_BRAND), Path(BRANDING_DIR) / "cprp_logo_video_alt.mp4"):
-    if _p.is_file():
-        _side_video = _p
-        break
-if _side_video is not None:
-    st.sidebar.video(str(_side_video), format="video/mp4", start_time=0, loop=True, muted=True)
-elif Path(BRANDING_LOGO_ICON).is_file():
-    st.sidebar.image(str(BRANDING_LOGO_ICON), use_container_width=True)
+# Sidebar: clean looping brand media (GIF preferred; silent autoplay MP4 fallback)
+if not render_loop_media(
+    Path(SIDEBAR_VIDEO_GIF),
+    Path(SIDEBAR_VIDEO_BRAND_GIF),
+    Path(BRANDING_LOGO_VIDEO_ALT),
+    Path(SIDEBAR_VIDEO),
+    Path(SIDEBAR_VIDEO_BRAND),
+    Path(BRANDING_DIR) / "cprp_logo_video_alt.mp4",
+    Path(BRANDING_LOGO_ICON),
+    height=200,
+    sidebar=True,
+):
+    pass
 st.sidebar.markdown("### CPRP Strategies")
 st.sidebar.caption(f"Rulebook v{RULEBOOK_VERSION} · {CREATOR}")
 st.sidebar.markdown(
@@ -371,8 +365,8 @@ if page == PAGE_BRANDING:
         for i, (label, media) in enumerate(anim_suite):
             with cols[i % 2]:
                 st.markdown(f"**{label}**")
+                render_loop_media(media, height=280)
                 if media.suffix.lower() == ".gif":
-                    st.image(str(media), use_container_width=True)
                     st.download_button(
                         label="📁 Download GIF",
                         data=media.read_bytes(),
@@ -381,8 +375,15 @@ if page == PAGE_BRANDING:
                         key=f"dl_anim_{media.name}",
                         use_container_width=True,
                     )
-                else:
-                    st.video(str(media), format="video/mp4", start_time=0, loop=True, muted=True)
+                elif media.suffix.lower() == ".mp4":
+                    st.download_button(
+                        label="📁 Download MP4",
+                        data=media.read_bytes(),
+                        file_name=media.name,
+                        mime="video/mp4",
+                        key=f"dl_anim_{media.name}",
+                        use_container_width=True,
+                    )
     else:
         st.caption("No official animated brand media found yet.")
 
@@ -470,8 +471,8 @@ if page == PAGE_BRANDING:
             with cols[i % 2]:
                 title = video_labels.get(v.stem.lower(), v.stem.replace("_", " ").title())
                 st.markdown(f"**{title}**")
+                render_loop_media(v, height=280)
                 if v.suffix.lower() == ".gif":
-                    st.image(str(v), use_container_width=True)
                     st.download_button(
                         label="📁 Download GIF",
                         data=v.read_bytes(),
@@ -480,8 +481,15 @@ if page == PAGE_BRANDING:
                         key=f"dl_brand_gif_{v.name}",
                         use_container_width=True,
                     )
-                else:
-                    st.video(str(v), format="video/mp4", start_time=0, loop=True, muted=True)
+                elif v.suffix.lower() == ".mp4":
+                    st.download_button(
+                        label="📁 Download MP4",
+                        data=v.read_bytes(),
+                        file_name=v.name,
+                        mime="video/mp4",
+                        key=f"dl_brand_mp4_{v.name}",
+                        use_container_width=True,
+                    )
     else:
         st.warning("No logo GIFs found. Run `python scripts/convert_videos_to_gifs.py`.")
 
@@ -906,22 +914,20 @@ st.sidebar.caption(f"Pages: Selector · Branding · About · © {CREATOR}")
 # ══════════════════════════════════════════════════════════════════════════
 # MAIN — Session Selector header video + description + analysis
 # ══════════════════════════════════════════════════════════════════════════
-# Session Selector banner: branding video (grok_video_2026-08-09-09-51-29.mp4)
-# Prefer this MP4 only — do not fall back to other logo GIFs for this header.
-_ss_video_shown = False
-for _ss_path in (
+# Session Selector banner: clean looping GIF/video (no play button chrome)
+if not render_loop_media(
+    Path(SESSION_SELECTOR_VIDEO_GIF),
+    Path(SESSION_SELECTOR_VIDEO_BRAND_GIF),
+    Path(SESSION_SELECTOR_VARIANT_GIF),
     Path(SESSION_SELECTOR_VIDEO),
     Path(SESSION_SELECTOR_VIDEO_BRAND),
     Path(BRANDING_DIR) / "cprp_logo_video_variant_2.mp4",
+    Path(BRANDING_LOGO_IMAGE),
+    Path(BRANDING_LOGO_ICON),
+    caption="CPRP Session Selector",
+    height=380,
 ):
-    if _ss_path.is_file():
-        st.video(str(_ss_path), format="video/mp4", start_time=0, loop=True, muted=True)
-        st.caption("CPRP Session Selector")
-        _ss_video_shown = True
-        break
-if not _ss_video_shown:
-    if not _play_logo_video(Path(BRANDING_LOGO_IMAGE), Path(BRANDING_LOGO_ICON)):
-        st.warning("CPRP Session Selector video not found in assets/.")
+    st.warning("CPRP Session Selector media not found in assets/.")
 
 # Bloomberg Live audio/video option on main Session Selector page
 render_bloomberg_audio_option(key_prefix="main_bb", height=280)

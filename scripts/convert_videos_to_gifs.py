@@ -87,6 +87,19 @@ def main() -> int:
         (ASSETS / "cprp_logo_video.mp4", ASSETS / "cprp_logo_video.gif", MAX_WIDTH),
         (ASSETS / "cprp_logo_video_alt.mp4", ASSETS / "cprp_logo_video_alt.gif", SIDEBAR_MAX_WIDTH),
         (ASSETS / "cprp_member_chat_hero.mp4", ASSETS / "cprp_member_chat_hero.gif", MAX_WIDTH),
+        # Session Selector + sidebar brand clips (prefer GIF for seamless loop UI)
+        (ASSETS / "cprp_session_selector_video.mp4", ASSETS / "cprp_session_selector_video.gif", MAX_WIDTH),
+        (ASSETS / "cprp_sidebar_video.mp4", ASSETS / "cprp_sidebar_video.gif", SIDEBAR_MAX_WIDTH),
+        (
+            ASSETS / "branding" / "cprp_session_selector_video.mp4",
+            ASSETS / "branding" / "cprp_session_selector_video.gif",
+            MAX_WIDTH,
+        ),
+        (
+            ASSETS / "branding" / "cprp_sidebar_video.mp4",
+            ASSETS / "branding" / "cprp_sidebar_video.gif",
+            SIDEBAR_MAX_WIDTH,
+        ),
         (
             ASSETS / "branding" / "cprp_logo_video_main.mp4",
             ASSETS / "branding" / "cprp_logo_video_main.gif",

@@ -111,12 +111,18 @@ BRANDING_LOGO_VIDEO = _ASSETS / "cprp_logo_video.gif"
 BRANDING_LOGO_VIDEO_ALT = _ASSETS / "cprp_logo_video_alt.gif"
 BRANDING_LOGO_ICON = _ASSETS / "cprp_logo_icon.jpg"  # favicon / tiny fallback only
 BRANDING_LOGO_IMAGE = _ASSETS / "cprp_logo_primary.jpg"  # static fallback
-# Sidebar panel video (from CPRP_Branding grok-video-4bdc3ca9-….mp4)
+# Sidebar panel media (prefer GIF for seamless loop; MP4 fallback)
+SIDEBAR_VIDEO_GIF = _ASSETS / "cprp_sidebar_video.gif"
 SIDEBAR_VIDEO = _ASSETS / "cprp_sidebar_video.mp4"
 SIDEBAR_VIDEO_BRAND = BRANDING_DIR / "cprp_sidebar_video.mp4"
-# Session Selector header video (from CPRP_Branding grok_video_2026-08-09-09-51-29.mp4)
+SIDEBAR_VIDEO_BRAND_GIF = BRANDING_DIR / "cprp_sidebar_video.gif"
+# Session Selector header (prefer GIF; MP4 fallback)
+SESSION_SELECTOR_VIDEO_GIF = _ASSETS / "cprp_session_selector_video.gif"
 SESSION_SELECTOR_VIDEO = _ASSETS / "cprp_session_selector_video.mp4"
 SESSION_SELECTOR_VIDEO_BRAND = BRANDING_DIR / "cprp_session_selector_video.mp4"
+SESSION_SELECTOR_VIDEO_BRAND_GIF = BRANDING_DIR / "cprp_session_selector_video.gif"
+# Also reuse existing variant GIF when session gif missing
+SESSION_SELECTOR_VARIANT_GIF = BRANDING_DIR / "cprp_logo_video_variant_2.gif"
 # Official CPRP seal (landing page + branding suite) — PNG has transparent background
 BRANDING_OFFICIAL_SEAL = _ASSETS / "cprp_official_seal.png"
 BRANDING_OFFICIAL_SEAL_JPG = _ASSETS / "cprp_official_seal.jpg"  # original fallback
