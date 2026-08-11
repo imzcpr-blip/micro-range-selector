@@ -25,7 +25,13 @@ import streamlit as st
 import streamlit.components.v1 as components
 
 from auth import DATA_DIR, DB_PATH, current_display_name, current_user_email
-from wallstreet_ui import candle_expander, desk_section, page_hero
+from wallstreet_ui import (
+    candle_expander,
+    desk_section,
+    page_hero,
+    quote_board_footer,
+    quote_board_header,
+)
 
 MICROS = ["", "MES", "MNQ", "MYM", "SIT OUT", "Multiple", "Other"]
 RESULTS = ["", "Open", "Win", "Loss", "Scratch", "No trade", "Lesson only"]
@@ -813,14 +819,16 @@ def _tradingview_1d_1h_html(symbol: str, *, height: int = TV_CHART_HEIGHT) -> st
   <style>
     html, body {{
       margin: 0; padding: 0;
-      background: #0A1628;
+      background: #060a0e;
       height: 100%;
       overflow: hidden;
-      font-family: 'IBM Plex Sans', system-ui, sans-serif;
+      font-family: 'IBM Plex Mono', 'IBM Plex Sans', system-ui, sans-serif;
     }}
     .tradingview-widget-container {{
       width: 100%;
       height: {height}px;
+      border: 1px solid rgba(201,168,76,0.35);
+      box-sizing: border-box;
     }}
     .tradingview-widget-container__widget {{
       width: 100%;
@@ -832,10 +840,12 @@ def _tradingview_1d_1h_html(symbol: str, *, height: int = TV_CHART_HEIGHT) -> st
       align-items: center;
       justify-content: flex-end;
       padding: 0 10px;
-      font-size: 11px;
-      color: #8B9BB4;
-      background: #0A1628;
-      border-top: 1px solid rgba(201,168,76,0.18);
+      font-size: 10px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #8a8478;
+      background: linear-gradient(180deg, #1a160e, #0a0c10);
+      border-top: 1px solid rgba(201,168,76,0.35);
     }}
     .tv-footer a {{ color: #C9A84C; text-decoration: none; }}
   </style>
@@ -846,7 +856,7 @@ def _tradingview_1d_1h_html(symbol: str, *, height: int = TV_CHART_HEIGHT) -> st
     <div class="tv-footer">
       <a href="https://www.tradingview.com/chart/?symbol={symbol}"
          target="_blank" rel="noopener noreferrer">
-        {symbol} · 1H · 1D · TradingView
+        {symbol} · 1H · 1D · Floor Board · TradingView
       </a>
     </div>
     <script type="text/javascript"
@@ -861,8 +871,8 @@ def _tradingview_1d_1h_html(symbol: str, *, height: int = TV_CHART_HEIGHT) -> st
       "theme": "dark",
       "style": "1",
       "locale": "en",
-      "backgroundColor": "rgba(10, 22, 40, 1)",
-      "gridColor": "rgba(201, 168, 76, 0.08)",
+      "backgroundColor": "rgba(6, 10, 14, 1)",
+      "gridColor": "rgba(201, 168, 76, 0.10)",
       "hide_top_toolbar": false,
       "hide_legend": false,
       "hide_side_toolbar": true,
@@ -892,11 +902,12 @@ def render_live_micro_charts(
     """
     Bottom-right LIVE TradingView charts: MES / MNQ / MYM at 1 Hour on a 1 Day range.
     One large chart at a time (tabs) so the full 1D/1H view fits without scrolling.
+    Framed as a classic exchange quote board.
     """
-    desk_section("LIVE Charts · 1 Day / 1 Hour", side="bull")
+    desk_section("Quote Board · 1 Day / 1 Hour", side="bull")
     st.caption(
         "TradingView **1-Hour** candles · **1-Day** range · MES · MNQ · MYM continuous.  "
-        "Switch micro with the tabs — chart fills this panel (no scroll needed)."
+        "Switch micro with the tabs — chart fills this booth (no scroll needed)."
     )
 
     # Prefer recommended micro as the default open tab when valid
@@ -907,15 +918,18 @@ def render_live_micro_charts(
 
     # Streamlit tabs open left-to-right; put preferred micro first so it shows fully
     ordered = [pick] + [s for s in order if s != pick]
+
+    quote_board_header("Floor Quote Board · Micro Futures", live_label="LIVE · 1H / 1D")
     tabs = st.tabs([f"● {s}" for s in ordered])
 
     for tab, short in zip(tabs, ordered):
         with tab:
             tv_sym = TV_MICRO_SYMBOLS[short]
             st.markdown(
-                f"<div style='font-size:12px;color:#C9A84C;margin:0 0 6px 0;"
-                f"letter-spacing:0.04em;'>"
-                f"<strong>{short}</strong> · {tv_sym} · LIVE · 1H / 1D"
+                f"<div style='font-size:11px;color:#C9A84C;margin:0 0 6px 0;"
+                f"font-family:IBM Plex Mono,monospace;letter-spacing:0.08em;"
+                f"text-transform:uppercase;'>"
+                f"<strong>{short}</strong> · {tv_sym} · Continuous · Live Feed"
                 f"</div>",
                 unsafe_allow_html=True,
             )
@@ -924,6 +938,7 @@ def render_live_micro_charts(
                 height=height + 8,
                 scrolling=False,
             )
+    quote_board_footer()
 
 
 def render_reference_and_journal_side_by_side(default_micro: str = "") -> None:
@@ -971,9 +986,9 @@ def render_journal_page(default_micro: str = "") -> None:
     """Full Trading Journal navigation page."""
     page_hero(
         "Trading Journal",
-        "Private session log · review trades, results, and lessons · shown with the Quick Reference",
+        "Private session blotter · review trades, results, and lessons · Quick Reference at left",
         side="bull",
-        desk_tag="JOURNAL DESK · PRIVATE LOG",
+        desk_tag="JOURNAL DESK · MEMBER BLOTTER",
     )
     from disclosure import render_disclosure
 

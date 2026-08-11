@@ -1,9 +1,9 @@
 """
 Wall Street market theme for CPRP Streamlit app.
 
-Dark trading-desk aesthetic aligned to CPRP branding:
-  Navy (#0A1628 / #0F1B2D) + Gold (#C9A84C / #D4AF37) + Steel silver.
-Up/down panel accents stay market-readable (soft gold vs copper-rose).
+Old-school stock-exchange / brokerage-firm desk aesthetic, aligned to CPRP branding:
+  Deep mahogany-navy wood · Brass gold (#C9A84C / #D4AF37) · Amber ticker LEDs · Steel silver.
+Classic letterhead serif + ticker mono. Trading-booth panels, brass plaques, floor tape.
 """
 
 from __future__ import annotations
@@ -13,37 +13,81 @@ from typing import Literal
 import streamlit as st
 import streamlit.components.v1 as components
 
-# Panel sides: bull = brand gold / bear = copper risk accent
+# Panel sides: bull = brand gold / bear = steel risk accent
 CandleSide = Literal["bull", "bear"]
 
 # CPRP brand palette (seal + candlestick logo)
 # Navy: #0A1628  #0F1B2D  #1A2744
 # Gold: #C9A84C  #D4AF37  #E8D5A3
 # Steel: #94A3B8  #C0C5CE
+# Amber ticker: #F0C14B  #E8B923
+# Wood: #1a1008  #0d0a06
 
 WS_CSS = """
 <style>
-@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0,0&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0,0&display=swap');
 
-/* ── Base trading-desk canvas — CPRP navy ─────────────────────────────── */
+/* ═══════════════════════════════════════════════════════════════════════════
+   OLD-SCHOOL WALL STREET BROKERAGE FIRM
+   Mahogany desk · Brass rails · Amber quote boards · Floor tape
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Base canvas — dark wood trading floor ─────────────────────────────── */
 html, body, [data-testid="stAppViewContainer"], .stApp {
-  background: radial-gradient(1200px 600px at 8% -8%, rgba(201,168,76,0.08) 0%, transparent 48%),
-              radial-gradient(900px 500px at 100% 0%, rgba(26,39,68,0.65) 0%, transparent 50%),
-              #060b16 !important;
-  color: #e8edf5 !important;
+  background:
+    /* subtle wood grain stripes */
+    repeating-linear-gradient(
+      90deg,
+      rgba(0,0,0,0.04) 0px,
+      rgba(0,0,0,0.04) 1px,
+      transparent 1px,
+      transparent 7px
+    ),
+    radial-gradient(1100px 520px at 6% -6%, rgba(201,168,76,0.10) 0%, transparent 52%),
+    radial-gradient(900px 480px at 100% 0%, rgba(80,40,12,0.18) 0%, transparent 48%),
+    radial-gradient(800px 600px at 50% 120%, rgba(12,28,20,0.25) 0%, transparent 55%),
+    linear-gradient(180deg, #0a0e16 0%, #080c14 40%, #060910 100%) !important;
+  color: #e8e4d8 !important;
   font-family: 'IBM Plex Sans', 'Segoe UI', system-ui, sans-serif !important;
 }
 
 [data-testid="stHeader"] {
-  background: rgba(6, 11, 22, 0.92) !important;
-  border-bottom: 1px solid rgba(201, 168, 76, 0.22);
+  background: linear-gradient(180deg, #12100c 0%, #0a0c12 100%) !important;
+  border-bottom: 2px solid #C9A84C !important;
+  box-shadow: 0 2px 0 rgba(232,213,163,0.15), 0 4px 18px rgba(0,0,0,0.55);
 }
 
-/* ── Sidebar terminal — deep navy + gold edge ─────────────────────────── */
+/* Main content — desk blotter inset */
+[data-testid="stMain"] > div {
+  border-left: 1px solid rgba(201,168,76,0.08);
+}
+
+/* ── Sidebar — member booth / order ticket stand ──────────────────────── */
 [data-testid="stSidebar"] {
-  background: linear-gradient(180deg, #0a1628 0%, #070e1a 55%, #060b16 100%) !important;
-  border-right: 1px solid rgba(201, 168, 76, 0.18) !important;
+  background:
+    linear-gradient(180deg,
+      #14100a 0%,
+      #0c1018 18%,
+      #0a0e16 55%,
+      #080b12 100%) !important;
+  border-right: 3px double #C9A84C !important;
+  box-shadow: inset -8px 0 24px rgba(0,0,0,0.45), 4px 0 20px rgba(0,0,0,0.4);
   font-family: 'IBM Plex Sans', system-ui, sans-serif !important;
+}
+[data-testid="stSidebar"]::before {
+  content: "CPRP · MEMBER FIRM DESK";
+  display: block;
+  text-align: center;
+  font-family: 'Cinzel', 'Times New Roman', serif !important;
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  color: #C9A84C;
+  padding: 0.55rem 0.4rem 0.45rem;
+  margin: 0 0 0.35rem 0;
+  border-bottom: 1px solid rgba(201,168,76,0.35);
+  background: linear-gradient(180deg, rgba(201,168,76,0.12), transparent);
+  text-shadow: 0 1px 0 rgba(0,0,0,0.6);
 }
 /*
   Apply brand font carefully. Never override Material Symbols / icon spans —
@@ -61,14 +105,17 @@ html, body, [data-testid="stAppViewContainer"], .stApp {
   font-family: 'IBM Plex Sans', system-ui, sans-serif !important;
 }
 [data-testid="stSidebar"] .stRadio label {
-  padding: 0.45rem 0.55rem !important;
-  margin: 0.15rem 0 !important;
-  border-radius: 6px !important;
+  padding: 0.48rem 0.6rem !important;
+  margin: 0.12rem 0 !important;
+  border-radius: 2px !important;
   border-left: 3px solid transparent !important;
-  transition: background 0.15s ease, border-color 0.15s ease;
+  border-bottom: 1px solid rgba(201,168,76,0.06) !important;
+  transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+  background: rgba(8,12,20,0.35);
 }
 [data-testid="stSidebar"] .stRadio label:hover {
-  background: rgba(26, 39, 68, 0.85) !important;
+  background: rgba(201,168,76,0.08) !important;
+  box-shadow: inset 0 0 0 1px rgba(201,168,76,0.18);
 }
 [data-testid="stSidebar"] .stRadio > div > label:nth-child(odd) {
   border-left-color: #C9A84C !important;
@@ -77,38 +124,60 @@ html, body, [data-testid="stAppViewContainer"], .stApp {
   border-left-color: #8B9BB4 !important;
 }
 
-/* ── Typography ───────────────────────────────────────────────────────── */
+/* ── Typography — firm letterhead + floor mono ────────────────────────── */
 h1, h2, h3 {
-  font-family: 'IBM Plex Sans', system-ui, sans-serif !important;
-  letter-spacing: 0.02em !important;
-  color: #f4f1e8 !important;
+  font-family: 'Cinzel', 'Times New Roman', Georgia, serif !important;
+  letter-spacing: 0.04em !important;
+  color: #f4efe0 !important;
+  text-shadow: 0 1px 0 rgba(0,0,0,0.55);
 }
 h1 {
   font-weight: 700 !important;
-  border-bottom: 1px solid rgba(201, 168, 76, 0.28);
-  padding-bottom: 0.35rem;
+  border-bottom: 2px solid transparent;
+  border-image: linear-gradient(90deg, transparent, #C9A84C 12%, #E8D5A3 50%, #C9A84C 88%, transparent) 1;
+  padding-bottom: 0.4rem;
+}
+h2 {
+  font-size: 1.25rem !important;
+  color: #E8D5A3 !important;
+}
+h3 {
+  font-size: 1.05rem !important;
+  letter-spacing: 0.06em !important;
+  color: #C9A84C !important;
 }
 code, .stCaption, [data-testid="stCaption"] {
   font-family: 'IBM Plex Mono', ui-monospace, monospace !important;
-  color: #a8b3c7 !important;
+  color: #b8b0a0 !important;
+  letter-spacing: 0.02em;
 }
 
-/* ── Cards / containers ───────────────────────────────────────────────── */
+/* ── Cards / containers — glass trading booths ────────────────────────── */
 div[data-testid="stVerticalBlockBorderWrapper"] {
-  background: rgba(15, 27, 45, 0.72) !important;
-  border: 1px solid rgba(201, 168, 76, 0.14) !important;
-  border-radius: 10px !important;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+  background:
+    linear-gradient(180deg, rgba(22,18,12,0.92), rgba(10,14,22,0.95)) !important;
+  border: 1px solid rgba(201, 168, 76, 0.28) !important;
+  outline: 1px solid rgba(201, 168, 76, 0.10);
+  outline-offset: 2px;
+  border-radius: 4px !important;
+  box-shadow:
+    inset 0 1px 0 rgba(232,213,163,0.08),
+    inset 0 0 40px rgba(0,0,0,0.25),
+    0 8px 28px rgba(0,0,0,0.45);
 }
 
-/* ── Expanders as desk panels ─────────────────────────────────────────── */
+/* ── Expanders as brass-framed desk panels ────────────────────────────── */
 [data-testid="stExpander"] {
-  background: linear-gradient(180deg, rgba(15,27,45,0.98), rgba(8,14,26,0.99)) !important;
-  border: 1px solid rgba(148, 163, 184, 0.16) !important;
-  border-radius: 10px !important;
-  margin-bottom: 0.65rem !important;
+  background:
+    linear-gradient(180deg, rgba(24,20,14,0.98) 0%, rgba(10,14,22,0.99) 100%) !important;
+  border: 1px solid rgba(201, 168, 76, 0.32) !important;
+  border-radius: 3px !important;
+  margin-bottom: 0.7rem !important;
   overflow: visible;
-  box-shadow: inset 0 1px 0 rgba(232,213,163,0.04), 0 6px 18px rgba(0,0,0,0.3);
+  box-shadow:
+    inset 0 1px 0 rgba(232,213,163,0.07),
+    0 0 0 1px rgba(0,0,0,0.5),
+    0 6px 20px rgba(0,0,0,0.4);
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 [data-testid="stExpander"] summary,
@@ -116,25 +185,28 @@ div[data-testid="stVerticalBlockBorderWrapper"] {
 [data-testid="stExpander"] > details > summary {
   font-weight: 600 !important;
   font-family: 'IBM Plex Mono', monospace !important;
-  font-size: 0.92rem !important;
-  letter-spacing: 0.03em;
-  padding: 0.7rem 0.9rem !important;
+  font-size: 0.88rem !important;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  padding: 0.72rem 0.95rem !important;
   cursor: pointer !important;
-  color: #e8edf5 !important;
+  color: #e8e4d8 !important;
   list-style: none !important;
   display: flex !important;
   align-items: center !important;
   gap: 0.4rem !important;
+  background: linear-gradient(180deg, rgba(201,168,76,0.08), transparent 70%);
+  border-bottom: 1px solid rgba(201,168,76,0.12);
 }
 [data-testid="stExpander"] summary:hover {
-  background: rgba(26, 39, 68, 0.65) !important;
+  background: linear-gradient(180deg, rgba(201,168,76,0.16), rgba(201,168,76,0.04)) !important;
 }
 [data-testid="stExpander"] summary p {
   margin: 0 !important;
   color: inherit !important;
 }
 
-/* Force Streamlit expander chevron / Material arrow icons to render as icons (not text) */
+/* Force Streamlit expander chevron / Material arrow icons to render as icons */
 [data-testid="stExpander"] summary svg,
 [data-testid="stExpander"] summary [data-testid="stExpanderToggleIcon"],
 [data-testid="stSidebar"] [data-testid="stExpander"] summary svg {
@@ -150,7 +222,7 @@ div[data-testid="stVerticalBlockBorderWrapper"] {
   flex-shrink: 0 !important;
 }
 
-/* Material Symbols / material icons (keyboard_double_arrow_right, etc.) */
+/* Material Symbols / material icons */
 .material-icons,
 .material-symbols-rounded,
 .material-symbols-outlined,
@@ -179,7 +251,6 @@ div[data-testid="stVerticalBlockBorderWrapper"] {
   visibility: visible !important;
 }
 
-/* Expander toggle specifically */
 [data-testid="stExpander"] summary > div:first-child,
 [data-testid="stExpander"] summary > span:first-child {
   color: #C9A84C !important;
@@ -189,142 +260,316 @@ div[data-testid="stVerticalBlockBorderWrapper"] {
 /* Gold accent panels (📈 / docs / primary) */
 [data-testid="stExpander"].ws-candle-bull {
   border-left: 5px solid #C9A84C !important;
-  border-color: rgba(201, 168, 76, 0.42) !important;
-  box-shadow: inset 0 0 0 1px rgba(201,168,76,0.1), 0 6px 18px rgba(0,0,0,0.28);
+  border-color: rgba(201, 168, 76, 0.5) !important;
+  box-shadow:
+    inset 0 0 0 1px rgba(201,168,76,0.12),
+    inset 4px 0 12px rgba(201,168,76,0.06),
+    0 6px 18px rgba(0,0,0,0.35);
 }
 [data-testid="stExpander"].ws-candle-bull summary {
   color: #E8D5A3 !important;
-  background: linear-gradient(90deg, rgba(201,168,76,0.14), transparent 55%);
+  background: linear-gradient(90deg, rgba(201,168,76,0.18), transparent 60%);
 }
 /* Steel / risk panels (📉 / risk / TV) */
 [data-testid="stExpander"].ws-candle-bear {
   border-left: 5px solid #8B9BB4 !important;
-  border-color: rgba(139, 155, 180, 0.4) !important;
-  box-shadow: inset 0 0 0 1px rgba(139,155,180,0.1), 0 6px 18px rgba(0,0,0,0.28);
+  border-color: rgba(139, 155, 180, 0.42) !important;
+  box-shadow:
+    inset 0 0 0 1px rgba(139,155,180,0.1),
+    0 6px 18px rgba(0,0,0,0.32);
 }
 [data-testid="stExpander"].ws-candle-bear summary {
   color: #C5D0E0 !important;
   background: linear-gradient(90deg, rgba(139,155,180,0.14), transparent 55%);
 }
 
-/* ── Primary / secondary buttons — gold CTA ───────────────────────────── */
+/* ── Primary / secondary buttons — brass desk CTAs ────────────────────── */
 .stButton > button[kind="primary"],
 .stButton > button[data-testid="baseButton-primary"] {
-  background: linear-gradient(180deg, #D4AF37 0%, #A88B2E 100%) !important;
-  border: 1px solid #C9A84C !important;
-  color: #0A1628 !important;
+  background: linear-gradient(180deg, #E0C060 0%, #C9A84C 42%, #8B7329 100%) !important;
+  border: 1px solid #E8D5A3 !important;
+  color: #1a1408 !important;
   font-weight: 700 !important;
-  border-radius: 6px !important;
-  box-shadow: 0 0 0 1px rgba(201,168,76,0.2), 0 4px 14px rgba(201,168,76,0.22);
+  font-family: 'Cinzel', serif !important;
+  letter-spacing: 0.06em !important;
+  text-transform: uppercase;
+  font-size: 0.82rem !important;
+  border-radius: 2px !important;
+  box-shadow:
+    0 1px 0 rgba(255,255,255,0.25) inset,
+    0 -1px 0 rgba(0,0,0,0.25) inset,
+    0 4px 12px rgba(201,168,76,0.28);
+}
+.stButton > button[kind="primary"]:hover,
+.stButton > button[data-testid="baseButton-primary"]:hover {
+  filter: brightness(1.06);
+  box-shadow: 0 0 0 1px #E8D5A3, 0 6px 18px rgba(201,168,76,0.35);
 }
 .stButton > button[kind="secondary"],
 .stButton > button {
-  border-radius: 6px !important;
-  border: 1px solid rgba(201,168,76,0.28) !important;
-  background: rgba(15, 27, 45, 0.95) !important;
-  color: #e8edf5 !important;
+  border-radius: 2px !important;
+  border: 1px solid rgba(201,168,76,0.4) !important;
+  background: linear-gradient(180deg, rgba(30,26,18,0.98), rgba(12,16,24,0.98)) !important;
+  color: #e8e4d8 !important;
+  font-family: 'IBM Plex Mono', monospace !important;
+  letter-spacing: 0.03em;
+  box-shadow: inset 0 1px 0 rgba(232,213,163,0.06);
 }
 .stButton > button:hover {
-  border-color: rgba(201, 168, 76, 0.65) !important;
+  border-color: rgba(201, 168, 76, 0.75) !important;
+  color: #E8D5A3 !important;
 }
 
-/* ── Metrics / tape ───────────────────────────────────────────────────── */
+/* ── Metrics — amber quote board tiles ────────────────────────────────── */
 [data-testid="stMetric"] {
-  background: rgba(15, 27, 45, 0.8);
-  border: 1px solid rgba(201, 168, 76, 0.14);
-  border-radius: 8px;
-  padding: 0.5rem 0.75rem;
+  background:
+    linear-gradient(180deg, #0c1008 0%, #080c10 100%);
+  border: 1px solid rgba(240, 193, 75, 0.28);
+  border-radius: 2px;
+  padding: 0.55rem 0.8rem;
+  box-shadow:
+    inset 0 0 20px rgba(240,193,75,0.04),
+    0 0 0 1px rgba(0,0,0,0.4);
+}
+[data-testid="stMetricLabel"] {
+  font-family: 'IBM Plex Mono', monospace !important;
+  font-size: 0.72rem !important;
+  letter-spacing: 0.08em !important;
+  text-transform: uppercase !important;
+  color: #8B9BB4 !important;
 }
 [data-testid="stMetricValue"] {
   font-family: 'IBM Plex Mono', monospace !important;
-  color: #E8D5A3 !important;
+  color: #F0C14B !important;
+  text-shadow: 0 0 12px rgba(240,193,75,0.25);
+  font-weight: 600 !important;
+}
+[data-testid="stMetricDelta"] {
+  font-family: 'IBM Plex Mono', monospace !important;
 }
 
-/* ── Tabs ─────────────────────────────────────────────────────────────── */
+/* ── Tabs — quote board selectors ─────────────────────────────────────── */
 button[data-baseweb="tab"] {
   font-family: 'IBM Plex Mono', monospace !important;
-  font-weight: 500 !important;
-  color: #a8b3c7 !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.08em !important;
+  text-transform: uppercase !important;
+  color: #8a8478 !important;
+  border-bottom: 2px solid transparent !important;
 }
 button[data-baseweb="tab"][aria-selected="true"] {
-  color: #E8D5A3 !important;
+  color: #F0C14B !important;
   border-bottom-color: #C9A84C !important;
+  text-shadow: 0 0 10px rgba(240,193,75,0.3);
+}
+[data-baseweb="tab-list"] {
+  border-bottom: 1px solid rgba(201,168,76,0.22) !important;
+  gap: 0.15rem;
+  background: linear-gradient(180deg, rgba(20,16,10,0.6), transparent);
+  padding: 0.15rem 0.15rem 0;
 }
 
-/* ── Inputs ───────────────────────────────────────────────────────────── */
-.stTextInput input, .stTextArea textarea, .stSelectbox div[data-baseweb="select"] {
-  background: rgba(8, 14, 26, 0.95) !important;
-  border-color: rgba(201, 168, 76, 0.22) !important;
-  color: #e8edf5 !important;
+/* ── Inputs — order ticket fields ─────────────────────────────────────── */
+.stTextInput input, .stTextArea textarea, .stSelectbox div[data-baseweb="select"],
+.stNumberInput input, .stDateInput input {
+  background: rgba(6, 10, 14, 0.96) !important;
+  border-color: rgba(201, 168, 76, 0.28) !important;
+  color: #e8e4d8 !important;
   font-family: 'IBM Plex Mono', monospace !important;
+  border-radius: 2px !important;
+  box-shadow: inset 0 2px 6px rgba(0,0,0,0.35);
+}
+.stTextInput input:focus, .stTextArea textarea:focus {
+  border-color: #C9A84C !important;
+  box-shadow: 0 0 0 1px rgba(201,168,76,0.35), inset 0 2px 6px rgba(0,0,0,0.35) !important;
 }
 
-/* ── Dataframes ───────────────────────────────────────────────────────── */
+/* ── Dataframes — blotter sheets ──────────────────────────────────────── */
 [data-testid="stDataFrame"] {
-  border: 1px solid rgba(201, 168, 76, 0.14);
-  border-radius: 8px;
+  border: 1px solid rgba(201, 168, 76, 0.22);
+  border-radius: 2px;
   overflow: hidden;
+  box-shadow: 0 0 0 1px rgba(0,0,0,0.4);
 }
 
-/* ── Market header band ───────────────────────────────────────────────── */
+/* ═══════════════════════════════════════════════════════════════════════
+   FLOOR TAPE — classic stock-exchange LED ticker board
+   ═══════════════════════════════════════════════════════════════════════ */
+.ws-tape-wrap {
+  margin: 0 0 1.1rem 0;
+  border: 2px solid #C9A84C;
+  border-radius: 2px;
+  background: #050806;
+  box-shadow:
+    0 0 0 1px rgba(0,0,0,0.8),
+    inset 0 0 30px rgba(0,0,0,0.8),
+    0 6px 24px rgba(0,0,0,0.5);
+  overflow: hidden;
+  position: relative;
+}
+.ws-tape-wrap::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0,0,0,0.12) 2px,
+    rgba(0,0,0,0.12) 3px
+  );
+  pointer-events: none;
+  z-index: 2;
+}
+.ws-tape-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.28rem 0.75rem;
+  background: linear-gradient(180deg, #2a2418 0%, #1a160e 100%);
+  border-bottom: 1px solid rgba(201,168,76,0.45);
+  font-family: 'Cinzel', serif;
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  color: #C9A84C;
+  text-transform: uppercase;
+}
+.ws-tape-head .live-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #3d9e5a;
+  box-shadow: 0 0 8px #3d9e5a;
+  margin-right: 0.4rem;
+  animation: ws-pulse 1.6s ease-in-out infinite;
+}
+@keyframes ws-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
 .ws-tape {
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.75rem 1.25rem;
+  flex-wrap: nowrap;
+  gap: 0;
   align-items: center;
-  padding: 0.55rem 0.9rem;
-  margin: 0 0 1rem 0;
-  background: linear-gradient(90deg, rgba(10,22,40,0.98), rgba(15,27,45,0.95), rgba(10,22,40,0.98));
-  border: 1px solid rgba(201, 168, 76, 0.22);
-  border-radius: 8px;
+  padding: 0.55rem 0;
+  overflow: hidden;
+  white-space: nowrap;
+  position: relative;
+  z-index: 1;
+}
+.ws-tape-track {
+  display: inline-flex;
+  align-items: center;
+  gap: 1.5rem;
+  padding: 0 1.25rem;
+  animation: ws-marquee 42s linear infinite;
   font-family: 'IBM Plex Mono', monospace;
-  font-size: 0.78rem;
-  letter-spacing: 0.04em;
-  color: #a8b3c7;
+  font-size: 0.82rem;
+  letter-spacing: 0.06em;
+  color: #F0C14B;
+  text-shadow: 0 0 8px rgba(240,193,75,0.35);
 }
-.ws-tape .bull { color: #E8D5A3; font-weight: 600; }
-.ws-tape .bear { color: #C5D0E0; font-weight: 600; }
-.ws-tape .sym { color: #f4f1e8; font-weight: 600; }
-.ws-tape .sep { opacity: 0.35; color: #C9A84C; }
+.ws-tape-track:hover {
+  animation-play-state: paused;
+}
+@keyframes ws-marquee {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+.ws-tape .bull { color: #7dcea0; font-weight: 600; text-shadow: 0 0 8px rgba(125,206,160,0.35); }
+.ws-tape .bear { color: #e07a7a; font-weight: 600; text-shadow: 0 0 8px rgba(224,122,122,0.3); }
+.ws-tape .sym  { color: #fff8e0; font-weight: 700; letter-spacing: 0.1em; }
+.ws-tape .sep  { opacity: 0.45; color: #C9A84C; margin: 0 0.15rem; }
+.ws-tape .label { color: #8a8478; font-size: 0.72rem; letter-spacing: 0.12em; }
 
+/* ═══════════════════════════════════════════════════════════════════════
+   BRASS NAMEPLATE — page hero (firm letterhead)
+   ═══════════════════════════════════════════════════════════════════════ */
 .ws-page-hero {
-  padding: 0.95rem 1.1rem 0.75rem 1.1rem;
-  margin-bottom: 1.1rem;
-  background: linear-gradient(135deg, rgba(10,22,40,0.98) 0%, rgba(15,27,45,0.96) 50%, rgba(12,18,32,0.98) 100%);
-  border: 1px solid rgba(201, 168, 76, 0.28);
-  border-left: 5px solid #C9A84C;
-  border-radius: 10px;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.4), inset 0 1px 0 rgba(232,213,163,0.06);
+  position: relative;
+  padding: 1.05rem 1.25rem 0.9rem 1.25rem;
+  margin-bottom: 1.15rem;
+  background:
+    linear-gradient(145deg,
+      rgba(36,30,18,0.98) 0%,
+      rgba(16,20,28,0.98) 48%,
+      rgba(12,14,20,0.99) 100%);
+  border: 2px solid #C9A84C;
+  border-radius: 2px;
+  box-shadow:
+    inset 0 1px 0 rgba(232,213,163,0.2),
+    inset 0 -1px 0 rgba(0,0,0,0.35),
+    0 0 0 1px rgba(0,0,0,0.6),
+    0 10px 32px rgba(0,0,0,0.5);
 }
+/* Brass corner rivets */
+.ws-page-hero::before,
+.ws-page-hero::after {
+  content: "";
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #E8D5A3, #C9A84C 45%, #7a6420 100%);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.5);
+}
+.ws-page-hero::before { top: 8px; left: 8px; }
+.ws-page-hero::after  { top: 8px; right: 8px; }
+.ws-page-hero .rivet-bl,
+.ws-page-hero .rivet-br {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #E8D5A3, #C9A84C 45%, #7a6420 100%);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.5);
+  bottom: 8px;
+}
+.ws-page-hero .rivet-bl { left: 8px; }
+.ws-page-hero .rivet-br { right: 8px; }
+
 .ws-page-hero.bear-edge {
-  border-left-color: #8B9BB4;
-  border-color: rgba(139, 155, 180, 0.28);
+  border-color: #8B9BB4;
+  box-shadow:
+    inset 0 1px 0 rgba(197,208,224,0.12),
+    0 0 0 1px rgba(0,0,0,0.6),
+    0 10px 32px rgba(0,0,0,0.5);
 }
 .ws-page-hero h1 {
-  margin: 0 0 0.3rem 0 !important;
+  margin: 0 0 0.35rem 0 !important;
   border: none !important;
   padding: 0 !important;
-  font-size: 1.55rem !important;
+  font-size: 1.5rem !important;
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  color: #f4f1e8 !important;
+  gap: 0.55rem;
+  color: #f4efe0 !important;
+  font-family: 'Cinzel', 'Times New Roman', serif !important;
+  letter-spacing: 0.06em !important;
 }
 .ws-page-hero .sub {
   font-family: 'IBM Plex Mono', monospace;
-  font-size: 0.82rem;
-  color: #a8b3c7;
+  font-size: 0.8rem;
+  color: #a8a090;
   margin: 0;
-  line-height: 1.45;
+  line-height: 1.5;
+  letter-spacing: 0.02em;
 }
 .ws-page-hero .desk-tag {
   display: inline-block;
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 0.68rem;
-  letter-spacing: 0.08em;
+  font-family: 'Cinzel', serif;
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
   color: #C9A84C;
-  margin-bottom: 0.35rem;
+  margin-bottom: 0.4rem;
+  padding: 0.15rem 0.55rem;
+  border: 1px solid rgba(201,168,76,0.4);
+  background: rgba(201,168,76,0.08);
 }
 .ws-candle-mark {
   display: inline-block;
@@ -338,49 +583,128 @@ button[data-baseweb="tab"][aria-selected="true"] {
 }
 .ws-candle-mark.bull {
   background: #C9A84C;
-  box-shadow: 0 -5px 0 0 #C9A84C, 0 5px 0 0 #C9A84C;
+  box-shadow: 0 -5px 0 0 #C9A84C, 0 5px 0 0 #C9A84C, 0 0 8px rgba(201,168,76,0.4);
 }
 .ws-candle-mark.bear {
   background: #8B9BB4;
   box-shadow: 0 -5px 0 0 #8B9BB4, 0 5px 0 0 #8B9BB4;
 }
 
+/* ── Section rail — engraved brass divider ────────────────────────────── */
 .ws-section {
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 0.75rem;
-  letter-spacing: 0.1em;
+  font-family: 'Cinzel', serif;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: #8B9BB4;
-  border-bottom: 1px solid rgba(201,168,76,0.16);
-  padding-bottom: 0.35rem;
-  margin: 1.25rem 0 0.75rem 0;
+  color: #C9A84C;
+  border-bottom: 2px solid rgba(201,168,76,0.28);
+  padding: 0.15rem 0 0.4rem 0;
+  margin: 1.35rem 0 0.85rem 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.ws-section::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, rgba(201,168,76,0.45), transparent 90%);
+  margin-left: 0.35rem;
 }
 .ws-section .bull { color: #C9A84C; }
 .ws-section .bear { color: #8B9BB4; }
+
+/* ── Quote board frame (charts / live panels) ─────────────────────────── */
+.ws-quote-board {
+  position: relative;
+  margin: 0.35rem 0 0.75rem 0;
+  padding: 0.65rem 0.75rem 0.75rem;
+  background:
+    linear-gradient(180deg, #0a0e08 0%, #060a0e 100%);
+  border: 2px solid #C9A84C;
+  border-radius: 2px;
+  box-shadow:
+    inset 0 0 40px rgba(0,0,0,0.55),
+    0 0 0 1px rgba(0,0,0,0.7),
+    0 8px 28px rgba(0,0,0,0.45);
+}
+.ws-quote-board .qb-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+  padding-bottom: 0.4rem;
+  border-bottom: 1px solid rgba(201,168,76,0.28);
+  font-family: 'Cinzel', serif;
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  color: #C9A84C;
+  text-transform: uppercase;
+}
+.ws-quote-board .qb-head .qb-live {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.68rem;
+  letter-spacing: 0.1em;
+  color: #7dcea0;
+}
+.ws-quote-board .qb-head .qb-live::before {
+  content: "● ";
+  animation: ws-pulse 1.6s ease-in-out infinite;
+}
 
 /* ── Links — brand gold ───────────────────────────────────────────────── */
 a { color: #D4AF37 !important; }
 a:hover { color: #E8D5A3 !important; }
 
-/* ── Divider ──────────────────────────────────────────────────────────── */
+/* ── Divider — brass hairline ─────────────────────────────────────────── */
 hr {
-  border-color: rgba(201, 168, 76, 0.14) !important;
+  border: none !important;
+  border-top: 1px solid rgba(201, 168, 76, 0.22) !important;
+  background: linear-gradient(90deg, transparent, rgba(201,168,76,0.35), transparent) !important;
+  height: 1px !important;
 }
 
-/* ── Auth / landing polish ────────────────────────────────────────────── */
+/* ── Auth / landing — membership plaque ───────────────────────────────── */
 [data-testid="stForm"] {
-  background: rgba(15, 27, 45, 0.75);
-  border: 1px solid rgba(201, 168, 76, 0.18);
-  border-radius: 10px;
-  padding: 0.75rem 1rem 1rem 1rem;
+  background: linear-gradient(180deg, rgba(28,24,16,0.92), rgba(12,16,24,0.95));
+  border: 2px solid rgba(201, 168, 76, 0.35);
+  border-radius: 2px;
+  padding: 0.85rem 1.1rem 1.1rem 1.1rem;
+  box-shadow:
+    inset 0 1px 0 rgba(232,213,163,0.1),
+    0 8px 28px rgba(0,0,0,0.4);
 }
 
-/* Progress bars / sliders pick up gold */
+/* Progress / sliders — brass */
 [data-testid="stProgress"] > div > div {
   background-color: #C9A84C !important;
 }
 div[data-baseweb="slider"] div[role="slider"] {
   background-color: #C9A84C !important;
+}
+
+/* Download buttons sit like desk forms */
+[data-testid="stDownloadButton"] > button {
+  border-radius: 2px !important;
+  border: 1px solid rgba(201,168,76,0.4) !important;
+  font-family: 'IBM Plex Mono', monospace !important;
+}
+
+/* Alerts — firm notices */
+[data-testid="stAlert"] {
+  border-radius: 2px !important;
+  border-left-width: 4px !important;
+}
+
+/* Images — framed like wall charts */
+[data-testid="stImage"] {
+  border: 1px solid rgba(201,168,76,0.25);
+  border-radius: 2px;
+  padding: 3px;
+  background: rgba(0,0,0,0.35);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.35);
 }
 </style>
 """
@@ -402,7 +726,7 @@ _CANDLE_COLORIZER_JS = """
         /* Red / falling / risk / TV news */
         } else if (t.indexOf('📉') !== -1 || t.indexOf('🔴') !== -1 || t.indexOf('📺') !== -1) {
           el.classList.add('ws-candle-bear');
-        /* Document / link panels — soft green desk edge */
+        /* Document / link panels — soft gold desk edge */
         } else if (t.indexOf('📂') !== -1 || t.indexOf('📁') !== -1 ||
                    t.indexOf('📃') !== -1 || t.indexOf('📄') !== -1 ||
                    t.indexOf('🔗') !== -1) {
@@ -472,7 +796,7 @@ _EMOJI_PREFIXES = (
 
 
 def inject_wallstreet_theme() -> None:
-    """Inject global Wall Street CSS + candle expander colorizer once per run."""
+    """Inject global old-school brokerage CSS + candle expander colorizer once per run."""
     st.markdown(WS_CSS, unsafe_allow_html=True)
     # Tiny zero-height component so JS can reach parent DOM expanders
     components.html(_CANDLE_COLORIZER_JS, height=0)
@@ -500,15 +824,30 @@ def market_tape(
     instruments: str = "MES · MNQ · MYM",
     risk: str = "−$50 / −$100",
 ) -> None:
-    """Top-of-page tape strip (trading desk feel)."""
+    """Top-of-page stock-exchange LED ticker board (scrolling floor tape)."""
+    # Duplicate track for seamless marquee loop
+    segment = f"""
+  <span class="sym">{protocol}</span><span class="sep">◆</span>
+  <span class="label">RULEBOOK</span> <span class="bull">v{version}</span><span class="sep">◆</span>
+  <span class="sym">{instruments}</span><span class="sep">◆</span>
+  <span class="label">HARD RISK</span> <span class="bear">{risk}</span><span class="sep">◆</span>
+  <span class="label">DESK</span> <span class="sym">MICROS ONLY</span><span class="sep">◆</span>
+  <span class="label">FLOOR</span> <span class="bull">RANGE REVERSION</span><span class="sep">◆</span>
+  <span class="label">SESSION</span> <span class="sym">MEMBER FIRM</span><span class="sep">◆</span>
+"""
     st.markdown(
         f"""
-<div class="ws-tape">
-  <span class="sym">{protocol}</span><span class="sep">|</span>
-  <span>RULEBOOK <span class="bull">v{version}</span></span><span class="sep">|</span>
-  <span class="sym">{instruments}</span><span class="sep">|</span>
-  <span>HARD RISK <span class="bear">{risk}</span></span><span class="sep">|</span>
-  <span>MICROS ONLY</span>
+<div class="ws-tape-wrap">
+  <div class="ws-tape-head">
+    <span><span class="live-dot"></span>Exchange Floor Tape · Live Desk</span>
+    <span>CPRP Strategies · Established Desk</span>
+  </div>
+  <div class="ws-tape">
+    <div class="ws-tape-track">
+      {segment}
+      {segment}
+    </div>
+  </div>
 </div>
 """,
         unsafe_allow_html=True,
@@ -522,13 +861,15 @@ def page_hero(
     side: CandleSide = "bull",
     desk_tag: str = "CPRP TRADING DESK",
 ) -> None:
-    """Professional market page header with bull/bear edge."""
+    """Brass nameplate page header — classic brokerage firm letterhead."""
     edge = "bear-edge" if side == "bear" else ""
     mark = "bear" if side == "bear" else "bull"
     sub_html = f'<p class="sub">{subtitle}</p>' if subtitle else ""
     st.markdown(
         f"""
 <div class="ws-page-hero {edge}">
+  <span class="rivet-bl"></span>
+  <span class="rivet-br"></span>
   <div class="desk-tag">{desk_tag}</div>
   <h1><span class="ws-candle-mark {mark}"></span>{title}</h1>
   {sub_html}
@@ -539,11 +880,45 @@ def page_hero(
 
 
 def desk_section(title: str, *, side: CandleSide = "bull") -> None:
-    """Small mono section label between panels."""
+    """Engraved brass section rail between panels."""
     cls = "bull" if side == "bull" else "bear"
     glyph = "▲" if side == "bull" else "▼"
     st.markdown(
         f'<div class="ws-section"><span class="{cls}">{glyph}</span> {title}</div>',
+        unsafe_allow_html=True,
+    )
+
+
+def quote_board_header(title: str = "Quote Board · Live", live_label: str = "LIVE") -> None:
+    """
+    Classic exchange quote-board plaque (header strip).
+
+    Streamlit cannot wrap widgets inside raw HTML, so this is a matching
+    brass header; pair with quote_board_footer() below the content.
+    """
+    st.markdown(
+        f"""
+<div class="ws-quote-board" style="margin-bottom:0;border-bottom:none;border-radius:2px 2px 0 0;">
+  <div class="qb-head" style="margin-bottom:0;padding-bottom:0;border-bottom:none;">
+    <span>{title}</span>
+    <span class="qb-live">{live_label}</span>
+  </div>
+</div>
+""",
+        unsafe_allow_html=True,
+    )
+
+
+def quote_board_footer(note: str = "CME / CBOT continuous · TradingView feed · Desk display only") -> None:
+    """Brass footer strip under a quote-board content block."""
+    st.markdown(
+        f"""
+<div class="ws-quote-board" style="margin-top:0;border-top:1px solid rgba(201,168,76,0.35);
+     border-radius:0 0 2px 2px;padding:0.4rem 0.75rem;">
+  <div style="font-family:'IBM Plex Mono',monospace;font-size:0.65rem;letter-spacing:0.08em;
+       color:#8a8478;text-align:right;">{note}</div>
+</div>
+""",
         unsafe_allow_html=True,
     )
 

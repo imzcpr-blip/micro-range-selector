@@ -7,9 +7,9 @@ gatherUsageStats = false
 
 [theme]
 base = "dark"
-# CPRP brand: navy + gold (matches Official Seal / CPRP Strategies logos)
+# Old-school brokerage desk: deep mahogany-navy + brass gold
 primaryColor = "#C9A84C"
-backgroundColor = "#060b16"
-secondaryBackgroundColor = "#0f1b2d"
-textColor = "#e8edf5"
+backgroundColor = "#080b12"
+secondaryBackgroundColor = "#14100a"
+textColor = "#e8e4d8"
 font = "sans serif"
