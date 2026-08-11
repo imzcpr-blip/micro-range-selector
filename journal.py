@@ -21,8 +21,11 @@ from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Optional
 
+import numpy as np
+import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
+from plotly.subplots import make_subplots
 
 from analyzer import fetch_bars
 from auth import DATA_DIR, DB_PATH, current_display_name, current_user_email
@@ -43,12 +46,17 @@ JOURNAL_MAX_ENTRIES = 50
 
 # Yahoo Finance continuous Micro E-mini futures (same symbols as Session Selector)
 #   MES → MES=F   MNQ → MNQ=F   MYM → MYM=F
-# Chart: 1-Hour candles · ~1 trading day of bars
+# Chart: 1-Hour candles · ~1 trading day of bars + Keltner / RSI / Volume
 YF_MICRO_ORDER = ("MES", "MNQ", "MYM")
-YF_CHART_PERIOD = "5d"  # enough history so we can clip to ~1 day of 1H bars
+YF_CHART_PERIOD = "10d"  # warmup history for EMA/ATR/RSI, then clip to ~1D
 YF_CHART_INTERVAL = "1h"
-YF_CHART_BARS = 24  # ~1 day of hourly futures bars
-TV_CHART_HEIGHT = 520  # tall enough to see full 1D / 1H without page scroll
+YF_CHART_BARS = 24  # ~1 day of hourly futures bars (display window)
+# Indicator defaults (structure-friendly; RSI 14 matches CPRP structure chart)
+KC_EMA = 20
+KC_ATR = 10
+KC_MULT = 2.0
+RSI_PERIOD = 14
+TV_CHART_HEIGHT = 680  # price + volume + RSI stacked, still one-screen
 
 
 @dataclass
@@ -805,72 +813,257 @@ def render_quick_reference_panel() -> None:
         )
 
 
-@st.cache_data(ttl=60, show_spinner=False)
-def _yahoo_1h_1d_bars(yahoo_symbol: str):
+def _true_range(df: pd.DataFrame) -> pd.Series:
+    prev_close = df["Close"].shift(1)
+    tr = pd.concat(
+        [
+            df["High"] - df["Low"],
+            (df["High"] - prev_close).abs(),
+            (df["Low"] - prev_close).abs(),
+        ],
+        axis=1,
+    ).max(axis=1)
+    return tr
+
+
+def _rsi(close: pd.Series, period: int = RSI_PERIOD) -> pd.Series:
+    """Wilder-style RSI (matches structure-chart RSI 14 used in CPRP)."""
+    delta = close.diff()
+    gain = delta.clip(lower=0.0)
+    loss = (-delta).clip(lower=0.0)
+    avg_gain = gain.ewm(alpha=1.0 / period, min_periods=period, adjust=False).mean()
+    avg_loss = loss.ewm(alpha=1.0 / period, min_periods=period, adjust=False).mean()
+    rs = avg_gain / avg_loss.replace(0, np.nan)
+    rsi = 100.0 - (100.0 / (1.0 + rs))
+    return rsi.fillna(50.0)
+
+
+def _keltner_channels(
+    df: pd.DataFrame,
+    *,
+    ema_len: int = KC_EMA,
+    atr_len: int = KC_ATR,
+    mult: float = KC_MULT,
+) -> pd.DataFrame:
     """
-    Yahoo Finance 1-Hour bars clipped to ~1 trading day for continuous micros.
+    Classic Keltner Channels:
+      mid  = EMA(close, ema_len)
+      upper = mid + mult * ATR(atr_len)
+      lower = mid - mult * ATR(atr_len)
+    """
+    out = df.copy()
+    out["KC_Mid"] = out["Close"].ewm(span=ema_len, adjust=False).mean()
+    atr = _true_range(out).ewm(alpha=1.0 / atr_len, min_periods=atr_len, adjust=False).mean()
+    out["KC_Upper"] = out["KC_Mid"] + mult * atr
+    out["KC_Lower"] = out["KC_Mid"] - mult * atr
+    out["ATR"] = atr
+    out["RSI"] = _rsi(out["Close"], RSI_PERIOD)
+    return out
+
+
+@st.cache_data(ttl=60, show_spinner=False)
+def _yahoo_1h_1d_bars(yahoo_symbol: str) -> pd.DataFrame:
+    """
+    Yahoo Finance 1-Hour bars with Keltner / RSI warmed up on longer history,
+    then clipped to ~1 trading day for the quote-board display.
     Cached ~60s so tab switches stay snappy without hammering Yahoo.
     """
-    df = fetch_bars(
+    raw = fetch_bars(
         yahoo_symbol,
         period=YF_CHART_PERIOD,
         interval=YF_CHART_INTERVAL,
     )
-    return df.tail(YF_CHART_BARS)
+    enriched = _keltner_channels(raw)
+    return enriched.tail(YF_CHART_BARS)
 
 
 def _yahoo_candlestick_figure(
-    bars,
+    bars: pd.DataFrame,
     *,
     short: str,
     yahoo_symbol: str,
     name: str,
     height: int = TV_CHART_HEIGHT,
 ) -> go.Figure:
-    """Dark desk-style Plotly candlestick for journal quote board."""
+    """
+    Dark desk-style multi-panel chart:
+      row 1 — Candles + Keltner Channels
+      row 2 — Volume
+      row 3 — RSI (14) with 30/70 guides
+    """
     last = float(bars["Close"].iloc[-1])
     prev = float(bars["Close"].iloc[-2]) if len(bars) > 1 else last
     chg = last - prev
     chg_pct = (chg / prev * 100.0) if prev else 0.0
     chg_color = "#7dcea0" if chg >= 0 else "#e07a7a"
     sign = "+" if chg >= 0 else ""
-
-    fig = go.Figure(
-        data=[
-            go.Candlestick(
-                x=bars.index,
-                open=bars["Open"],
-                high=bars["High"],
-                low=bars["Low"],
-                close=bars["Close"],
-                name=short,
-                increasing_line_color="#C9A84C",
-                increasing_fillcolor="#C9A84C",
-                decreasing_line_color="#8B9BB4",
-                decreasing_fillcolor="#5a6a80",
-            )
-        ]
+    rsi_last = float(bars["RSI"].iloc[-1]) if "RSI" in bars.columns else 50.0
+    rsi_color = (
+        "#e07a7a" if rsi_last >= 70 else "#7dcea0" if rsi_last <= 30 else "#E8D5A3"
     )
-    # Session range guides (last ~1D window)
+
+    fig = make_subplots(
+        rows=3,
+        cols=1,
+        shared_xaxes=True,
+        vertical_spacing=0.04,
+        row_heights=[0.58, 0.18, 0.24],
+        subplot_titles=(
+            f"{short}  ·  Keltner ({KC_EMA}/{KC_ATR}×{KC_MULT:g})",
+            "Volume",
+            f"RSI ({RSI_PERIOD})",
+        ),
+    )
+
+    # ── Price + Keltner ──────────────────────────────────────────────────
+    fig.add_trace(
+        go.Candlestick(
+            x=bars.index,
+            open=bars["Open"],
+            high=bars["High"],
+            low=bars["Low"],
+            close=bars["Close"],
+            name=short,
+            increasing_line_color="#C9A84C",
+            increasing_fillcolor="#C9A84C",
+            decreasing_line_color="#8B9BB4",
+            decreasing_fillcolor="#5a6a80",
+            showlegend=False,
+        ),
+        row=1,
+        col=1,
+    )
+    # Keltner band fill (upper then lower with fill)
+    fig.add_trace(
+        go.Scatter(
+            x=bars.index,
+            y=bars["KC_Upper"],
+            mode="lines",
+            name="KC Upper",
+            line=dict(color="rgba(201,168,76,0.55)", width=1.2, dash="dot"),
+            hovertemplate="KC Upper %{y:.2f}<extra></extra>",
+        ),
+        row=1,
+        col=1,
+    )
+    fig.add_trace(
+        go.Scatter(
+            x=bars.index,
+            y=bars["KC_Lower"],
+            mode="lines",
+            name="KC Lower",
+            line=dict(color="rgba(201,168,76,0.55)", width=1.2, dash="dot"),
+            fill="tonexty",
+            fillcolor="rgba(201,168,76,0.08)",
+            hovertemplate="KC Lower %{y:.2f}<extra></extra>",
+        ),
+        row=1,
+        col=1,
+    )
+    fig.add_trace(
+        go.Scatter(
+            x=bars.index,
+            y=bars["KC_Mid"],
+            mode="lines",
+            name="KC Mid (EMA)",
+            line=dict(color="#E8D5A3", width=1.4),
+            hovertemplate="KC Mid %{y:.2f}<extra></extra>",
+        ),
+        row=1,
+        col=1,
+    )
+
+    # 1D high / low guides on price pane
     hi = float(bars["High"].max())
     lo = float(bars["Low"].min())
     fig.add_hline(
         y=hi,
-        line_color="rgba(139,155,180,0.55)",
+        line_color="rgba(139,155,180,0.45)",
         line_dash="dot",
         line_width=1,
-        annotation_text="1D high",
-        annotation_font_color="#8B9BB4",
-        annotation_font_size=10,
+        row=1,
+        col=1,
     )
     fig.add_hline(
         y=lo,
-        line_color="rgba(201,168,76,0.55)",
+        line_color="rgba(201,168,76,0.45)",
         line_dash="dot",
         line_width=1,
-        annotation_text="1D low",
-        annotation_font_color="#C9A84C",
-        annotation_font_size=10,
+        row=1,
+        col=1,
+    )
+
+    # ── Volume ───────────────────────────────────────────────────────────
+    vol_colors = [
+        "#C9A84C" if c >= o else "#8B9BB4"
+        for o, c in zip(bars["Open"], bars["Close"])
+    ]
+    fig.add_trace(
+        go.Bar(
+            x=bars.index,
+            y=bars["Volume"],
+            name="Volume",
+            marker_color=vol_colors,
+            marker_line_width=0,
+            opacity=0.85,
+            showlegend=False,
+            hovertemplate="Vol %{y:,.0f}<extra></extra>",
+        ),
+        row=2,
+        col=1,
+    )
+
+    # ── RSI ──────────────────────────────────────────────────────────────
+    fig.add_trace(
+        go.Scatter(
+            x=bars.index,
+            y=bars["RSI"],
+            mode="lines",
+            name="RSI",
+            line=dict(color="#D4AF37", width=1.6),
+            showlegend=False,
+            hovertemplate="RSI %{y:.1f}<extra></extra>",
+        ),
+        row=3,
+        col=1,
+    )
+    # 30 / 50 / 70 reference levels
+    for level, color, dash in (
+        (70, "rgba(224,122,122,0.65)", "dash"),
+        (50, "rgba(138,132,120,0.45)", "dot"),
+        (30, "rgba(125,206,160,0.65)", "dash"),
+    ):
+        fig.add_hline(
+            y=level,
+            line_color=color,
+            line_dash=dash,
+            line_width=1,
+            row=3,
+            col=1,
+        )
+    # Soft overbought / oversold bands
+    fig.add_hrect(
+        y0=70,
+        y1=100,
+        fillcolor="rgba(224,122,122,0.08)",
+        line_width=0,
+        row=3,
+        col=1,
+    )
+    fig.add_hrect(
+        y0=0,
+        y1=30,
+        fillcolor="rgba(125,206,160,0.08)",
+        line_width=0,
+        row=3,
+        col=1,
+    )
+
+    axis_common = dict(
+        gridcolor="rgba(201,168,76,0.08)",
+        linecolor="rgba(201,168,76,0.28)",
+        showgrid=True,
+        zeroline=False,
     )
     fig.update_layout(
         title=dict(
@@ -878,37 +1071,52 @@ def _yahoo_candlestick_figure(
                 f"<b>{short}</b>  {yahoo_symbol}  ·  {name}<br>"
                 f"<span style='font-size:13px;color:{chg_color}'>"
                 f"{last:,.2f}  {sign}{chg:,.2f} ({sign}{chg_pct:.2f}%)</span>"
-                f"<span style='font-size:11px;color:#8a8478'>  ·  1H · ~1D · Yahoo Finance</span>"
+                f"<span style='font-size:12px;color:{rsi_color}'>"
+                f"  ·  RSI {rsi_last:.1f}</span>"
+                f"<span style='font-size:11px;color:#8a8478'>"
+                f"  ·  KC {KC_EMA}/{KC_ATR}×{KC_MULT:g}  ·  1H · ~1D · Yahoo</span>"
             ),
             x=0.01,
             xanchor="left",
-            font=dict(size=14, color="#E8D5A3", family="IBM Plex Mono, monospace"),
+            font=dict(size=13, color="#E8D5A3", family="IBM Plex Mono, monospace"),
         ),
-        xaxis_rangeslider_visible=False,
         height=height,
-        margin=dict(t=64, b=28, l=48, r=16),
+        margin=dict(t=72, b=24, l=48, r=52),
         paper_bgcolor="rgba(6,10,14,1)",
         plot_bgcolor="rgba(8,12,16,0.96)",
-        font=dict(color="#e8e4d8", family="IBM Plex Mono, monospace", size=11),
-        xaxis=dict(
-            title=None,
-            gridcolor="rgba(201,168,76,0.08)",
-            linecolor="rgba(201,168,76,0.28)",
-            showgrid=True,
-            zeroline=False,
-            rangeslider_visible=False,
+        font=dict(color="#e8e4d8", family="IBM Plex Mono, monospace", size=10),
+        showlegend=True,
+        legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=1.02,
+            xanchor="right",
+            x=1,
+            font=dict(size=10, color="#a8a090"),
+            bgcolor="rgba(0,0,0,0)",
         ),
-        yaxis=dict(
-            title=None,
-            gridcolor="rgba(201,168,76,0.08)",
-            linecolor="rgba(201,168,76,0.28)",
-            side="right",
-            zeroline=False,
-            tickformat=",.2f",
-        ),
-        showlegend=False,
         dragmode="pan",
+        hovermode="x unified",
+        xaxis_rangeslider_visible=False,
     )
+    # Shared x / pane y styling
+    fig.update_xaxes(**axis_common, rangeslider_visible=False)
+    fig.update_yaxes(**axis_common, side="right", tickformat=",.2f", row=1, col=1)
+    fig.update_yaxes(**axis_common, side="right", row=2, col=1)
+    fig.update_yaxes(
+        **axis_common,
+        side="right",
+        range=[0, 100],
+        tickvals=[0, 30, 50, 70, 100],
+        row=3,
+        col=1,
+    )
+    # Subplot title styling
+    for ann in fig.layout.annotations:
+        ann.font = dict(size=10, color="#C9A84C", family="IBM Plex Mono, monospace")
+        ann.xanchor = "left"
+        ann.x = 0.0
+
     return fig
 
 
@@ -920,12 +1128,13 @@ def render_live_micro_charts(
 ) -> None:
     """
     Bottom-right LIVE Yahoo Finance charts: MES / MNQ / MYM
-    1-Hour candles over ~1 day. Tabs keep one large chart fully visible.
+    1-Hour candles over ~1 day with Keltner Channels, Volume, and RSI.
     """
     desk_section("Quote Board · 1 Day / 1 Hour", side="bull")
     st.caption(
         "Yahoo Finance continuous micros: **MES=F** · **MNQ=F** · **MYM=F**  ·  "
-        "**1-Hour** candles · **~1 Day** window. Switch tabs — full chart, no scroll."
+        f"**1H** · **~1D**  ·  Keltner ({KC_EMA}/{KC_ATR}×{KC_MULT:g}) · "
+        f"Volume · RSI ({RSI_PERIOD}). Switch tabs — full multi-pane chart."
     )
 
     pick = (default_micro or "MES").strip().upper()
@@ -936,7 +1145,7 @@ def render_live_micro_charts(
     ordered = [pick] + [s for s in YF_MICRO_ORDER if s != pick]
 
     quote_board_header(
-        "Floor Quote Board · MES=F · MNQ=F · MYM=F",
+        "Floor Quote Board · MES=F · MNQ=F · MYM=F · KC · Vol · RSI",
         live_label="YAHOO · 1H / 1D",
     )
     tabs = st.tabs([f"● {s} ({INSTRUMENTS[s].symbol})" for s in ordered])
@@ -949,12 +1158,12 @@ def render_live_micro_charts(
                 f"<div style='font-size:11px;color:#C9A84C;margin:0 0 6px 0;"
                 f"font-family:IBM Plex Mono,monospace;letter-spacing:0.06em;'>"
                 f"<strong>{short}</strong> · {yahoo_sym} · {inst.name} · "
-                f"Yahoo continuous · Live feed"
+                f"Keltner + Volume + RSI · Yahoo continuous"
                 f"</div>",
                 unsafe_allow_html=True,
             )
             try:
-                with st.spinner(f"Loading {yahoo_sym} 1H bars…"):
+                with st.spinner(f"Loading {yahoo_sym} 1H bars + indicators…"):
                     bars = _yahoo_1h_1d_bars(yahoo_sym)
                 fig = _yahoo_candlestick_figure(
                     bars,
@@ -980,10 +1189,14 @@ def render_live_micro_charts(
                 )
                 t0 = bars.index[0].strftime("%b %d %H:%M")
                 t1 = bars.index[-1].strftime("%b %d %H:%M %Z")
+                rsi_now = float(bars["RSI"].iloc[-1])
+                vol_last = float(bars["Volume"].iloc[-1])
                 st.caption(
                     f"{len(bars)} × 1H bars · {t0} → {t1} · "
                     f"High {float(bars['High'].max()):,.2f} · "
-                    f"Low {float(bars['Low'].min()):,.2f}"
+                    f"Low {float(bars['Low'].min()):,.2f} · "
+                    f"RSI {rsi_now:.1f} · Last vol {vol_last:,.0f} · "
+                    f"KC EMA{KC_EMA} / ATR{KC_ATR}×{KC_MULT:g}"
                 )
             except Exception as exc:  # noqa: BLE001
                 st.warning(
@@ -991,7 +1204,7 @@ def render_live_micro_charts(
                     "Try again in a moment, or confirm market data on your platform."
                 )
     quote_board_footer(
-        "MES=F · MNQ=F · MYM=F · Yahoo Finance continuous · Desk display only — not a broker feed"
+        "MES=F · MNQ=F · MYM=F · Keltner + Volume + RSI · Yahoo Finance · Desk display only"
     )
 
 
