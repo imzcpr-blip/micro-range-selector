@@ -104,9 +104,13 @@ PRIMARY_BRANDING_LINKS: list[tuple[str, str]] = [
     # Session Selector header video (source: grok_video_2026-08-09-09-51-29.mp4)
     ("cprp_logo_video_variant_2.mp4", "cprp_session_selector_video.mp4"),
     ("cprp_session_selector_video.mp4", "cprp_session_selector_video.mp4"),
+    ("cprp_session_selector_video.gif", "cprp_session_selector_video.gif"),
+    ("cprp_logo_video_variant_2.gif", "cprp_session_selector_video.gif"),
     # Sidebar panel video
     ("cprp_sidebar_video.mp4", "cprp_sidebar_video.mp4"),
     ("cprp_sidebar_video.mp4", "cprp_logo_video_alt.mp4"),
+    ("cprp_sidebar_video.gif", "cprp_sidebar_video.gif"),
+    ("cprp_sidebar_video.gif", "cprp_logo_video_alt.gif"),
     # Prefer animated candlestick brand as primary looping media when present
     ("cprp_brand_logo_candlestick_anim.gif", "cprp_logo_video.gif"),
     ("cprp_banner_horizontal_anim.gif", "cprp_logo_video_alt.gif"),

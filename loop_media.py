@@ -81,13 +81,13 @@ def render_loop_media(
                 continue
             b64 = base64.b64encode(raw).decode("ascii")
             html = _video_html(b64)
-            # Height is a soft frame; video scales with width
             frame_h = max(120, min(height, 720))
             if sidebar:
-                # Sidebar: slightly shorter frame
-                components.html(html, height=min(frame_h, 220), scrolling=False)
-                if caption:
-                    st.sidebar.caption(caption)
+                # Must nest under sidebar context so the iframe lands in the side panel
+                with st.sidebar:
+                    components.html(html, height=min(frame_h, 220), scrolling=False)
+                    if caption:
+                        st.caption(caption)
             else:
                 components.html(html, height=frame_h, scrolling=False)
                 if caption:
