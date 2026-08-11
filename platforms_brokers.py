@@ -1,7 +1,8 @@
 """
 Platforms & Brokers panel — popular tools among micro futures traders.
 
-Links only (no partnership). NinjaTrader & Ironbeam are independent third parties.
+Links only (no partnership). NinjaTrader, Ironbeam, and TradingView are
+independent third parties.
 """
 
 from __future__ import annotations
@@ -13,6 +14,7 @@ from wallstreet_ui import candle_expander, desk_section, link_label, page_hero
 
 NINJATRADER_URL = "https://ninjatrader.com"
 IRONBEAM_URL = "https://www.ironbeam.com"
+TRADINGVIEW_URL = "https://www.tradingview.com"
 
 
 def render_platforms_brokers_panel() -> None:
@@ -28,11 +30,13 @@ def render_platforms_brokers_panel() -> None:
         st.markdown(
             """
 Many independent day traders who work with **Micro** contracts (MES, MNQ, MYM, and others)
-use a charting and execution platform together with a futures broker:
+use charting tools, a trading platform, and a futures broker. Three sites often mentioned
+in that context are:
 
 | Role | Site |
 |------|------|
 | Platform / charting & order tools | **NinjaTrader** |
+| Charting, multi-market analysis & watchlists | **TradingView** |
 | Futures broker | **Ironbeam** |
 
 **Inclusion is not an endorsement, referral program, or business partnership.**
@@ -42,20 +46,23 @@ use a charting and execution platform together with a futures broker:
     with candle_expander("Recommended use with CPRP", side="bear", expanded=False, kind="down"):
         st.markdown(
             """
-- Use your platform to mark **confirmed S/R structure**, run **15m+5m** (or **30m+15m**),
-  and keep a static **1-Hour** context chart.
+- Use your platform (or TradingView) to mark **confirmed S/R structure**, run **15m+5m**
+  (or **30m+15m**), and keep a static **1-Hour** context chart.
+- Use **TradingView** for multi-timeframe review, economic calendar context, and clean
+  chart layouts when studying structure away from the order ticket.
 - Route live orders only through **your** broker account under **your** risk limits
   (−$50 to −$100 hard stop under CPRP).
-- This CPRP app **does not place or cancel orders** and is not connected to either firm.
+- This CPRP app **does not place or cancel orders** and is not connected to any of these firms.
 """
         )
 
     desk_section("Open the sites", side="bull")
-    c1, c2 = st.columns(2)
+    c1, c2, c3 = st.columns(3)
     with c1:
         st.markdown("#### NinjaTrader")
         st.markdown(
-            "Charting and trading platform often used for futures and micros.  \n"
+            "Charting and trading platform often used for futures and micros — "
+            "structure charts, execution, and order tools in one workspace.  \n"
             f"🔗 [https://ninjatrader.com]({NINJATRADER_URL})"
         )
         st.link_button(
@@ -65,9 +72,25 @@ use a charting and execution platform together with a futures broker:
             use_container_width=True,
         )
     with c2:
+        st.markdown("#### TradingView")
+        st.markdown(
+            "Popular web charting and market-analysis platform used by many traders for "
+            "multi-timeframe structure, indicators, watchlists, and layout sharing. "
+            "Useful for reviewing MES / MNQ / MYM ranges; **not a futures broker** — "
+            "orders still go through your own brokerage.  \n"
+            f"🔗 [https://www.tradingview.com]({TRADINGVIEW_URL})"
+        )
+        st.link_button(
+            link_label("Visit TradingView"),
+            TRADINGVIEW_URL,
+            type="primary",
+            use_container_width=True,
+        )
+    with c3:
         st.markdown("#### Ironbeam")
         st.markdown(
-            "Futures broker used by many micro futures traders.  \n"
+            "Futures broker used by many micro futures traders for account setup, "
+            "margin, and order routing to the exchange.  \n"
             f"🔗 [https://www.ironbeam.com]({IRONBEAM_URL})"
         )
         st.link_button(
@@ -86,11 +109,14 @@ use a charting and execution platform together with a futures broker:
         st.markdown(
             """
 - **No partnership:** CPRP Strategies and this tool are **not** owned by, sponsored by,
-  endorsed by, or partnered with NinjaTrader, Ironbeam, or any other broker or platform.
+  endorsed by, or partnered with NinjaTrader, TradingView, Ironbeam, or any other broker
+  or platform.
 - **No referral fees stated:** These are public websites listed for education and convenience.
-- **Your account, your risk:** Account approval, fees, margin, and product availability are
-  between you and that company alone.
-- **Do your own due diligence** before opening any brokerage or platform account.
+- **Your account, your risk:** Account approval, fees, margin, subscriptions, and product
+  availability are between you and that company alone.
+- **TradingView is not a futures broker:** charting and analysis only unless you connect
+  a separate broker integration under **their** terms.
+- **Do your own due diligence** before opening any brokerage, platform, or paid account.
 """
         )
 
