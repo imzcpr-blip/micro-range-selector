@@ -21,10 +21,12 @@ from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Optional
 
+import plotly.graph_objects as go
 import streamlit as st
-import streamlit.components.v1 as components
 
+from analyzer import fetch_bars
 from auth import DATA_DIR, DB_PATH, current_display_name, current_user_email
+from config import INSTRUMENTS
 from wallstreet_ui import (
     candle_expander,
     desk_section,
@@ -39,24 +41,14 @@ RESULTS = ["", "Open", "Win", "Loss", "Scratch", "No trade", "Lesson only"]
 # Soft capacity per user — when full, prompt to export session notes
 JOURNAL_MAX_ENTRIES = 50
 
-# TradingView continuous Micro E-mini futures (LIVE advanced chart embeds)
-# Official continuous contracts (1! = front continuous) — required for live charts:
-#   MES → CME_MINI:MES1!   https://www.tradingview.com/symbols/CME_MINI-MES1!/
-#   MNQ → CME_MINI:MNQ1!   https://www.tradingview.com/symbols/CME_MINI-MNQ1!/
-#   MYM → CBOT_MINI:MYM1!  https://www.tradingview.com/symbols/CBOT_MINI-MYM1!/
-# (Do not use MES! / MNQ! / MYM! without the "1" — those are not valid TV continuous ids.)
-TV_MICRO_SYMBOLS: dict[str, str] = {
-    "MES": "CME_MINI:MES1!",
-    "MNQ": "CME_MINI:MNQ1!",
-    "MYM": "CBOT_MINI:MYM1!",
-}
-# Short continuous tickers shown on tabs / labels
-TV_MICRO_TICKERS: dict[str, str] = {
-    "MES": "MES1!",
-    "MNQ": "MNQ1!",
-    "MYM": "MYM1!",
-}
-TV_CHART_HEIGHT = 520  # tall enough to see full 1D / 1H without inner scroll
+# Yahoo Finance continuous Micro E-mini futures (same symbols as Session Selector)
+#   MES → MES=F   MNQ → MNQ=F   MYM → MYM=F
+# Chart: 1-Hour candles · ~1 trading day of bars
+YF_MICRO_ORDER = ("MES", "MNQ", "MYM")
+YF_CHART_PERIOD = "5d"  # enough history so we can clip to ~1 day of 1H bars
+YF_CHART_INTERVAL = "1h"
+YF_CHART_BARS = 24  # ~1 day of hourly futures bars
+TV_CHART_HEIGHT = 520  # tall enough to see full 1D / 1H without page scroll
 
 
 @dataclass
@@ -813,94 +805,111 @@ def render_quick_reference_panel() -> None:
         )
 
 
-def _tradingview_1d_1h_html(symbol: str, *, height: int = TV_CHART_HEIGHT) -> str:
+@st.cache_data(ttl=60, show_spinner=False)
+def _yahoo_1h_1d_bars(yahoo_symbol: str):
     """
-    TradingView Advanced Chart: 1-Hour interval, 1-Day range, dark CPRP theme.
-    `symbol` is a full TradingView id, e.g. CME_MINI:MES1!
+    Yahoo Finance 1-Hour bars clipped to ~1 trading day for continuous micros.
+    Cached ~60s so tab switches stay snappy without hammering Yahoo.
     """
-    # height for chart body (footer strip below)
-    chart_h = max(360, int(height) - 28)
-    return f"""
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <style>
-    html, body {{
-      margin: 0; padding: 0;
-      background: #060a0e;
-      height: 100%;
-      overflow: hidden;
-      font-family: 'IBM Plex Mono', 'IBM Plex Sans', system-ui, sans-serif;
-    }}
-    .tradingview-widget-container {{
-      width: 100%;
-      height: {height}px;
-      border: 1px solid rgba(201,168,76,0.35);
-      box-sizing: border-box;
-    }}
-    .tradingview-widget-container__widget {{
-      width: 100%;
-      height: {chart_h}px;
-    }}
-    .tv-footer {{
-      height: 28px;
-      display: flex;
-      align-items: center;
-      justify-content: flex-end;
-      padding: 0 10px;
-      font-size: 10px;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      color: #8a8478;
-      background: linear-gradient(180deg, #1a160e, #0a0c10);
-      border-top: 1px solid rgba(201,168,76,0.35);
-    }}
-    .tv-footer a {{ color: #C9A84C; text-decoration: none; }}
-  </style>
-</head>
-<body>
-  <div class="tradingview-widget-container">
-    <div class="tradingview-widget-container__widget"></div>
-    <div class="tv-footer">
-      <a href="https://www.tradingview.com/chart/?symbol={symbol}"
-         target="_blank" rel="noopener noreferrer">
-        {symbol} · 1H · 1D · Floor Board · TradingView
-      </a>
-    </div>
-    <script type="text/javascript"
-      src="https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js"
-      async>
-    {{
-      "autosize": true,
-      "symbol": "{symbol}",
-      "interval": "60",
-      "range": "1D",
-      "timezone": "America/New_York",
-      "theme": "dark",
-      "style": "1",
-      "locale": "en",
-      "backgroundColor": "rgba(6, 10, 14, 1)",
-      "gridColor": "rgba(201, 168, 76, 0.10)",
-      "hide_top_toolbar": false,
-      "hide_legend": false,
-      "hide_side_toolbar": true,
-      "allow_symbol_change": false,
-      "save_image": false,
-      "calendar": false,
-      "details": false,
-      "hotlist": false,
-      "withdateranges": true,
-      "support_host": "https://www.tradingview.com",
-      "width": "100%",
-      "height": {chart_h}
-    }}
-    </script>
-  </div>
-</body>
-</html>
-"""
+    df = fetch_bars(
+        yahoo_symbol,
+        period=YF_CHART_PERIOD,
+        interval=YF_CHART_INTERVAL,
+    )
+    return df.tail(YF_CHART_BARS)
+
+
+def _yahoo_candlestick_figure(
+    bars,
+    *,
+    short: str,
+    yahoo_symbol: str,
+    name: str,
+    height: int = TV_CHART_HEIGHT,
+) -> go.Figure:
+    """Dark desk-style Plotly candlestick for journal quote board."""
+    last = float(bars["Close"].iloc[-1])
+    prev = float(bars["Close"].iloc[-2]) if len(bars) > 1 else last
+    chg = last - prev
+    chg_pct = (chg / prev * 100.0) if prev else 0.0
+    chg_color = "#7dcea0" if chg >= 0 else "#e07a7a"
+    sign = "+" if chg >= 0 else ""
+
+    fig = go.Figure(
+        data=[
+            go.Candlestick(
+                x=bars.index,
+                open=bars["Open"],
+                high=bars["High"],
+                low=bars["Low"],
+                close=bars["Close"],
+                name=short,
+                increasing_line_color="#C9A84C",
+                increasing_fillcolor="#C9A84C",
+                decreasing_line_color="#8B9BB4",
+                decreasing_fillcolor="#5a6a80",
+            )
+        ]
+    )
+    # Session range guides (last ~1D window)
+    hi = float(bars["High"].max())
+    lo = float(bars["Low"].min())
+    fig.add_hline(
+        y=hi,
+        line_color="rgba(139,155,180,0.55)",
+        line_dash="dot",
+        line_width=1,
+        annotation_text="1D high",
+        annotation_font_color="#8B9BB4",
+        annotation_font_size=10,
+    )
+    fig.add_hline(
+        y=lo,
+        line_color="rgba(201,168,76,0.55)",
+        line_dash="dot",
+        line_width=1,
+        annotation_text="1D low",
+        annotation_font_color="#C9A84C",
+        annotation_font_size=10,
+    )
+    fig.update_layout(
+        title=dict(
+            text=(
+                f"<b>{short}</b>  {yahoo_symbol}  ·  {name}<br>"
+                f"<span style='font-size:13px;color:{chg_color}'>"
+                f"{last:,.2f}  {sign}{chg:,.2f} ({sign}{chg_pct:.2f}%)</span>"
+                f"<span style='font-size:11px;color:#8a8478'>  ·  1H · ~1D · Yahoo Finance</span>"
+            ),
+            x=0.01,
+            xanchor="left",
+            font=dict(size=14, color="#E8D5A3", family="IBM Plex Mono, monospace"),
+        ),
+        xaxis_rangeslider_visible=False,
+        height=height,
+        margin=dict(t=64, b=28, l=48, r=16),
+        paper_bgcolor="rgba(6,10,14,1)",
+        plot_bgcolor="rgba(8,12,16,0.96)",
+        font=dict(color="#e8e4d8", family="IBM Plex Mono, monospace", size=11),
+        xaxis=dict(
+            title=None,
+            gridcolor="rgba(201,168,76,0.08)",
+            linecolor="rgba(201,168,76,0.28)",
+            showgrid=True,
+            zeroline=False,
+            rangeslider_visible=False,
+        ),
+        yaxis=dict(
+            title=None,
+            gridcolor="rgba(201,168,76,0.08)",
+            linecolor="rgba(201,168,76,0.28)",
+            side="right",
+            zeroline=False,
+            tickformat=",.2f",
+        ),
+        showlegend=False,
+        dragmode="pan",
+    )
+    return fig
 
 
 def render_live_micro_charts(
@@ -910,52 +919,79 @@ def render_live_micro_charts(
     default_micro: str = "MES",
 ) -> None:
     """
-    Bottom-right LIVE TradingView charts: MES / MNQ / MYM at 1 Hour on a 1 Day range.
-    One large chart at a time (tabs) so the full 1D/1H view fits without scrolling.
-    Framed as a classic exchange quote board.
+    Bottom-right LIVE Yahoo Finance charts: MES / MNQ / MYM
+    1-Hour candles over ~1 day. Tabs keep one large chart fully visible.
     """
     desk_section("Quote Board · 1 Day / 1 Hour", side="bull")
     st.caption(
-        "TradingView continuous Micro E-minis: **MES1!** · **MNQ1!** · **MYM1!**  ·  "
-        "**1-Hour** candles · **1-Day** range. Switch with the tabs — full chart, no scroll."
+        "Yahoo Finance continuous micros: **MES=F** · **MNQ=F** · **MYM=F**  ·  "
+        "**1-Hour** candles · **~1 Day** window. Switch tabs — full chart, no scroll."
     )
 
-    # Prefer recommended micro as the default open tab when valid
-    order = ["MES", "MNQ", "MYM"]
     pick = (default_micro or "MES").strip().upper()
-    # Accept "MES1!" / "MES1" style picks from elsewhere
-    pick = pick.replace("1!", "").replace("!", "").strip()
-    if pick not in TV_MICRO_SYMBOLS:
+    pick = pick.replace("1!", "").replace("!", "").replace("=F", "").strip()
+    if pick not in INSTRUMENTS:
         pick = "MES"
 
-    # Streamlit tabs open left-to-right; put preferred micro first so it shows fully
-    ordered = [pick] + [s for s in order if s != pick]
+    ordered = [pick] + [s for s in YF_MICRO_ORDER if s != pick]
 
     quote_board_header(
-        "Floor Quote Board · MES1! · MNQ1! · MYM1!",
-        live_label="LIVE · 1H / 1D",
+        "Floor Quote Board · MES=F · MNQ=F · MYM=F",
+        live_label="YAHOO · 1H / 1D",
     )
-    tabs = st.tabs([f"● {TV_MICRO_TICKERS[s]}" for s in ordered])
+    tabs = st.tabs([f"● {s} ({INSTRUMENTS[s].symbol})" for s in ordered])
 
     for tab, short in zip(tabs, ordered):
         with tab:
-            tv_sym = TV_MICRO_SYMBOLS[short]
-            ticker = TV_MICRO_TICKERS[short]
-            exchange = tv_sym.split(":")[0]
+            inst = INSTRUMENTS[short]
+            yahoo_sym = inst.symbol
             st.markdown(
                 f"<div style='font-size:11px;color:#C9A84C;margin:0 0 6px 0;"
                 f"font-family:IBM Plex Mono,monospace;letter-spacing:0.06em;'>"
-                f"<strong>{ticker}</strong> · {tv_sym} · {exchange} continuous · Micro E-mini · Live"
+                f"<strong>{short}</strong> · {yahoo_sym} · {inst.name} · "
+                f"Yahoo continuous · Live feed"
                 f"</div>",
                 unsafe_allow_html=True,
             )
-            components.html(
-                _tradingview_1d_1h_html(tv_sym, height=height),
-                height=height + 8,
-                scrolling=False,
-            )
+            try:
+                with st.spinner(f"Loading {yahoo_sym} 1H bars…"):
+                    bars = _yahoo_1h_1d_bars(yahoo_sym)
+                fig = _yahoo_candlestick_figure(
+                    bars,
+                    short=short,
+                    yahoo_symbol=yahoo_sym,
+                    name=inst.name,
+                    height=height,
+                )
+                st.plotly_chart(
+                    fig,
+                    use_container_width=True,
+                    config={
+                        "displayModeBar": True,
+                        "displaylogo": False,
+                        "modeBarButtonsToRemove": [
+                            "lasso2d",
+                            "select2d",
+                            "autoScale2d",
+                        ],
+                        "scrollZoom": True,
+                    },
+                    key=f"{key_prefix}_chart_{short}",
+                )
+                t0 = bars.index[0].strftime("%b %d %H:%M")
+                t1 = bars.index[-1].strftime("%b %d %H:%M %Z")
+                st.caption(
+                    f"{len(bars)} × 1H bars · {t0} → {t1} · "
+                    f"High {float(bars['High'].max()):,.2f} · "
+                    f"Low {float(bars['Low'].min()):,.2f}"
+                )
+            except Exception as exc:  # noqa: BLE001
+                st.warning(
+                    f"Yahoo chart unavailable for **{yahoo_sym}** ({short}): {exc}  \n"
+                    "Try again in a moment, or confirm market data on your platform."
+                )
     quote_board_footer(
-        "MES1! CME_MINI · MNQ1! CME_MINI · MYM1! CBOT_MINI · TradingView continuous"
+        "MES=F · MNQ=F · MYM=F · Yahoo Finance continuous · Desk display only — not a broker feed"
     )
 
 
