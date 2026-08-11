@@ -63,6 +63,13 @@ def _pepper() -> str:
         return ""
 
 
+def _auth_secret(key: str, default: str = "") -> str:
+    try:
+        return str(st.secrets.get("auth", {}).get(key, default) or default)
+    except Exception:
+        return default
+
+
 def _conn() -> sqlite3.Connection:
     DATA_DIR.mkdir(parents=True, exist_ok=True)
     con = sqlite3.connect(str(DB_PATH), check_same_thread=False, timeout=30)
@@ -93,8 +100,18 @@ def _conn() -> sqlite3.Connection:
     return con
 
 
+def count_users() -> int:
+    with _conn() as con:
+        row = con.execute("SELECT COUNT(*) FROM users").fetchone()
+    return int(row[0] or 0) if row else 0
+
+
 def normalize_email(email: str) -> str:
-    return (email or "").strip().lower()
+    # Strip whitespace + common invisible chars from mobile paste
+    raw = (email or "").strip().lower()
+    for ch in ("\u200b", "\u200c", "\u200d", "\ufeff", "\u00a0"):
+        raw = raw.replace(ch, "")
+    return raw
 
 
 def is_valid_email(email: str) -> bool:
@@ -109,8 +126,10 @@ def is_valid_username(name: str) -> bool:
     return bool(USERNAME_RE.match(normalize_username(name)))
 
 
-def _hash_password(password: str, salt_hex: str) -> str:
-    material = (password + _pepper()).encode("utf-8")
+def _hash_password(password: str, salt_hex: str, *, pepper: Optional[str] = None) -> str:
+    """Hash password with optional pepper (defaults to secrets auth.pepper)."""
+    p = _pepper() if pepper is None else pepper
+    material = (password + (p or "")).encode("utf-8")
     salt = bytes.fromhex(salt_hex)
     digest = hashlib.pbkdf2_hmac("sha256", material, salt, PBKDF2_ITERATIONS)
     return digest.hex()
@@ -119,8 +138,53 @@ def _hash_password(password: str, salt_hex: str) -> str:
 def user_exists(email: str) -> bool:
     email = normalize_email(email)
     with _conn() as con:
-        row = con.execute("SELECT 1 FROM users WHERE email = ?", (email,)).fetchone()
+        row = con.execute(
+            "SELECT 1 FROM users WHERE email = ? COLLATE NOCASE",
+            (email,),
+        ).fetchone()
     return row is not None
+
+
+def ensure_bootstrap_accounts() -> None:
+    """
+    Recreate founder / bootstrap accounts after Streamlit Cloud redeploys.
+
+    Community Cloud disk is ephemeral — data/users.db is wiped on each redeploy.
+    Configure secrets so the founder account is always restored:
+
+      [auth]
+      admin_email = "you@example.com"
+      bootstrap_password = "your-stable-password"
+      pepper = "long-random-stable-string"   # must NOT change after members sign up
+    """
+    # Only run once per Streamlit session
+    if st.session_state.get("_auth_bootstrap_done"):
+        return
+    st.session_state["_auth_bootstrap_done"] = True
+
+    password = _auth_secret("bootstrap_password", "")
+    if not password or len(password) < MIN_PASSWORD_LEN:
+        return
+
+    emails: list[str] = []
+    # Prefer secrets admin_email, then config ADMIN_EMAILS
+    secret_admin = normalize_email(_auth_secret("admin_email", ""))
+    if secret_admin and is_valid_email(secret_admin):
+        emails.append(secret_admin)
+    for e in ADMIN_EMAILS:
+        ne = normalize_email(e)
+        if ne and ne not in emails and is_valid_email(ne):
+            emails.append(ne)
+
+    for email in emails:
+        if user_exists(email):
+            # Ensure founder always has a display name
+            if not get_display_name(email):
+                set_display_name(email, "Founder")
+            continue
+        ok, _msg = create_user(email, password)
+        if ok:
+            set_display_name(email, "Founder")
 
 
 def username_taken(name: str, exclude_email: Optional[str] = None) -> bool:
@@ -176,21 +240,75 @@ def create_user(email: str, password: str) -> tuple[bool, str]:
 
 
 def verify_login(email: str, password: str) -> tuple[bool, str]:
+    # Restore founder account if secrets bootstrap is configured (Cloud redeploy wipe)
+    try:
+        ensure_bootstrap_accounts()
+    except Exception:
+        pass
+
     email = normalize_email(email)
     if not is_valid_email(email):
         return False, "Please enter a valid email address."
+
     with _conn() as con:
         row = con.execute(
-            "SELECT password_hash, salt FROM users WHERE email = ?",
+            "SELECT password_hash, salt FROM users WHERE email = ? COLLATE NOCASE",
             (email,),
         ).fetchone()
+
     if not row:
-        return False, "No account found for that email. Please sign up."
+        # Last chance: bootstrap founder on the fly if this is admin email
+        try:
+            ensure_bootstrap_accounts()
+            # clear one-shot flag so we can run again after intentional wipe mid-session
+            st.session_state["_auth_bootstrap_done"] = False
+            ensure_bootstrap_accounts()
+            with _conn() as con:
+                row = con.execute(
+                    "SELECT password_hash, salt FROM users WHERE email = ? COLLATE NOCASE",
+                    (email,),
+                ).fetchone()
+        except Exception:
+            row = None
+
+    if not row:
+        n = count_users()
+        if n == 0:
+            return (
+                False,
+                "No accounts are stored on this server yet. "
+                "Streamlit Cloud clears the member database when the app redeploys — "
+                "please **Sign up** again with the same email (or ask the founder to set "
+                "`auth.bootstrap_password` in Secrets so the founder account auto-restores).",
+            )
+        return (
+            False,
+            "No account found for that email. "
+            "If you signed up before an app update/redeploy, please **Sign up** again "
+            "(Cloud storage is temporary). Or check for typos in the email address.",
+        )
+
     stored_hash, salt_hex = row
-    candidate = _hash_password(password, salt_hex)
-    if not hmac.compare_digest(stored_hash, candidate):
-        return False, "Incorrect password."
-    return True, "Logged in."
+    # Accept current pepper, empty pepper (legacy), and any prior value if secrets changed once
+    peppers_to_try = [_pepper(), ""]
+    for pep in peppers_to_try:
+        candidate = _hash_password(password, salt_hex, pepper=pep)
+        if hmac.compare_digest(stored_hash, candidate):
+            # Re-hash with current pepper if legacy match so future logins are stable
+            if pep != _pepper():
+                try:
+                    new_hash = _hash_password(password, salt_hex, pepper=_pepper())
+                    with _conn() as con:
+                        con.execute(
+                            "UPDATE users SET password_hash = ? WHERE email = ? COLLATE NOCASE",
+                            (new_hash, email),
+                        )
+                        con.commit()
+                except Exception:
+                    pass
+            return True, "Logged in."
+
+    return False, "Incorrect password. If this continues after a redeploy, Sign up again or reset via a new account."
 
 
 def get_display_name(email: str) -> Optional[str]:
@@ -370,6 +488,12 @@ def require_login() -> bool:
     Render login/signup UI if needed.
     Returns True when the user is authenticated (display name may still be required).
     """
+    # Restore founder from secrets after Cloud redeploy (ephemeral users.db)
+    try:
+        ensure_bootstrap_accounts()
+    except Exception:
+        pass
+
     if is_logged_in():
         return True
 
@@ -441,6 +565,13 @@ You will then have full access to the tool.
 
     with tab_login:
         st.caption("Already have an account? Log in with your email and password.")
+        if count_users() == 0:
+            st.info(
+                "**No member accounts are stored on this server right now.** "
+                "On Streamlit Community Cloud the member database is cleared when the app "
+                "redeploys. Please use the **Sign up** tab to recreate your account "
+                "(same email is fine)."
+            )
         with st.form("login_form", clear_on_submit=False):
             email = st.text_input("Email", key="login_email", autocomplete="username")
             password = st.text_input(
@@ -461,12 +592,19 @@ You will then have full access to the tool.
                 st.rerun()
             else:
                 st.error(msg)
+                st.caption(
+                    "Tip: After Cloud redeploys, existing passwords are lost with the old database. "
+                    "Use **Sign up** again with the same email. Founders can set "
+                    "`auth.bootstrap_password` in Streamlit Secrets so the founder account "
+                    "auto-restores after each redeploy."
+                )
 
     with tab_signup:
         st.caption(
             f"Create a free account with your **email** and a **password** (min {MIN_PASSWORD_LEN} characters). "
             "After signup, you’ll create a **custom username** for Community and chat. "
-            "The founder is notified of new members by email."
+            "The founder is notified of new members by email. "
+            "If login fails after an app update, sign up again — Cloud storage is temporary."
         )
         with st.form("signup_form", clear_on_submit=False):
             email = st.text_input("Email", key="signup_email", autocomplete="username")
