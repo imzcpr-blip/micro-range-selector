@@ -1060,15 +1060,17 @@ render_bloomberg_audio_option(key_prefix="main_bb", height=280)
 
 page_hero(
     f"{PROTOCOL_NAME} — Session Micro Selector",
-    f"Official Rulebook v{RULEBOOK_VERSION} · rank MES · MNQ · MYM for range/channel reversion — or sit out",
+    f"CPRP Strategies · multi-protocol desk · Rulebook v{RULEBOOK_VERSION} · Scalping v{_cprp_cfg.SCALPING_VERSION} · MES · MNQ · MYM",
     side="bull",
-    desk_tag="SESSION DESK · MICRO SELECTOR",
+    desk_tag="SESSION DESK · STRATEGY OPTIONS",
 )
 
 st.markdown(
     f"""
-> *“Which micro should I focus on for range/channel reversion right now — or should I sit out?”*  
-> *Trade the boundaries. Respect the structure. Control the risk.*
+> *“Which protocol fits this tape — primary reversion, secondary scalping, or sit out?”*  
+> *Trade the boundaries. Respect the structure. Control the risk.*  
+> **CPRP Strategies** is a Micro E-mini futures day-trading chart analyst desk — multiple
+> strategy types for different market conditions, backtested and live-tested under Official Rulebook rules.
 """
 )
 
@@ -1076,13 +1078,14 @@ with candle_expander("Purpose, who it is for, and how it fits your process", sid
     st.markdown(
         f"""
 **Purpose**
-- Rank the three micros for **support/resistance range or channel reversion** conditions.
+- Rank the three micros for **primary CPRP range/channel reversion** conditions.
+- When primary is **quiet** and tape is **sideways**, offer **CPRP Scalping** (1m Keltner) as a **secondary option**.
 - Flag whether price is at a **structure boundary** (valid) or **mid-structure** (avoid).
-- Check whether the current **structure size fits your hard dollar stop** (${HARD_STOP_MIN_USD:.0f}–${HARD_STOP_MAX_USD:.0f}).
-- Apply **static 60-minute (1H) bias context**: be more selective when fading against HTF power.
-- Suggest the **active chart pair** from approved pairs only (**15m+5m** default · **30m+15m** slow).
-- Surface **desktop alerts** when the recommended micro changes.
-- Remind **order flow + full v1.6 checklist** — you confirm bid/ask on the platform.
+- Check whether **structure size fits your hard dollar stop** (${HARD_STOP_MIN_USD:.0f}–${HARD_STOP_MAX_USD:.0f}).
+- Apply **static 60-minute bias**: selective when fading against HTF power.
+- Suggest the **active chart pair** (**15m+5m** default · **30m+15m** slow).
+- Surface **desktop alerts** when the pick or scalping option changes.
+- Remind **order flow + full checklists** — confirm bid/ask and Keltner rules on the platform.
 
 **Who it is for**
 - You, trading **only** MES / MNQ / MYM under the CPRP rulebook.
@@ -1224,16 +1227,29 @@ Futures trading involves substantial risk of loss. Official documents are person
 with st.spinner("Pulling MES / MNQ / MYM data and scoring structure (incl. 1H context)…"):
     rec = analyze_all(hard_stop_usd=float(hard_stop))
     st.session_state.last_rec = rec
+    _hist_pick = rec.recommended or "SIT OUT"
+    if getattr(rec, "scalping", None) and rec.scalping.eligible and rec.scalping.micro:
+        if rec.recommended:
+            _hist_pick = f"{rec.recommended} + SCALP:{rec.scalping.micro}"
+        else:
+            _hist_pick = f"SCALP:{rec.scalping.micro}"
     st.session_state.history.append(
         {
             "time": rec.as_of,
-            "pick": rec.recommended or "SIT OUT",
+            "pick": _hist_pick,
             "scores": {s.short: s.score for s in rec.scores},
         }
     )
 
 if desktop_alerts:
-    st.session_state.tracker.maybe_alert(rec.recommended, rec.sit_out, rec.alert_message)
+    _alert_pick = rec.recommended
+    if not _alert_pick and getattr(rec, "scalping", None) and rec.scalping.eligible:
+        _alert_pick = f"SCALP:{rec.scalping.micro}"
+    st.session_state.tracker.maybe_alert(
+        _alert_pick,
+        rec.sit_out and not (getattr(rec, "scalping", None) and rec.scalping.eligible),
+        rec.alert_message,
+    )
 
 # ── Big recommendation banner (primary CPRP + optional Scalping) ─────────
 st.markdown("### Current session recommendation")
@@ -1351,11 +1367,18 @@ st.caption("⭐ marks the current pick. Expand the candle **Score breakdown** on
 if not rec.scores:
     st.warning("No scores available. Check internet / Yahoo Finance availability.")
 else:
+    _scalp_micro = (
+        rec.scalping.micro
+        if getattr(rec, "scalping", None) and rec.scalping.eligible
+        else None
+    )
     cols = st.columns(len(rec.scores))
     for col, s in zip(cols, sorted(rec.scores, key=lambda x: x.priority)):
-        is_pick = rec.recommended == s.short and not rec.sit_out
+        is_pick = rec.recommended == s.short and bool(rec.recommended)
+        is_scalp = _scalp_micro == s.short
         with col:
-            st.subheader(f"{'⭐ ' if is_pick else ''}{s.short}")
+            mark = "⭐ " if is_pick else ("⚡ " if is_scalp else "")
+            st.subheader(f"{mark}{s.short}")
             st.caption(s.name)
             st.metric("Session score", f"{s.score:.1f}", help=s.grade)
             st.write(f"**{s.grade}**")
