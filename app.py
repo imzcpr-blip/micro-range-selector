@@ -225,11 +225,28 @@ if not render_loop_media(
     pass
 st.sidebar.markdown("### CPRP Strategies")
 st.sidebar.caption(f"Rulebook v{RULEBOOK_VERSION} · {CREATOR}")
-st.sidebar.markdown(
-    '<p style="font-family:IBM Plex Mono,monospace;font-size:0.72rem;color:#64748b;">'
-    "📈 green · 📉 red · 📂 docs · 📺 news · 🔗 links — expand panels for detail</p>",
-    unsafe_allow_html=True,
-)
+
+# Icon legend — explains nav / panel emoji meanings (desk-style mini panel)
+with st.sidebar.expander("Icon legend", expanded=False):
+    st.markdown(
+        """
+| Icon | Meaning |
+|:----:|---------|
+| 📈 | **Up / bull** panels — rising, primary tools, positive desk edges |
+| 📉 | **Down / risk** panels — risk, filters, caution, secondary edges |
+| 📂 | **Documents** — rulebook, folders, official files |
+| 📁 | **Folder / brand** — branding suites, asset collections |
+| 📃 | **Page / journal** — notes, session log, printed-style pages |
+| 📄 | **Document page** — founder / profile docs |
+| 📺 | **Live news / video** — Bloomberg Live, TV-style feeds |
+| 🔗 | **External links** — brokers, platforms, open-in-new-tab |
+
+**How to use:** icons mark sidebar pages and expandable panels.  
+Open any expander for full detail. Gold edge = primary · steel edge = risk/secondary.
+"""
+    )
+    st.caption("Desk legend · CPRP Strategies · expand panels for full content")
+
 render_account_sidebar()
 st.sidebar.markdown("##### Live now")
 try:
