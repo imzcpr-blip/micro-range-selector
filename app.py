@@ -992,8 +992,13 @@ else:
 
 _rb_side = Path(RULEBOOK_UPDATE_PDF)
 if _rb_side.is_file():
+    _rb_side_label = (
+        "📂 Download Official Rulebook (PDF)"
+        if "Official_Rulebook" in RULEBOOK_UPDATE_DOWNLOAD_NAME
+        else "📂 Download Rulebook Update (PDF)"
+    )
     st.sidebar.download_button(
-        label="📂 Download Rulebook Update (PDF)",
+        label=_rb_side_label,
         data=_rb_side.read_bytes(),
         file_name=RULEBOOK_UPDATE_DOWNLOAD_NAME,
         mime="application/pdf",
