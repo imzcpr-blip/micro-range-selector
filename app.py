@@ -761,7 +761,7 @@ with st.sidebar.expander("▶ What each screen section means"):
         f"""
 | Area | What it tells you |
 |------|-------------------|
-| **Top banner** | Final recommendation: trade **MES / MNQ / MYM** or **SIT OUT** |
+| **Top banner** | Strategy options: **CPRP Reversion** micro, optional **CPRP Scalping**, or **SIT OUT** |
 | **Metrics row** | Time (ET), session phase, chart pair, static 1H context, min score ({MIN_SCORE_TO_TRADE:.0f}+) |
 | **Three cards** | Per-micro score, last price, structure high/low, $ width, stop pts, boundary position, 1H bias |
 | **Score breakdown** | Structure, risk fit, 1H context, volume, volatility, reasons (+), warnings (!) |
@@ -817,9 +817,9 @@ Scores (0–100) blend CPRP Official Rulebook v{RULEBOOK_VERSION}:
 with st.sidebar.expander("▶ Reading a recommendation"):
     st.markdown(
         f"""
-- **TRADE MES/MNQ/MYM** — Focus that contract for range/channel reversion setups.
-  Still wait for **full confluence** at **boundaries** on your charts.
-- **SIT OUT** — No micro cleared the trade threshold. Capital preservation wins.
+- **PRIMARY · CPRP Reversion** — Focus that micro for range/channel setups (full checklist).
+- **OPTION · CPRP Scalping** — Offered only when primary is quiet + sideways tape (1m Keltner).
+- **SIT OUT** — Neither reversion nor scalping environment clears. Capital preservation.
 - **AT BOUNDARY** — Price near support or resistance (valid entry zone).
 - **mid** — Do **not** fade the middle; wait (even if RSI is extreme — v1.6).
 - **1H / 60m bias** — Static higher-TF filter only (not entries):
@@ -1235,21 +1235,112 @@ with st.spinner("Pulling MES / MNQ / MYM data and scoring structure (incl. 1H co
 if desktop_alerts:
     st.session_state.tracker.maybe_alert(rec.recommended, rec.sit_out, rec.alert_message)
 
-# ── Big recommendation banner ────────────────────────────────────────────
+# ── Big recommendation banner (primary CPRP + optional Scalping) ─────────
 st.markdown("### Current session recommendation")
-if rec.sit_out or not rec.recommended:
-    st.error(f"### 🛑 {rec.alert_message}")
-else:
+
+_primary_on = bool(getattr(rec, "primary_active", False) and rec.recommended)
+_scalp = getattr(rec, "scalping", None)
+_scalp_on = bool(_scalp and getattr(_scalp, "eligible", False) and _scalp.micro)
+_options = list(getattr(rec, "strategy_options", None) or [])
+
+if _primary_on:
     color = {"MES": "🟢", "MNQ": "🔵", "MYM": "🟣"}.get(rec.recommended, "⚪")
-    st.success(f"### {color} Recommended session micro: **{rec.recommended}**")
+    st.success(
+        f"### {color} PRIMARY · CPRP Reversion · **{rec.recommended}**"
+    )
     st.info(rec.summary)
+elif _scalp_on:
+    st.warning(
+        f"### ⚡ OPTION · CPRP Scalping · **{_scalp.micro}**  \n"
+        f"Primary reversion is quiet — secondary 1m Keltner scalp may apply "
+        f"(environment **{_scalp.score:.1f}**/100)."
+    )
+    st.info(rec.summary)
+else:
+    st.error(f"### 🛑 {rec.alert_message}")
+    if rec.summary:
+        st.caption(rec.summary)
+
+# Strategy options offered this session
+desk_section("Strategy options offered", side="bull")
+st.caption(
+    "CPRP Strategies forms **multiple protocols** for different market conditions. "
+    "Primary = range/channel reversion (Rulebook v1.6). "
+    "Secondary = CPRP Scalping (v1.1) only when primary is quiet and tape is sideways."
+)
+if _options:
+    for opt in _options:
+        if opt.upper().startswith("PRIMARY"):
+            st.success(f"**{opt}**")
+        elif "SCALPING" in opt.upper() or opt.upper().startswith("OPTION"):
+            st.warning(f"**{opt}**")
+        else:
+            st.error(f"**{opt}**")
+else:
+    st.caption("No strategy options computed.")
+
+if _scalp_on:
+    with candle_expander(
+        f"CPRP Scalping option details · {_scalp.micro}",
+        side="bear",
+        expanded=True,
+        kind="down",
+    ):
+        st.markdown(
+            f"""
+**Secondary tool only** — *Fade the extremes only when the market is quiet.*
+
+| Item | Setting |
+|------|---------|
+| Focus micro | **{_scalp.micro}** |
+| Environment score | **{_scalp.score:.1f}** / 100 (need {_cprp_cfg.SCALPING_MIN_SCORE:.0f}+) |
+| Timeframe | **1-minute only** |
+| Indicators | Keltner (NT default) · **SMA(14)** midline · RSI 14 (80 / 20) |
+| Risk | **$30 – $50** max per scalp · no averaging |
+| Target | SMA(14) · Stop = SMA or opposite Keltner band |
+
+**Stand aside from scalping when:** strong 15m/60m trend · chop through SMA · major news ·  
+dead volume · **or any high-quality primary CPRP range/channel is present.**
+"""
+        )
+        if _scalp.reasons:
+            st.markdown("**Why this option**")
+            for r in _scalp.reasons:
+                st.markdown(f"- {r}")
+        if _scalp.warnings:
+            st.markdown("**Watch**")
+            for w in _scalp.warnings:
+                st.markdown(f"- ⚠️ {w}")
+        from pathlib import Path as _P
+
+        _sq = _P(_cprp_cfg.SCALPING_QUICK_REFERENCE_PDF)
+        _sr = _P(_cprp_cfg.SCALPING_RULEBOOK_PDF)
+        d1, d2 = st.columns(2)
+        if _sq.is_file():
+            d1.download_button(
+                "📄 Scalping Quick Reference (PDF)",
+                data=_sq.read_bytes(),
+                file_name=_cprp_cfg.SCALPING_QUICK_REFERENCE_DOWNLOAD_NAME,
+                mime="application/pdf",
+                use_container_width=True,
+                key="ss_scalp_qr",
+            )
+        if _sr.is_file():
+            d2.download_button(
+                "📂 Scalping Official Rulebook (PDF)",
+                data=_sr.read_bytes(),
+                file_name=_cprp_cfg.SCALPING_RULEBOOK_DOWNLOAD_NAME,
+                mime="application/pdf",
+                use_container_width=True,
+                key="ss_scalp_rb",
+            )
 
 c1, c2, c3, c4, c5 = st.columns(5)
 c1.metric("As of (ET)", rec.as_of)
 c2.metric("Session phase", rec.session_phase.replace("_", " ").title())
 c3.metric("Chart pair", rec.chart_pair_global.split("(")[0].strip())
 c4.metric("Static HTF", rec.static_htf_global.split("(")[0].strip() if rec.static_htf_global else "1-Hour")
-c5.metric("Trade threshold", f"{MIN_SCORE_TO_TRADE:.0f}+")
+c5.metric("Reversion threshold", f"{MIN_SCORE_TO_TRADE:.0f}+")
 
 st.markdown("---")
 
