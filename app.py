@@ -463,6 +463,33 @@ if page == PAGE_BRANDING:
     else:
         st.caption("No official animated brand media found yet.")
 
+    # CPRP Scalping brand motion (strategy logo)
+    desk_section("CPRP Scalping brand motion", side="bear")
+    _scalp_media_paths = [
+        Path(getattr(_cprp_cfg, "SCALPING_VIDEO_GIF_BRAND", BRANDING_DIR / "cprp_scalping_video.gif")),
+        Path(getattr(_cprp_cfg, "SCALPING_VIDEO_GIF", Path(BRANDING_DIR).parent / "cprp_scalping_video.gif")),
+        Path(getattr(_cprp_cfg, "SCALPING_VIDEO_MP4_BRAND", BRANDING_DIR / "cprp_scalping_video.mp4")),
+        Path(getattr(_cprp_cfg, "SCALPING_VIDEO_MP4", Path(BRANDING_DIR).parent / "cprp_scalping_video.mp4")),
+    ]
+    _scalp_shown = False
+    for _sp in _scalp_media_paths:
+        if _sp.is_file():
+            st.caption("Official looping logo for **CPRP Scalping** strategy documents & desk panels.")
+            render_loop_media(_sp, height=300, caption="CPRP Scalping · logo motion (loop)")
+            mime = "image/gif" if _sp.suffix.lower() == ".gif" else "video/mp4"
+            st.download_button(
+                label=f"📁 Download {_sp.name}",
+                data=_sp.read_bytes(),
+                file_name=_sp.name,
+                mime=mime,
+                key=f"dl_scalp_brand_{_sp.name}",
+                use_container_width=True,
+            )
+            _scalp_shown = True
+            break
+    if not _scalp_shown:
+        st.info("CPRP Scalping video not found — run brand sync + `python scripts/convert_videos_to_gifs.py`.")
+
     # Legacy / primary looping logo
     desk_section("Primary logo motion (app chrome)", side="bull")
     _play_logo_video(
@@ -552,6 +579,7 @@ if page == PAGE_BRANDING:
         "cprp_official_seal_anim": "Official Seal (animated)",
         "cprp_session_selector_video": "Session Selector media",
         "cprp_sidebar_video": "Sidebar media",
+        "cprp_scalping_video": "CPRP Scalping logo motion",
     }
 
     if ordered:
@@ -617,6 +645,9 @@ if page == PAGE_BRANDING:
             "cprp_logo_primary_chart": "Primary chart logo",
             "cprp_logo_minimal_dark": "Minimal dark",
             "cprp_logo_light": "Light logo",
+            "cprp_dark_support_resistance_theme": "Dark Support / Resistance theme",
+            "cprp_lock_in_theme": "Lock-in theme",
+            "cprp_logo_classic": "Classic logo",
             "cprp_logo_classic": "Classic wordmark",
             "cprp_logo_icon": "App icon",
             "cprp_logo_primary": "Primary logo",
@@ -1302,8 +1333,31 @@ if _scalp_on:
         expanded=True,
         kind="down",
     ):
-        st.markdown(
-            f"""
+        from pathlib import Path as _P
+
+        # Scalping brand logo motion (looping GIF preferred)
+        _sv_paths = [
+            _P(getattr(_cprp_cfg, "SCALPING_VIDEO_GIF", "")),
+            _P(getattr(_cprp_cfg, "SCALPING_VIDEO_GIF_BRAND", "")),
+            _P(getattr(_cprp_cfg, "SCALPING_VIDEO_MP4", "")),
+            _P(getattr(_cprp_cfg, "SCALPING_VIDEO_MP4_BRAND", "")),
+            _P(BRANDING_DIR) / "cprp_scalping_video.gif",
+            _P(BRANDING_DIR) / "cprp_scalping_video.mp4",
+        ]
+        _logo_col, _body_col = st.columns([1, 1.6])
+        with _logo_col:
+            st.caption("CPRP Scalping logo")
+            _logo_ok = False
+            for _svp in _sv_paths:
+                if _svp and _svp.is_file():
+                    render_loop_media(_svp, height=220, caption="Scalping · loop")
+                    _logo_ok = True
+                    break
+            if not _logo_ok:
+                st.caption("Scalping logo media not found.")
+        with _body_col:
+            st.markdown(
+                f"""
 **Secondary tool only** — *Fade the extremes only when the market is quiet.*
 
 | Item | Setting |
@@ -1315,10 +1369,10 @@ if _scalp_on:
 | Risk | **$30 – $50** max per scalp · no averaging |
 | Target | SMA(14) · Stop = SMA or opposite Keltner band |
 
-**Stand aside from scalping when:** strong 15m/60m trend · chop through SMA · major news ·  
+**Stand aside when:** strong 15m/60m trend · chop through SMA · major news ·  
 dead volume · **or any high-quality primary CPRP range/channel is present.**
 """
-        )
+            )
         if _scalp.reasons:
             st.markdown("**Why this option**")
             for r in _scalp.reasons:
@@ -1327,7 +1381,6 @@ dead volume · **or any high-quality primary CPRP range/channel is present.**
             st.markdown("**Watch**")
             for w in _scalp.warnings:
                 st.markdown(f"- ⚠️ {w}")
-        from pathlib import Path as _P
 
         _sq = _P(_cprp_cfg.SCALPING_QUICK_REFERENCE_PDF)
         _sr = _P(_cprp_cfg.SCALPING_RULEBOOK_PDF)
@@ -1357,6 +1410,60 @@ c2.metric("Session phase", rec.session_phase.replace("_", " ").title())
 c3.metric("Chart pair", rec.chart_pair_global.split("(")[0].strip())
 c4.metric("Static HTF", rec.static_htf_global.split("(")[0].strip() if rec.static_htf_global else "1-Hour")
 c5.metric("Reversion threshold", f"{MIN_SCORE_TO_TRADE:.0f}+")
+
+# Always-available CPRP Scalping desk docs (logo + PDFs)
+with candle_expander(
+    "CPRP Scalping · strategy documents",
+    side="bear",
+    expanded=False,
+    kind="doc",
+):
+    from pathlib import Path as _Pdocs
+
+    _lg, _docs = st.columns([1, 1.5])
+    with _lg:
+        _shown = False
+        for _p in (
+            _Pdocs(getattr(_cprp_cfg, "SCALPING_VIDEO_GIF", "")),
+            _Pdocs(getattr(_cprp_cfg, "SCALPING_VIDEO_GIF_BRAND", "")),
+            Path(BRANDING_DIR) / "cprp_scalping_video.gif",
+            Path(BRANDING_DIR) / "cprp_scalping_video.mp4",
+            _Pdocs(getattr(_cprp_cfg, "SCALPING_VIDEO_MP4", "")),
+        ):
+            if _p and Path(_p).is_file():
+                render_loop_media(Path(_p), height=200, caption="CPRP Scalping logo")
+                _shown = True
+                break
+        if not _shown:
+            st.caption("Scalping logo not found — sync branding.")
+    with _docs:
+        st.markdown(
+            f"""
+**CPRP Scalping v{_cprp_cfg.SCALPING_VERSION}** — secondary **1-minute Keltner** mean-reversion.  
+Use only when **primary CPRP is quiet** and the market is **sideways / accumulation**.  
+Risk **$30–$50** · SMA(14) midline · RSI 80/20 · never during strong 15m/60m trends.
+"""
+        )
+        _sq = Path(_cprp_cfg.SCALPING_QUICK_REFERENCE_PDF)
+        _sr = Path(_cprp_cfg.SCALPING_RULEBOOK_PDF)
+        if _sq.is_file():
+            st.download_button(
+                "📄 Scalping Quick Reference (PDF)",
+                data=_sq.read_bytes(),
+                file_name=_cprp_cfg.SCALPING_QUICK_REFERENCE_DOWNLOAD_NAME,
+                mime="application/pdf",
+                use_container_width=True,
+                key="ss_scalp_docs_qr",
+            )
+        if _sr.is_file():
+            st.download_button(
+                "📂 Scalping Official Rulebook (PDF)",
+                data=_sr.read_bytes(),
+                file_name=_cprp_cfg.SCALPING_RULEBOOK_DOWNLOAD_NAME,
+                mime="application/pdf",
+                use_container_width=True,
+                key="ss_scalp_docs_rb",
+            )
 
 st.markdown("---")
 

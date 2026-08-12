@@ -171,6 +171,11 @@ SCALPING_RULEBOOK_DOWNLOAD_NAME = f"CPRP_Scalping_Official_Rulebook_v{SCALPING_V
 SCALPING_QUICK_REFERENCE_PDF = _ASSETS / f"CPRP_Scalping_Quick_Reference_v{SCALPING_VERSION}.pdf"
 SCALPING_QUICK_REFERENCE_IMAGE = _ASSETS / f"CPRP_Scalping_Quick_Reference_v{SCALPING_VERSION}.jpg"
 SCALPING_QUICK_REFERENCE_DOWNLOAD_NAME = f"CPRP_Scalping_Quick_Reference_v{SCALPING_VERSION}.pdf"
+# Scalping brand motion (looping GIF preferred; MP4 fallback)
+SCALPING_VIDEO_GIF = _ASSETS / "cprp_scalping_video.gif"
+SCALPING_VIDEO_GIF_BRAND = BRANDING_DIR / "cprp_scalping_video.gif"
+SCALPING_VIDEO_MP4 = _ASSETS / "cprp_scalping_video.mp4"
+SCALPING_VIDEO_MP4_BRAND = BRANDING_DIR / "cprp_scalping_video.mp4"
 
 # CPRP Trading folder — primary source for document + branding sync
 CPRP_TRADING_DIR = Path(r"C:\Users\imzcp\OneDrive\Desktop\CPRP Trading")

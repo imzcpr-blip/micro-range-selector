@@ -75,8 +75,12 @@ def convert_one(src: Path, dest: Path, max_width: int = MAX_WIDTH) -> None:
         disposal=2,
     )
     play_sec = len(frames) * duration_ms / 1000.0
+    try:
+        rel = dest.resolve().relative_to(ROOT.resolve())
+    except ValueError:
+        rel = dest
     print(
-        f"OK {src.name} -> {dest.relative_to(ROOT)} "
+        f"OK {src.name} -> {rel} "
         f"({dest.stat().st_size // 1024} KB, {len(frames)} frames, "
         f"~{play_sec:.1f}s loop, src={src_duration or '?'}s @ {src_fps:.0f}fps)"
     )
@@ -128,6 +132,17 @@ def main() -> int:
         (
             ASSETS / "branding" / "cprp_logo_video_variant_4.mp4",
             ASSETS / "branding" / "cprp_logo_video_variant_4.gif",
+            MAX_WIDTH,
+        ),
+        # CPRP Scalping brand motion
+        (
+            ASSETS / "branding" / "cprp_scalping_video.mp4",
+            ASSETS / "branding" / "cprp_scalping_video.gif",
+            MAX_WIDTH,
+        ),
+        (
+            ASSETS / "cprp_scalping_video.mp4",
+            ASSETS / "cprp_scalping_video.gif",
             MAX_WIDTH,
         ),
     ]

@@ -89,6 +89,20 @@ BRANDING_MAP: dict[str, str] = {
     "grok_video_2026-08-09-09-53-06.mp4": "cprp_logo_video_variant_4.mp4",
     # Sidebar panel video
     "grok-video-4bdc3ca9-daa2-4dad-84e6-7f270bc2ca95.mp4": "cprp_sidebar_video.mp4",
+    # CPRP Scalping brand motion + newer stills
+    "CPRP Scalping Vid 1.mp4": "cprp_scalping_video.mp4",
+    "CPRP_Scalping_Vid_1.mp4": "cprp_scalping_video.mp4",
+    "Dark Support & Resistance Theme.jpg": "cprp_dark_support_resistance_theme.jpg",
+    "Dark Support and Resistance Theme.jpg": "cprp_dark_support_resistance_theme.jpg",
+    "LOCK THE FUCK IN.jpg": "cprp_lock_in_theme.jpg",
+    "OBz0K.jpg": "cprp_brand_extra_obz0k.jpg",
+    "PFCk2.jpg": "cprp_brand_extra_pfck2.jpg",
+    "pHVXN.jpg": "cprp_brand_extra_phvxn.jpg",
+    "8BF5X.jpg": "cprp_brand_extra_8bf5x.jpg",
+    "Ji6TN.jpg": "cprp_brand_extra_ji6tn.jpg",
+    "Nx3am.jpg": "cprp_brand_extra_nx3am.jpg",
+    "urwdT.jpg": "cprp_brand_extra_urwdt.jpg",
+    "VPPsG.jpg": "cprp_brand_extra_vppsg.jpg",
 }
 
 # Primary app files kept at assets/ root (synced from branding when newer)
@@ -119,6 +133,9 @@ PRIMARY_BRANDING_LINKS: list[tuple[str, str]] = [
     # Prefer animated candlestick brand as primary looping media when present
     ("cprp_brand_logo_candlestick_anim.gif", "cprp_logo_video.gif"),
     ("cprp_banner_horizontal_anim.gif", "cprp_logo_video_alt.gif"),
+    # CPRP Scalping brand media (root + branding)
+    ("cprp_scalping_video.mp4", "cprp_scalping_video.mp4"),
+    ("cprp_scalping_video.gif", "cprp_scalping_video.gif"),
 ]
 
 
@@ -370,6 +387,13 @@ def list_official_brand_suite() -> list[tuple[str, Path]]:
         ("Minimal icon", BRANDING_DIR / "cprp_icon_minimal.jpg"),
         ("Horizontal banner", BRANDING_DIR / "cprp_banner_horizontal.jpg"),
         ("Official Seal", seal_path),
+        ("Dark Support / Resistance theme", BRANDING_DIR / "cprp_dark_support_resistance_theme.jpg"),
+        ("Lock-in theme", BRANDING_DIR / "cprp_lock_in_theme.jpg"),
+        ("Primary chart logo", BRANDING_DIR / "cprp_logo_primary_chart.jpg"),
+        ("Square monogram", BRANDING_DIR / "cprp_logo_square_monogram.jpg"),
+        ("Minimal dark logo", BRANDING_DIR / "cprp_logo_minimal_dark.jpg"),
+        ("Light logo", BRANDING_DIR / "cprp_logo_light.jpg"),
+        ("Classic logo", BRANDING_DIR / "cprp_logo_classic.jpg"),
     ]
     return [(label, p) for label, p in suite if p.is_file()]
 
@@ -382,6 +406,7 @@ def list_official_brand_animated() -> list[tuple[str, Path]]:
         ("Minimal icon (animated)", "cprp_icon_minimal_anim"),
         ("Horizontal banner (animated)", "cprp_banner_horizontal_anim"),
         ("Official Seal (animated)", "cprp_official_seal_anim"),
+        ("CPRP Scalping logo motion", "cprp_scalping_video"),
     ]
     out: list[tuple[str, Path]] = []
     for label, stem in pairs:
@@ -399,7 +424,7 @@ def list_branding_videos() -> list[Path]:
     if not BRANDING_DIR.is_dir():
         return []
     # Include logo / brand / seal / banner / icon animations
-    keywords = ("logo", "brand", "seal", "banner", "icon", "anim")
+    keywords = ("logo", "brand", "seal", "banner", "icon", "anim", "scalping", "sidebar", "session")
     gifs = [
         p
         for p in BRANDING_DIR.iterdir()
