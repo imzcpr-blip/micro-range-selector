@@ -34,6 +34,9 @@ from config import (
     MIN_SCORE_TO_TRADE,
     PROTOCOL_SHORT,
     RULEBOOK_VERSION,
+    SCALPING_MIN_SCORE,
+    SCALPING_STYLE,
+    SCALPING_VERSION,
     STATIC_HTF_INTERVAL,
     STATIC_HTF_PERIOD,
     STRUCTURE_BREAK_PAUSE_MINUTES,
@@ -91,6 +94,18 @@ class InstrumentScore:
 
 
 @dataclass
+class ScalpingOption:
+    """Secondary CPRP Scalping offer when primary reversion is quiet."""
+
+    eligible: bool
+    micro: Optional[str]
+    score: float
+    reasons: list[str] = field(default_factory=list)
+    warnings: list[str] = field(default_factory=list)
+    label: str = SCALPING_STYLE
+
+
+@dataclass
 class SessionRecommendation:
     recommended: Optional[str]
     sit_out: bool
@@ -101,6 +116,10 @@ class SessionRecommendation:
     session_phase: str
     as_of: str
     alert_message: str
+    # Strategy options for the desk (primary CPRP and/or secondary scalping)
+    primary_active: bool = False
+    scalping: Optional[ScalpingOption] = None
+    strategy_options: list[str] = field(default_factory=list)
 
 
 def _rsi(series: pd.Series, period: int = 14) -> pd.Series:
@@ -554,6 +573,184 @@ def score_instrument(
     )
 
 
+def score_scalping_environment(
+    scores: list[InstrumentScore],
+    *,
+    phase: str,
+    primary_active: bool,
+    primary_best: InstrumentScore,
+) -> ScalpingOption:
+    """
+    CPRP Scalping v1.1 — secondary tool only.
+
+    Offer scalping when:
+      • Primary CPRP is quiet (no high-quality range/channel trade)
+      • Market is sideways / accumulation (not strong 60m trend)
+      • Volume & volatility are subdued (not dead, not explosive)
+    Never when a strong primary CPRP setup is present.
+    """
+    reasons: list[str] = []
+    warnings: list[str] = []
+
+    # Gate: high-quality primary CPRP blocks scalping (rulebook §2 / §6)
+    if primary_active and primary_best.structure_score >= 62 and primary_best.score >= MIN_SCORE_TO_TRADE:
+        return ScalpingOption(
+            eligible=False,
+            micro=None,
+            score=0.0,
+            reasons=[],
+            warnings=[
+                f"Primary CPRP active on {primary_best.short} "
+                f"(score {primary_best.score:.1f}, structure {primary_best.structure_score:.0f}) — "
+                "scalping stands aside (return to range/channel protocol)."
+            ],
+            label=SCALPING_STYLE,
+        )
+
+    if primary_active:
+        # Primary clears threshold but structure not top-tier — still soft-block
+        warnings.append(
+            f"Primary CPRP candidate {primary_best.short} is tradeable — "
+            "prefer reversion protocol; scalping only if you stand down primary."
+        )
+
+    # Primary quiet = good for secondary tool
+    primary_quiet = not primary_active or primary_best.structure_score < 55
+    quiet_score = 85.0 if not primary_active else (70.0 if primary_best.structure_score < 55 else 40.0)
+    if not primary_active:
+        reasons.append(
+            f"Primary CPRP is quiet (best {primary_best.short} {primary_best.score:.1f} "
+            f"< {MIN_SCORE_TO_TRADE:.0f} threshold) — secondary scalping may apply."
+        )
+    elif primary_quiet:
+        reasons.append(
+            f"Primary structure weak ({primary_best.short} structure {primary_best.structure_score:.0f}) — "
+            "scalping environment possible."
+        )
+
+    # Score each micro for quiet / sideways suitability
+    best_micro: Optional[InstrumentScore] = None
+    best_env = -1.0
+    env_notes: list[str] = []
+
+    for s in scores:
+        # Sideways: prefer ranging HTF and non-directional 5m structure (efficiency proxy via structure)
+        htf_pts = 0.0
+        if s.htf_bias == "ranging":
+            htf_pts = 90.0
+            htf_note = "60m/1H context ranging — favors scalping"
+        elif s.htf_bias == "unknown":
+            htf_pts = 55.0
+            htf_note = "1H context unclear"
+        else:
+            # Strong HTF trend = stand aside for scalping
+            htf_pts = 25.0
+            htf_note = f"1H {s.htf_bias} — scalping disfavored (stronger HTF power)"
+
+        # Subdued volume: volume_score ~40–70 is ideal; very high or dead is bad
+        vol = s.volume_score
+        if 40 <= vol <= 72:
+            vol_pts = 85.0
+        elif 30 <= vol < 40 or 72 < vol <= 85:
+            vol_pts = 60.0
+        elif vol < 30:
+            vol_pts = 35.0  # dead volume
+        else:
+            vol_pts = 40.0  # elevated — not ideal for quiet scalp
+
+        # Volatility: mid-low preferred for tight $30–$50 risk
+        vlt = s.volatility_score
+        if 45 <= vlt <= 75:
+            vlt_pts = 85.0
+        elif 35 <= vlt < 45 or 75 < vlt <= 85:
+            vlt_pts = 60.0
+        else:
+            vlt_pts = 40.0
+
+        # Structure: for scalping we want *lack* of clean high-quality CPRP range
+        # but still two-sided oscillation (not one-way)
+        if s.structure_score < 50:
+            struct_pts = 80.0  # no clean CPRP map — room for 1m Keltner
+        elif s.structure_score < 62:
+            struct_pts = 65.0
+        else:
+            struct_pts = 30.0  # high-quality structure → use primary CPRP instead
+
+        # Session phase: midday / lunch often quieter
+        phase_pts = {
+            "midday": 90.0,
+            "afternoon": 75.0,
+            "morning_open": 45.0,
+            "overnight_globex": 70.0,
+            "after_hours": 55.0,
+        }.get(phase, 55.0)
+
+        env = (
+            0.28 * quiet_score
+            + 0.24 * htf_pts
+            + 0.16 * vol_pts
+            + 0.14 * vlt_pts
+            + 0.10 * struct_pts
+            + 0.08 * phase_pts
+            + {1: 3.0, 2: 1.0, 3: 0.0}.get(s.priority, 0.0)
+        )
+        env = float(np.clip(env, 0, 100))
+
+        if env > best_env:
+            best_env = env
+            best_micro = s
+            env_notes = [
+                htf_note,
+                f"Volume env score {vol:.0f} · volatility {vlt:.0f}",
+                f"Structure for primary map {s.structure_score:.0f} "
+                f"({'weak → scalping OK' if s.structure_score < 62 else 'strong → prefer CPRP'})",
+                f"Session phase: {phase.replace('_', ' ')}",
+            ]
+
+    if best_micro is None:
+        return ScalpingOption(
+            eligible=False,
+            micro=None,
+            score=0.0,
+            warnings=["No micro data for scalping environment."],
+        )
+
+    reasons.extend(env_notes)
+
+    # Hard stand-aside: strong HTF trend on best micro
+    if best_micro.htf_bias in ("up", "down") and best_micro.trend_context_score >= 70:
+        warnings.append(
+            f"Stronger {best_micro.htf_bias} context on {best_micro.short} — "
+            "do not scalp against sustained HTF power (Scalping Rulebook §6)."
+        )
+        best_env = min(best_env, 48.0)
+
+    eligible = best_env >= SCALPING_MIN_SCORE and (not primary_active or primary_quiet)
+
+    if eligible:
+        reasons.append(
+            f"CPRP Scalping v{SCALPING_VERSION} option: focus **{best_micro.short}** · "
+            "1m Keltner mean-reversion · risk $30–$50 · SMA(14) midline."
+        )
+        reasons.append(
+            "Confirm on platform: price accepted one side of SMA · repeated Keltner touches · RSI 80/20."
+        )
+    else:
+        warnings.append(
+            f"Scalping environment score {best_env:.1f} "
+            f"(need {SCALPING_MIN_SCORE:.0f}+) or primary not quiet enough."
+        )
+
+    return ScalpingOption(
+        eligible=eligible,
+        micro=best_micro.short if eligible else None,
+        score=round(best_env, 1),
+        reasons=reasons,
+        warnings=warnings,
+        label=SCALPING_STYLE,
+    )
+
+
 def analyze_all(hard_stop_usd: float = HARD_STOP_DEFAULT_USD) -> SessionRecommendation:
     scores: list[InstrumentScore] = []
     errors: list[str] = []
@@ -578,9 +775,12 @@ def analyze_all(hard_stop_usd: float = HARD_STOP_DEFAULT_USD) -> SessionRecommen
             session_phase=_session_phase(),
             as_of=as_of,
             alert_message="DATA ERROR — cannot recommend a micro. Check connection.",
+            primary_active=False,
+            scalping=ScalpingOption(False, None, 0.0),
+            strategy_options=["SIT OUT — data error"],
         )
 
-    # Sort by score desc, then priority asc (MES wins ties) — §7
+    # Sort by score desc, then priority asc (MES wins ties) — §8
     scores.sort(key=lambda s: (-s.score, s.priority))
     best = scores[0]
     second = scores[1] if len(scores) > 1 else None
@@ -592,35 +792,83 @@ def analyze_all(hard_stop_usd: float = HARD_STOP_DEFAULT_USD) -> SessionRecommen
         best = near[0]
 
     phase = _session_phase()
-    sit_out = not best.recommend_trade
+    primary_active = bool(best.recommend_trade)
+    sit_out = not primary_active
 
-    if sit_out:
-        summary = (
-            f"No micro clears the {MIN_SCORE_TO_TRADE:.0f}+ session threshold. "
-            f"Highest: {best.short} at {best.score:.1f}. Sit out or wait for confirmed structure (§1)."
+    scalping = score_scalping_environment(
+        scores,
+        phase=phase,
+        primary_active=primary_active,
+        primary_best=best,
+    )
+
+    strategy_options: list[str] = []
+
+    if primary_active:
+        strategy_options.append(
+            f"PRIMARY · CPRP Reversion · {best.short} (score {best.score:.1f})"
         )
-        alert = f"SIT OUT — best candidate {best.short} ({best.score:.1f}) below trade threshold."
-        recommended = None
-    else:
         summary = (
-            f"Recommended session micro: {best.short} ({best.name}) — score {best.score:.1f}. "
-            f"{best.grade}. Active pair: {best.chart_pair}. "
-            f"Static HTF: {best.static_htf}."
+            f"Primary: **{best.short}** range/channel reversion — score {best.score:.1f}. "
+            f"{best.grade}. Pair: {best.chart_pair}. HTF: {best.static_htf}."
         )
         alert = (
-            f"TRADE {best.short} — score {best.score:.1f} | "
+            f"TRADE {best.short} — CPRP Reversion · score {best.score:.1f} | "
             f"Structure ${best.range_width_usd:.0f} | "
             f"{'AT BOUNDARY' if best.at_extreme else 'WAIT FOR BOUNDARY'} | "
             f"{best.htf_label} | {best.chart_pair}"
         )
         recommended = best.short
+        sit_out = False
+    else:
+        summary = (
+            f"Primary CPRP quiet — no micro clears {MIN_SCORE_TO_TRADE:.0f}+ "
+            f"(best {best.short} at {best.score:.1f})."
+        )
+        recommended = None
+        sit_out = True
+        alert = (
+            f"PRIMARY QUIET — best {best.short} ({best.score:.1f}) below reversion threshold."
+        )
+
+    if scalping.eligible and scalping.micro:
+        strategy_options.append(
+            f"OPTION · CPRP Scalping v{SCALPING_VERSION} · {scalping.micro} "
+            f"(env {scalping.score:.1f}) · 1m Keltner · $30–$50 risk"
+        )
+        summary += (
+            f" **Scalping option available:** {scalping.micro} "
+            f"(environment {scalping.score:.1f}/100) — secondary 1m Keltner mean-reversion "
+            "when primary is quiet / sideways."
+        )
+        if sit_out:
+            alert = (
+                f"OPTION: CPRP SCALPING · {scalping.micro} (env {scalping.score:.1f}) | "
+                f"Primary quiet | 1m Keltner | risk $30–$50 | confirm SMA side + bands"
+            )
+            # Not a full sit-out when scalping is offered — desk has an option
+            sit_out = False
+            # Keep recommended None for primary; scalping is separate option
+        else:
+            alert += f" | ALSO: Scalping option {scalping.micro} (env {scalping.score:.1f})"
+    else:
+        if sit_out:
+            strategy_options.append("SIT OUT — wait for confirmed CPRP structure or quieter scalp tape")
+            summary += " No scalping environment either — capital preservation."
+            alert = (
+                f"SIT OUT — best reversion {best.short} ({best.score:.1f}); "
+                f"scalping env {scalping.score:.1f} (need {SCALPING_MIN_SCORE:.0f}+)."
+            )
+
+    if not strategy_options:
+        strategy_options.append("SIT OUT")
 
     if errors:
         summary += " | Partial data issues: " + "; ".join(errors)
 
     return SessionRecommendation(
         recommended=recommended,
-        sit_out=sit_out,
+        sit_out=sit_out and not (scalping.eligible),
         scores=scores,
         summary=summary,
         chart_pair_global=best.chart_pair,
@@ -628,6 +876,9 @@ def analyze_all(hard_stop_usd: float = HARD_STOP_DEFAULT_USD) -> SessionRecommen
         session_phase=phase,
         as_of=best.as_of,
         alert_message=alert,
+        primary_active=primary_active,
+        scalping=scalping,
+        strategy_options=strategy_options,
     )
 
 

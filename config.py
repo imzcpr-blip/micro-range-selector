@@ -90,8 +90,17 @@ CHART_PAIR_DEFAULT = "15m + 5m (default / normal volume · active session)"
 CHART_PAIR_SLOW = "30m + 15m (pre-market · low volume · lunch · wide/choppy)"
 
 # Range/channel-reversion scoring thresholds
-MIN_SCORE_TO_TRADE = 55.0  # below this → "SIT OUT"
+MIN_SCORE_TO_TRADE = 55.0  # below this → primary CPRP quiet (sit-out or scalping option)
 TIE_BREAK_MARGIN = 5.0  # if scores within this, prefer lower priority number (MES → MNQ → MYM)
+
+# CPRP Scalping (secondary · v1.1) — offered only when primary CPRP is quiet
+# and market is sideways / accumulation (see Official Scalping Rulebook)
+SCALPING_VERSION = "1.1"
+SCALPING_MIN_SCORE = 58.0  # minimum environment score to offer scalping option
+SCALPING_HARD_STOP_MIN_USD = 30.0
+SCALPING_HARD_STOP_MAX_USD = 50.0
+SCALPING_TIMEFRAME = "1-minute only"
+SCALPING_STYLE = "1-Minute Keltner Mean-Reversion (secondary)"
 
 # Polling / alerts
 DEFAULT_REFRESH_SECONDS = 60
@@ -155,6 +164,13 @@ RULEBOOK_UPDATE_DOWNLOAD_NAME = (
 )
 RULEBOOK_BASE_PDF = _ASSETS / f"CPRP_Official_Rulebook_v{RULEBOOK_BASE_VERSION}.pdf"
 RULEBOOK_BASE_DOWNLOAD_NAME = f"CPRP_Official_Rulebook_v{RULEBOOK_BASE_VERSION}.pdf"
+
+# CPRP Scalping documents (secondary strategy)
+SCALPING_RULEBOOK_PDF = _ASSETS / f"CPRP_Scalping_Official_Rulebook_v{SCALPING_VERSION}.pdf"
+SCALPING_RULEBOOK_DOWNLOAD_NAME = f"CPRP_Scalping_Official_Rulebook_v{SCALPING_VERSION}.pdf"
+SCALPING_QUICK_REFERENCE_PDF = _ASSETS / f"CPRP_Scalping_Quick_Reference_v{SCALPING_VERSION}.pdf"
+SCALPING_QUICK_REFERENCE_IMAGE = _ASSETS / f"CPRP_Scalping_Quick_Reference_v{SCALPING_VERSION}.jpg"
+SCALPING_QUICK_REFERENCE_DOWNLOAD_NAME = f"CPRP_Scalping_Quick_Reference_v{SCALPING_VERSION}.pdf"
 
 # CPRP Trading folder — primary source for document + branding sync
 CPRP_TRADING_DIR = Path(r"C:\Users\imzcp\OneDrive\Desktop\CPRP Trading")
