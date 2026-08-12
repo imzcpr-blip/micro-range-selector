@@ -449,40 +449,43 @@ def require_login() -> bool:
     # Tape without bull/bear wording (glyphs only stripped on landing)
     market_tape()
     page_hero(
-        "CPRP Trading Strategies",
-        "Session Micro Range Selector · Cooper Precision Reversion Protocol · by Raymon Michael Cooper",
+        "CPRP Strategies",
+        "Micro E-mini day-trading desk · chart analyst protocols · by Raymon Michael Cooper",
         side="bull",
-        desk_tag="MEMBER ACCESS · TRADING DESK",
+        desk_tag="MEMBER ACCESS · DAY TRADER DESK",
     )
     st.markdown(
-        "*Trade the boundaries. Respect the structure. Control the risk.*"
+        """
+*Trade the boundaries. Respect the structure. Control the risk.*
+
+**CPRP Strategies** is an independent Micro E-mini futures desk — written rules, multiple protocols for different market conditions, and a member workspace built for serious day traders. Backtested. Live-account tested. Documented in official rulebooks. No broker partnership. No signal spam. Just structure and discipline.
+"""
     )
 
     # Plain expanders on landing — no candle / BULL / BEAR prefixes in labels
-    with st.expander("Access the Tool / Site", expanded=True):
+    with st.expander("How to get on the desk", expanded=True):
         st.markdown(
             f"""
-To use this site you need a free member account:
+Membership is free. The desk stays locked until you have an account — same standard we’d hold for a real trading floor.
 
-1. **Sign up** with a valid **email address** and a **password** (at least {MIN_PASSWORD_LEN} characters).  
-2. Confirm the risk acknowledgement (futures trading involves substantial risk of loss).  
-3. **Log in** at any time with the same email and password.
+1. **Sign up** with a real **email** and a solid **password** (at least {MIN_PASSWORD_LEN} characters).  
+2. Acknowledge the risk — futures can hurt; you own your decisions.  
+3. **Log in** anytime with the same credentials.
 
-Without signing up or logging in, the Session Micro Range Selector, Trading Journal, Community, Member Chat, and other member tools remain locked.
+Once you’re in: Session Selector, journals, news, calendar, community, and the rest of the toolkit open up.
 """
         )
 
-    with st.expander("After you sign up — create a custom username", expanded=False):
+    with st.expander("After signup — pick your floor name", expanded=False):
         st.markdown(
             """
-Right after your account is created, you will be asked to choose a **custom public username**  
-(3–20 characters: letters, numbers, and underscores).
+Right after you join, you’ll choose a **public username** (3–20 characters: letters, numbers, underscores).
 
-- Your **email** is only for login and account recovery.  
-- Your **username** is what other members see in Community, Member Chat, and the online list.  
-- You can pick something unique that represents you — it does not have to match your email.
+- **Email** stays private — login and recovery only.  
+- **Username** is what other members see in chat, community, and the online list.  
+- Make it yours. It doesn’t have to match your email.
 
-You will then have full access to the tool.
+Then the full desk is yours.
 """
         )
 

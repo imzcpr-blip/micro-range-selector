@@ -21,38 +21,33 @@ def render_platforms_brokers_panel() -> None:
     """Dedicated Platforms & Brokers page for members."""
     page_hero(
         "Platforms & Brokers",
-        "Popular micro-futures stack · convenience links only · no partnership or endorsement",
+        "Where independent micro traders often work · links only · zero partnership",
         side="bull",
         desk_tag="EXECUTION DESK · EXTERNAL VENDORS",
     )
 
-    with candle_expander("Popular with micro traders", side="bull", expanded=True, kind="up"):
+    with candle_expander("A common micro stack (not a sales pitch)", side="bull", expanded=True, kind="up"):
         st.markdown(
             """
-Many independent day traders who work with **Micro** contracts (MES, MNQ, MYM, and others)
-use charting tools, a trading platform, and a futures broker. Three sites often mentioned
-in that context are:
+Serious Micro traders usually need three rooms: a place to **see** structure, a place to **manage** orders, and a **broker** that clears the trade. These names show up often in that conversation:
 
 | Role | Site |
 |------|------|
 | Platform / charting & order tools | **NinjaTrader** |
-| Charting, multi-market analysis & watchlists | **TradingView** |
+| Charting, multi-market study, watchlists | **TradingView** |
 | Futures broker | **Ironbeam** |
 
-**Inclusion is not an endorsement, referral program, or business partnership.**
+**Listing them here is not an endorsement, referral fee, or partnership.** CPRP Strategies stays independent. You choose vendors; you own the account.
 """
         )
 
-    with candle_expander("Recommended use with CPRP", side="bear", expanded=False, kind="down"):
+    with candle_expander("How CPRP expects you to use them", side="bear", expanded=False, kind="down"):
         st.markdown(
             """
-- Use your platform (or TradingView) to mark **confirmed S/R structure**, run **15m+5m**
-  (or **30m+15m**), and keep a static **1-Hour** context chart.
-- Use **TradingView** for multi-timeframe review, economic calendar context, and clean
-  chart layouts when studying structure away from the order ticket.
-- Route live orders only through **your** broker account under **your** risk limits
-  (−$50 to −$100 hard stop under CPRP).
-- This CPRP app **does not place or cancel orders** and is not connected to any of these firms.
+- Mark **confirmed S/R** on your platform; run **15m+5m** (or **30m+15m**) and keep a static **60-minute** bias chart.  
+- Use **TradingView** when you want clean multi-timeframe study away from the ticket.  
+- Send live risk only through **your** broker under **your** hard stop (−$50 to −$100 under CPRP).  
+- This app **never** places or cancels orders and is not wired into any of these firms.
 """
         )
 

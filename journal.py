@@ -40,6 +40,14 @@ from wallstreet_ui import (
 
 MICROS = ["", "MES", "MNQ", "MYM", "SIT OUT", "Multiple", "Other"]
 RESULTS = ["", "Open", "Win", "Loss", "Scratch", "No trade", "Lesson only"]
+# Strategy used on the session (primary reversion vs secondary scalping)
+STRATEGIES = [
+    "",
+    "CPRP Reversion",
+    "CPRP Scalping",
+    "Both (separate trades)",
+    "Other / mixed",
+]
 
 # Soft capacity per user — when full, prompt to export session notes
 JOURNAL_MAX_ENTRIES = 50
@@ -71,6 +79,7 @@ class JournalEntry:
     result: str
     notes: str
     lessons: str
+    strategy: str = ""
 
 
 def _conn() -> sqlite3.Connection:
@@ -89,10 +98,17 @@ def _conn() -> sqlite3.Connection:
             micro TEXT NOT NULL DEFAULT '',
             result TEXT NOT NULL DEFAULT '',
             notes TEXT NOT NULL DEFAULT '',
-            lessons TEXT NOT NULL DEFAULT ''
+            lessons TEXT NOT NULL DEFAULT '',
+            strategy TEXT NOT NULL DEFAULT ''
         )
         """
     )
+    # Migrate older DBs that predate the strategy column
+    cols = {r[1] for r in con.execute("PRAGMA table_info(journal_entries)").fetchall()}
+    if "strategy" not in cols:
+        con.execute(
+            "ALTER TABLE journal_entries ADD COLUMN strategy TEXT NOT NULL DEFAULT ''"
+        )
     con.execute(
         "CREATE INDEX IF NOT EXISTS idx_journal_email_date "
         "ON journal_entries (email, session_date DESC, id DESC)"
@@ -114,14 +130,15 @@ def create_entry(
     result: str,
     notes: str,
     lessons: str,
+    strategy: str = "",
 ) -> int:
     now = _utc_now()
     with _conn() as con:
         cur = con.execute(
             """
             INSERT INTO journal_entries
-            (email, created_at, updated_at, session_date, title, micro, result, notes, lessons)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            (email, created_at, updated_at, session_date, title, micro, result, notes, lessons, strategy)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 email.lower().strip(),
@@ -133,6 +150,7 @@ def create_entry(
                 (result or "").strip(),
                 (notes or "").strip(),
                 (lessons or "").strip(),
+                (strategy or "").strip(),
             ),
         )
         con.commit()
@@ -149,6 +167,7 @@ def update_entry(
     result: str,
     notes: str,
     lessons: str,
+    strategy: str = "",
 ) -> bool:
     now = _utc_now()
     with _conn() as con:
@@ -156,7 +175,7 @@ def update_entry(
             """
             UPDATE journal_entries
             SET updated_at = ?, session_date = ?, title = ?, micro = ?,
-                result = ?, notes = ?, lessons = ?
+                result = ?, notes = ?, lessons = ?, strategy = ?
             WHERE id = ? AND email = ?
             """,
             (
@@ -167,6 +186,7 @@ def update_entry(
                 (result or "").strip(),
                 (notes or "").strip(),
                 (lessons or "").strip(),
+                (strategy or "").strip(),
                 entry_id,
                 email.lower().strip(),
             ),
@@ -190,7 +210,7 @@ def get_entry(entry_id: int, email: str) -> Optional[JournalEntry]:
         row = con.execute(
             """
             SELECT id, email, created_at, updated_at, session_date,
-                   title, micro, result, notes, lessons
+                   title, micro, result, notes, lessons, strategy
             FROM journal_entries
             WHERE id = ? AND email = ?
             """,
@@ -206,7 +226,7 @@ def list_entries(email: str, limit: int = 100) -> list[JournalEntry]:
         rows = con.execute(
             """
             SELECT id, email, created_at, updated_at, session_date,
-                   title, micro, result, notes, lessons
+                   title, micro, result, notes, lessons, strategy
             FROM journal_entries
             WHERE email = ?
             ORDER BY session_date DESC, id DESC
@@ -290,6 +310,7 @@ def export_entries_csv(email: str) -> tuple[bytes, str]:
             "session_date",
             "title",
             "micro",
+            "strategy",
             "result",
             "notes",
             "lessons",
@@ -304,6 +325,7 @@ def export_entries_csv(email: str) -> tuple[bytes, str]:
                 e.session_date,
                 e.title,
                 e.micro,
+                e.strategy,
                 e.result,
                 e.notes,
                 e.lessons,
@@ -341,7 +363,10 @@ def export_entries_image(email: str, display_name: str = "") -> tuple[bytes, str
     if not entries:
         lines.append("(No journal entries.)")
     for e in entries:
-        lines.append(f"[{e.session_date}] {e.title}  ·  {e.micro or '—'}  ·  {e.result or '—'}")
+        lines.append(
+            f"[{e.session_date}] {e.title}  ·  {e.micro or '—'}  ·  "
+            f"{e.strategy or '—'}  ·  {e.result or '—'}"
+        )
         if e.notes:
             for part in textwrap.wrap(f"Notes: {e.notes}", width=100):
                 lines.append(f"  {part}")
@@ -512,7 +537,7 @@ def render_journal_full_export_prompt(*, key_prefix: str = "jfull") -> None:
             key=f"{key_prefix}_csv_dl",
         )
         st.code(
-            "Columns: id, session_date, title, micro, result, notes, lessons, created_at, updated_at",
+            "Columns: id, session_date, title, micro, strategy, result, notes, lessons, created_at, updated_at",
             language=None,
         )
 
@@ -563,8 +588,8 @@ def render_journal_composer(
     st.caption(f"Storage: **{n} / {max_n}** session notes" + (f" · {remaining} free" if remaining else ""))
     if not compact:
         st.caption(
-            "Log setups, results, and lessons. Notes are saved to your account "
-            "so you can review past sessions."
+            "Your private blotter — structure, execution, and the lessons you refuse to forget. "
+            "Saved to your account for review, not for performance theater."
         )
 
     if is_journal_full(email):
@@ -598,6 +623,23 @@ def render_journal_composer(
                 MICROS,
                 index=MICROS.index(micro_default) if micro_default in MICROS else 0,
                 key=f"{key_prefix}_micro",
+            )
+            # Strategy used — from session preference (Selector) when available
+            _pref_strat = ""
+            try:
+                _pref_strat = str(st.session_state.get("journal_default_strategy") or "")
+            except Exception:
+                _pref_strat = ""
+            strat_default = _pref_strat if _pref_strat in STRATEGIES else ""
+            strategy = st.selectbox(
+                "Strategy used",
+                STRATEGIES,
+                index=STRATEGIES.index(strat_default) if strat_default in STRATEGIES else 0,
+                key=f"{key_prefix}_strategy",
+                help=(
+                    "CPRP Reversion = primary range/channel protocol (v1.6). "
+                    "CPRP Scalping = secondary 1m Keltner protocol (v1.1)."
+                ),
             )
             result = st.selectbox("Result", RESULTS, key=f"{key_prefix}_result")
 
@@ -637,6 +679,7 @@ def render_journal_composer(
             result=result,
             notes=notes,
             lessons=lessons,
+            strategy=strategy,
         )
         st.success(f"Saved journal entry #{entry_id}.")
         st.session_state[f"{key_prefix}_last_saved"] = entry_id
@@ -691,7 +734,7 @@ def render_journal_history(*, key_prefix: str = "jhist", show_edit: bool = True)
 
     for i, e in enumerate(filtered):
         header = f"{e.session_date} · {e.title}"
-        meta_bits = [b for b in (e.micro, e.result) if b]
+        meta_bits = [b for b in (e.micro, e.strategy, e.result) if b]
         if meta_bits:
             header += " · " + " · ".join(meta_bits)
         side = "bull" if (e.result or "").lower() in {"win", "scratch", ""} and i % 2 == 0 else "bear"
@@ -701,6 +744,8 @@ def render_journal_history(*, key_prefix: str = "jhist", show_edit: bool = True)
             side = "bear"
         with candle_expander(header, side=side, expanded=False):
             st.caption(f"Created {e.created_at} · Updated {e.updated_at} · ID #{e.id}")
+            if e.strategy:
+                st.caption(f"Strategy used: **{e.strategy}**")
             if e.notes:
                 st.markdown("**Notes**")
                 st.write(e.notes)
@@ -723,6 +768,16 @@ def render_journal_history(*, key_prefix: str = "jhist", show_edit: bool = True)
                             MICROS,
                             index=MICROS.index(e.micro) if e.micro in MICROS else 0,
                             key=f"{edit_key}_micro",
+                        )
+                        ed_strategy = st.selectbox(
+                            "Strategy used",
+                            STRATEGIES,
+                            index=(
+                                STRATEGIES.index(e.strategy)
+                                if e.strategy in STRATEGIES
+                                else 0
+                            ),
+                            key=f"{edit_key}_strategy",
                         )
                         ed_result = st.selectbox(
                             "Result",
@@ -750,6 +805,7 @@ def render_journal_history(*, key_prefix: str = "jhist", show_edit: bool = True)
                             result=ed_result,
                             notes=ed_notes,
                             lessons=ed_lessons,
+                            strategy=ed_strategy,
                         )
                         st.success("Entry updated.")
                         st.rerun()
@@ -760,7 +816,7 @@ def render_journal_history(*, key_prefix: str = "jhist", show_edit: bool = True)
 
 
 def render_quick_reference_panel() -> None:
-    """Show the official Quick Reference card + downloads (for side-by-side layout)."""
+    """Show primary CPRP + CPRP Scalping Quick Reference cards side by side."""
     from config import (
         QUICK_REFERENCE_DOWNLOAD_NAME,
         QUICK_REFERENCE_IMAGE,
@@ -768,49 +824,106 @@ def render_quick_reference_panel() -> None:
         RULEBOOK_UPDATE_DOWNLOAD_NAME,
         RULEBOOK_UPDATE_PDF,
         RULEBOOK_VERSION,
+        SCALPING_QUICK_REFERENCE_IMAGE,
+        SCALPING_QUICK_REFERENCE_PDF,
+        SCALPING_QUICK_REFERENCE_DOWNLOAD_NAME,
+        SCALPING_RULEBOOK_PDF,
+        SCALPING_RULEBOOK_DOWNLOAD_NAME,
+        SCALPING_VERSION,
     )
 
-    st.markdown("**Quick Reference**")
-    st.caption("Keep this open while you journal — structure, risk, and confirmation rules.")
+    st.markdown("**Quick Reference guides**")
+    st.caption(
+        "Keep both cards open while you write — **Reversion** for the main map, "
+        "**Scalping** when the tape goes quiet. Same standards; different playbooks."
+    )
 
-    qr = Path(QUICK_REFERENCE_IMAGE)
-    if qr.is_file():
-        st.image(
-            str(qr),
-            caption=f"CPRP Quick Reference v{RULEBOOK_VERSION}",
-            use_container_width=True,
-        )
-        st.download_button(
-            "📄 Download Quick Reference (JPG)",
-            data=qr.read_bytes(),
-            file_name=QUICK_REFERENCE_DOWNLOAD_NAME,
-            mime="image/jpeg",
-            use_container_width=True,
-            key="jr_side_qr_jpg",
-        )
-    else:
-        st.warning("Quick Reference image not found in assets/.")
+    col_main, col_scalp = st.columns(2)
 
-    pdf = Path(QUICK_REFERENCE_PDF)
-    if pdf.is_file():
-        st.download_button(
-            "📃 Download Quick Reference (PDF)",
-            data=pdf.read_bytes(),
-            file_name=f"CPRP_Quick_Reference_v{RULEBOOK_VERSION}.pdf",
-            mime="application/pdf",
-            use_container_width=True,
-            key="jr_side_qr_pdf",
-        )
-    rb = Path(RULEBOOK_UPDATE_PDF)
-    if rb.is_file():
-        st.download_button(
-            "📂 Download Rulebook Update (PDF)",
-            data=rb.read_bytes(),
-            file_name=RULEBOOK_UPDATE_DOWNLOAD_NAME,
-            mime="application/pdf",
-            use_container_width=True,
-            key="jr_side_rb_pdf",
-        )
+    with col_main:
+        st.markdown(f"**CPRP Reversion · v{RULEBOOK_VERSION}**")
+        st.caption("Primary range / channel protocol")
+        qr = Path(QUICK_REFERENCE_IMAGE)
+        if qr.is_file():
+            st.image(
+                str(qr),
+                caption=f"CPRP Quick Reference v{RULEBOOK_VERSION}",
+                use_container_width=True,
+            )
+            st.download_button(
+                "📄 Reversion QR (JPG)",
+                data=qr.read_bytes(),
+                file_name=QUICK_REFERENCE_DOWNLOAD_NAME,
+                mime="image/jpeg",
+                use_container_width=True,
+                key="jr_side_qr_jpg",
+            )
+        else:
+            st.warning("Main Quick Reference image not found.")
+        pdf = Path(QUICK_REFERENCE_PDF)
+        if pdf.is_file():
+            st.download_button(
+                "📃 Reversion QR (PDF)",
+                data=pdf.read_bytes(),
+                file_name=f"CPRP_Quick_Reference_v{RULEBOOK_VERSION}.pdf",
+                mime="application/pdf",
+                use_container_width=True,
+                key="jr_side_qr_pdf",
+            )
+        rb = Path(RULEBOOK_UPDATE_PDF)
+        if rb.is_file():
+            st.download_button(
+                "📂 Reversion Rulebook (PDF)",
+                data=rb.read_bytes(),
+                file_name=RULEBOOK_UPDATE_DOWNLOAD_NAME,
+                mime="application/pdf",
+                use_container_width=True,
+                key="jr_side_rb_pdf",
+            )
+
+    with col_scalp:
+        st.markdown(f"**CPRP Scalping · v{SCALPING_VERSION}**")
+        st.caption("Secondary 1m Keltner mean-reversion")
+        sq = Path(SCALPING_QUICK_REFERENCE_IMAGE)
+        if sq.is_file():
+            st.image(
+                str(sq),
+                caption=f"CPRP Scalping Quick Reference v{SCALPING_VERSION}",
+                use_container_width=True,
+            )
+            st.download_button(
+                "📄 Scalping QR (JPG)",
+                data=sq.read_bytes(),
+                file_name=f"CPRP_Scalping_Quick_Reference_v{SCALPING_VERSION}.jpg",
+                mime="image/jpeg",
+                use_container_width=True,
+                key="jr_side_scalp_qr_jpg",
+            )
+        else:
+            # PDF-only fallback message
+            st.caption("Scalping QR image not found — use PDF download.")
+        spdf = Path(SCALPING_QUICK_REFERENCE_PDF)
+        if spdf.is_file():
+            st.download_button(
+                "📃 Scalping QR (PDF)",
+                data=spdf.read_bytes(),
+                file_name=SCALPING_QUICK_REFERENCE_DOWNLOAD_NAME,
+                mime="application/pdf",
+                use_container_width=True,
+                key="jr_side_scalp_qr_pdf",
+            )
+        srb = Path(SCALPING_RULEBOOK_PDF)
+        if srb.is_file():
+            st.download_button(
+                "📂 Scalping Rulebook (PDF)",
+                data=srb.read_bytes(),
+                file_name=SCALPING_RULEBOOK_DOWNLOAD_NAME,
+                mime="application/pdf",
+                use_container_width=True,
+                key="jr_side_scalp_rb_pdf",
+            )
+        if not spdf.is_file() and not srb.is_file():
+            st.warning("Scalping documents missing — run document sync.")
 
 
 def _true_range(df: pd.DataFrame) -> pd.Series:
@@ -1235,7 +1348,9 @@ def render_reference_and_journal_side_by_side(default_micro: str = "") -> None:
                 st.caption("No saved sessions yet.")
             else:
                 for i, e in enumerate(recent):
-                    bits = " · ".join(x for x in (e.session_date, e.micro, e.result, e.title) if x)
+                    bits = " · ".join(
+                        x for x in (e.session_date, e.micro, e.strategy, e.result, e.title) if x
+                    )
                     side = "bull" if i % 2 == 0 else "bear"
                     if (e.result or "").lower() == "win":
                         side = "bull"
@@ -1253,9 +1368,9 @@ def render_journal_page(default_micro: str = "") -> None:
     """Full Trading Journal navigation page."""
     page_hero(
         "Trading Journal",
-        "Private session blotter · review trades, results, and lessons · Quick Reference at left",
+        "Private blotter · honest notes · Reversion & Scalping quick cards beside you",
         side="bull",
-        desk_tag="JOURNAL DESK · MEMBER BLOTTER",
+        desk_tag="JOURNAL DESK · PRIVATE BLOTTER",
     )
     from disclosure import render_disclosure
 

@@ -172,44 +172,39 @@ def render_economic_calendar_panel() -> None:
     """Dedicated Economic Calendar — TradingView high-impact Micro filter + Bloomberg desk."""
     page_hero(
         "Economic Calendar",
-        "High-impact news risk filter · TradingView embed (Micro-focused) · Bloomberg live desk",
+        "Know when the room gets loud · high-impact US prints · Micro-focused risk filter",
         side="bear",
         desk_tag="EVENT RISK DESK · HIGH IMPACT · MICROS",
     )
 
-    with candle_expander("What this is & CPRP use", side="bull", expanded=False, kind="up"):
+    with candle_expander("Why this desk exists — and how CPRP uses it", side="bull", expanded=False, kind="up"):
         st.markdown(
             """
-An **economic calendar** lists scheduled macroeconomic releases and events
-(e.g. CPI, employment, FOMC, GDP) with expected impact levels.
+News doesn’t trade for you. It **changes the weather** around your structure. This page is a risk filter for **MES · MNQ · MYM** — so you know when red-folder events can shred a clean range.
 
-### In-app TradingView filter (Micro E-minis)
+### In-app calendar (TradingView)
+Pre-filtered for what actually moves US equity-index micros:
 
-The embedded calendar is pre-set for **highest-priority** events that matter most
-to **MES / MNQ / MYM**:
+| Filter | Setting | Why it matters |
+|--------|---------|----------------|
+| **Importance** | **High only** | Skip the noise; keep the prints that move risk |
+| **Countries** | **US** (or US + major G7) | Fed and US data hit MES/MNQ/MYM hardest |
+| **Layout** | Tall, full-width | Full week list without hunting scroll bars |
 
-| Filter | Setting | Why |
-|--------|---------|-----|
-| **Importance** | **High only** | Red-folder / market-moving prints |
-| **Countries** | **US** (default) or **US + major G7** | US equity-index micros react hardest to US macro & Fed |
-| **Size** | Tall full-width embed | Toolbar, filters, and event list fit in one view |
+Watch the usual suspects: **FOMC · CPI / PPI / PCE · NFP · GDP · Retail sales**.
 
-Typical watched events: **FOMC / Fed speakers · CPI / PPI · NFP / unemployment · GDP · Retail sales · PCE**.
+**Bloomberg Live** stays available for desk coverage when you want voice and tape at the same time.
 
-**Bloomberg** remains available for live desk coverage and their full economic calendar in a new tab.
+CPRP Strategies is **independent** of TradingView, Bloomberg, and every other calendar vendor.
 
-**CPRP Strategies is not affiliated with, partnered with, or endorsed by** TradingView,
-Bloomberg, YouTube, Forex Factory, Investing.com, or any other provider.
+### Professional use with CPRP
+1. **Mark the clock** — know when high-impact hits.  
+2. **Defend the hard stop** — don’t force boundary fades into red-folder chaos.  
+3. **Respect breaks** — after news, structure often expands; honor the 30-minute pause.  
+4. **Re-select after the dust** — clearer tape often returns once the print is absorbed.  
+5. **Journal the context** — note what was live when you won or lost.
 
-### Recommended use with CPRP
-
-1. **Know when high-impact news hits** — volatility and false structure breaks are common.  
-2. **Protect the hard risk rule** — avoid forcing boundary fades around red-folder events unless your plan allows it.  
-3. **Structure-break awareness** — after news, ranges often expand; respect the **30-minute pause**.  
-4. **Session selection** — prefer clearer tape *after* major risk events when structure re-forms.  
-5. **Journal context** — note which events were live when you log wins and losses.
-
-**Not recommended as:** an entry trigger, a substitute for confirmed S/R, or a reason to ignore the hard stop.
+**Not a signal.** Not a substitute for S/R. Not a reason to ignore risk.
 """
         )
 

@@ -592,40 +592,40 @@ def score_scalping_environment(
     reasons: list[str] = []
     warnings: list[str] = []
 
-    # Gate: high-quality primary CPRP blocks scalping (rulebook §2 / §6)
-    if primary_active and primary_best.structure_score >= 62 and primary_best.score >= MIN_SCORE_TO_TRADE:
+    # Hard block only when primary structure is clearly high-quality (rulebook preference)
+    if primary_active and primary_best.structure_score >= 72 and primary_best.score >= 70:
         return ScalpingOption(
             eligible=False,
             micro=None,
             score=0.0,
             reasons=[],
             warnings=[
-                f"Primary CPRP active on {primary_best.short} "
+                f"High-quality primary CPRP on {primary_best.short} "
                 f"(score {primary_best.score:.1f}, structure {primary_best.structure_score:.0f}) — "
-                "scalping stands aside (return to range/channel protocol)."
+                "prefer reversion; scalping stands aside until structure goes quiet."
             ],
             label=SCALPING_STYLE,
         )
 
-    if primary_active:
-        # Primary clears threshold but structure not top-tier — still soft-block
-        warnings.append(
-            f"Primary CPRP candidate {primary_best.short} is tradeable — "
-            "prefer reversion protocol; scalping only if you stand down primary."
-        )
-
-    # Primary quiet = good for secondary tool
-    primary_quiet = not primary_active or primary_best.structure_score < 55
-    quiet_score = 85.0 if not primary_active else (70.0 if primary_best.structure_score < 55 else 40.0)
+    # Primary quiet = best scalping env; can still offer as preference when env is good
+    primary_quiet = not primary_active or primary_best.structure_score < 58
     if not primary_active:
+        quiet_score = 90.0
         reasons.append(
             f"Primary CPRP is quiet (best {primary_best.short} {primary_best.score:.1f} "
-            f"< {MIN_SCORE_TO_TRADE:.0f} threshold) — secondary scalping may apply."
+            f"< {MIN_SCORE_TO_TRADE:.0f}) — scalping is an available option."
         )
     elif primary_quiet:
+        quiet_score = 78.0
         reasons.append(
-            f"Primary structure weak ({primary_best.short} structure {primary_best.structure_score:.0f}) — "
-            "scalping environment possible."
+            f"Primary structure soft ({primary_best.short} structure {primary_best.structure_score:.0f}) — "
+            "both strategies may be used by preference if scalp tape is clean."
+        )
+    else:
+        quiet_score = 62.0
+        reasons.append(
+            f"Primary CPRP is also tradeable on {primary_best.short} — "
+            "if scalping env clears, **both strategies are available**; choose by preference / rules."
         )
 
     # Score each micro for quiet / sideways suitability
@@ -725,7 +725,8 @@ def score_scalping_environment(
         )
         best_env = min(best_env, 48.0)
 
-    eligible = best_env >= SCALPING_MIN_SCORE and (not primary_active or primary_quiet)
+    # Offer when environment score clears — dual with primary is allowed as user preference
+    eligible = best_env >= SCALPING_MIN_SCORE
 
     if eligible:
         reasons.append(
@@ -735,10 +736,15 @@ def score_scalping_environment(
         reasons.append(
             "Confirm on platform: price accepted one side of SMA · repeated Keltner touches · RSI 80/20."
         )
+        if primary_active:
+            reasons.append(
+                "**Both strategies available** — CPRP Reversion and CPRP Scalping. "
+                "Use your preference and the matching rulebook; do not mix checklists on one trade."
+            )
     else:
         warnings.append(
             f"Scalping environment score {best_env:.1f} "
-            f"(need {SCALPING_MIN_SCORE:.0f}+) or primary not quiet enough."
+            f"(need {SCALPING_MIN_SCORE:.0f}+) — scalping not offered this scan."
         )
 
     return ScalpingOption(

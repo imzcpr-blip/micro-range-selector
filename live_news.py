@@ -119,15 +119,16 @@ def render_bloomberg_panel() -> None:
     """Dedicated full-page Bloomberg Live experience."""
     page_hero(
         "📺 Bloomberg Business News Live",
-        "External YouTube live desk feed · watch or listen while you trade · not affiliated with Bloomberg",
+        "Background voice of the room · external YouTube feed · CPRP not affiliated",
         side="bear",
         desk_tag="NEWS DESK · EXTERNAL FEED",
     )
     with candle_expander("What this desk is for", side="bull", expanded=True, kind="tv"):
         st.markdown(
             """
-Watch or listen to **Bloomberg Business News Live** while you trade.  
-This is an external YouTube live stream — **CPRP is not affiliated with Bloomberg or YouTube.**
+Leave the feed on while you work the micros — context, not signals.  
+This is an **external YouTube** stream of Bloomberg Business News Live.  
+**CPRP Strategies is not affiliated with Bloomberg or YouTube.** Toggle off when you need silence.
 """
         )
     render_bloomberg_player(

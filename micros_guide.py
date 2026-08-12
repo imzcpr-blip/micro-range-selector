@@ -150,9 +150,14 @@ def fetch_all_live_quotes() -> list[LiveMicroQuote]:
 def render_micros_guide_panel() -> None:
     page_hero(
         "Micro E-mini Futures",
-        f"Live market tape + CME specs · {PROTOCOL_NAME} ({PROTOCOL_SHORT}) · MES · MNQ · MYM",
+        f"Know your weapons · live tape + CME specs · {PROTOCOL_SHORT} · MES · MNQ · MYM",
         side="bull",
         desk_tag="INSTRUMENT DESK · LIVE CME MICROS",
+    )
+
+    st.caption(
+        "Micros are how CPRP stays in the game with controlled size. "
+        "This page is the instrument room — live values, multipliers, and the math behind every point."
     )
 
     render_disclosure(expanded=False)
@@ -173,8 +178,8 @@ def render_micros_guide_panel() -> None:
             help="Re-pulls Yahoo bars on a timer while this page is open. Cache TTL is 45s.",
         )
         st.caption(
-            "Live last / high / low / range update from the market feed. "
-            "CME **$ / point** and **tick $** are exchange multipliers (stable unless CME changes the contract)."
+            "Last, high, low, and range from the market feed. "
+            "CME **$/point** and **tick $** are exchange multipliers — they don’t care about your opinion."
         )
 
     # Optional continuous refresh while this page is open

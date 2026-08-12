@@ -306,16 +306,15 @@ def render_micro_futures_news_panel() -> None:
     """Full-page Micro Futures News desk — TradingView only."""
     page_hero(
         "Micro Futures News",
-        "TradingView Top Stories for MES1! · MNQ1! · MYM1! · auto-refresh every 60s",
+        "What’s moving the micros · TradingView Top Stories · MES1! · MNQ1! · MYM1!",
         side="bull",
         desk_tag="NEWS DESK · TRADINGVIEW · MICROS",
     )
 
     st.caption(
-        "Live **TradingView** news for CPRP continuous micros "
-        "(`CME_MINI:MES1!` · `CME_MINI:MNQ1!` · `CBOT_MINI:MYM1!`), "
-        "with related full-size feeds (ES1! / NQ1! / YM1!).  "
-        "Feeds **auto-refresh every 60 seconds**; use **Refresh now** to reload immediately."
+        "Headlines for continuous Micro E-minis — the same markets CPRP trades. "
+        "Related full-size feeds (ES1! / NQ1! / YM1!) fill in when micro-specific news is thin. "
+        "Auto-refresh every **60 seconds**; hit **Refresh now** when you want the tape now, not later."
     )
 
     render_disclosure(expanded=False)

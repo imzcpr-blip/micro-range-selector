@@ -224,29 +224,30 @@ if not render_loop_media(
 ):
     pass
 st.sidebar.markdown("### CPRP Strategies")
-st.sidebar.caption(f"Day Trader Desk · Rulebook v{RULEBOOK_VERSION}")
+st.sidebar.caption(f"Independent Micro desk · Rulebook v{RULEBOOK_VERSION}")
 st.sidebar.caption(f"{CREATOR}")
 
 # Icon legend — explains nav / panel emoji meanings (desk-style mini panel)
 with st.sidebar.expander("Icon legend", expanded=False):
     st.markdown(
         """
-| Icon | Meaning |
-|:----:|---------|
-| 📈 | **Up / bull** panels — rising, primary tools, positive desk edges |
-| 📉 | **Down / risk** panels — risk, filters, caution, secondary edges |
-| 📂 | **Documents** — rulebook, folders, official files |
-| 📁 | **Folder / brand** — branding suites, asset collections |
-| 📃 | **Page / journal** — notes, session log, printed-style pages |
-| 📄 | **Document page** — founder / profile docs |
-| 📺 | **Live news / video** — Bloomberg Live, TV-style feeds |
-| 🔗 | **External links** — brokers, platforms, open-in-new-tab |
+A quick map of the floor markers you’ll see on pages and expanders:
 
-**How to use:** icons mark sidebar pages and expandable panels.  
-Open any expander for full detail. Gold edge = primary · steel edge = risk/secondary.
+| Icon | On the desk it means… |
+|:----:|------------------------|
+| 📈 | **Primary / constructive** — tools, setups, bull edges |
+| 📉 | **Risk / filter** — caution, calendar, secondary edges |
+| 📂 | **Rulebooks & files** — official documents |
+| 📁 | **Brand & suites** — identity packs |
+| 📃 | **Journal & pages** — session notes, blotter |
+| 📄 | **Profile docs** — founder / about |
+| 📺 | **Live desk feed** — Bloomberg-style news |
+| 🔗 | **Off-floor links** — brokers, platforms, new tab |
+
+Gold rail = primary. Steel rail = risk or secondary. Expand anything marked ▶ for the full story.
 """
     )
-    st.caption("Desk legend · CPRP Strategies · expand panels for full content")
+    st.caption("Floor legend · CPRP Strategies")
 
 render_account_sidebar()
 st.sidebar.markdown("##### Live now")
@@ -375,9 +376,9 @@ if page == PAGE_CHAT:
 if page == PAGE_BRANDING:
     page_hero(
         "CPRP Company Branding",
-        f"Official brand suite for **{PROTOCOL_NAME}** · seal · logos · banners · animated media",
+        f"Official identity for **CPRP Strategies** · seal · logos · motion · Scalping brand",
         side="bull",
-        desk_tag="BRAND DESK · CORPORATE IDENTITY",
+        desk_tag="BRAND DESK · FLOOR IDENTITY",
     )
 
     # Official Seal hero (transparent PNG preferred)
@@ -675,15 +676,17 @@ if page == PAGE_BRANDING:
     with candle_expander("Brand usage notes", side="bull", expanded=False, kind="page"):
         st.markdown(
             f"""
-- Prefer **looping logo GIFs** for headers, branding, and Member Chat.
-- Still images remain available for favicon, downloads, and offline use.
-- Brand name: **{PROTOCOL_NAME} ({PROTOCOL_SHORT})**
-- Founder: **{FOUNDER_NAME}**
-- Rulebook: **Official Rulebook v{RULEBOOK_VERSION}**
-- Tagline: *Trade the boundaries. Respect the structure. Control the risk.*
+The brand is the same standard as the trading: clean, deliberate, no noise.
+
+- Prefer **looping logo GIFs** for headers, chat, and motion on the desk.  
+- Stills cover favicon, downloads, and offline kits.  
+- Name: **{PROTOCOL_NAME} ({PROTOCOL_SHORT})** · desk brand **CPRP Strategies**  
+- Founder: **{FOUNDER_NAME}**  
+- Rulebook: **Official Rulebook v{RULEBOOK_VERSION}**  
+- Line we live by: *Trade the boundaries. Respect the structure. Control the risk.*
 """
         )
-    st.caption(f"© 2026 {CREATOR}. Personal branding for CPRP.")
+    st.caption(f"© 2026 {CREATOR}. CPRP Strategies brand assets.")
     st.stop()
 
 # ── About the Founder page ────────────────────────────────────────────────
@@ -710,9 +713,9 @@ if page == PAGE_ABOUT:
         st.markdown(f"*{FOUNDER_TAGLINE}*")
         st.markdown(
             f"""
-**Protocol:** {PROTOCOL_NAME} ({PROTOCOL_SHORT})  
-**Rulebook:** Official Rulebook v{RULEBOOK_VERSION}  
-**Focus:** Range / channel reversion on Micro futures (MES · MNQ · MYM) — not scalping
+**Desk:** CPRP Strategies · **Protocol:** {PROTOCOL_NAME} ({PROTOCOL_SHORT})  
+**Rulebook:** Official Rulebook v{RULEBOOK_VERSION} · Scalping v{_cprp_cfg.SCALPING_VERSION}  
+**Focus:** Micro E-mini day-trading — primary **range/channel reversion**, secondary **1m scalping** when the tape is quiet
 """
         )
 
@@ -730,26 +733,25 @@ Father first — grounded by responsibility at home.
         c2.markdown(
             """
 **Research & data**  
-Patterns, structure, and probability — applied to the markets.
+Patterns, structure, and probability — measured, not mythologized.
 """
         )
         c3.markdown(
             """
-**Structure**  
-Confirmed range/channel S/R, multi-TF confluence, strict risk.
+**Structure first**  
+Confirmed S/R, multi-timeframe confluence, hard dollar risk. No freestyle.
 """
         )
         c4.markdown(
             """
 **Ownership**  
-A craft built, tested, and refined — not copied.
+A craft written, broken, rewritten — and still owned by the person who built it.
 """
         )
 
     st.info(
-        "This application is a personal session-selection tool for CPRP. "
-        "It does not place orders and is not financial advice. "
-        "Futures trading involves substantial risk of loss."
+        "Personal session desk for CPRP Strategies — not a broker, not a signal service, "
+        "not financial advice. Futures trading involves substantial risk of loss."
     )
     from disclosure import render_disclosure_footer
 
@@ -761,62 +763,59 @@ A craft built, tested, and refined — not copied.
 # SESSION SELECTOR — sidebar help + controls
 # ══════════════════════════════════════════════════════════════════════════
 st.sidebar.header("📖 Help & navigation")
-st.sidebar.caption("Click ▶ to expand · ▼ when open")
-with st.sidebar.expander("▶ How to use this app (start here)", expanded=True):
+st.sidebar.caption("Expand ▶ for the playbook · collapse when you know the floor")
+with st.sidebar.expander("▶ How to use this desk (start here)", expanded=True):
     st.markdown(
         f"""
-**Intended use:** Before (and during) a trading session, open this app to
-decide **which micro** — MES, MNQ, or MYM — currently fits the
-**{PROTOCOL_NAME}** best. It is a **session selector**,
-not an auto-trader and not a broker.
+This is your **pre-session and in-session focus tool** for **{PROTOCOL_NAME}** — not a robot, not a broker, not a substitute for reading the chart.
 
-**Typical flow**
-1. Set your **hard dollar stop** ($50–$100).
-2. Read the **recommendation banner** at the top — that is your session pick (or sit out).
-3. Compare the **three micro cards** (scores, structure, extreme vs mid, 1H bias).
-4. Open **Score breakdown** on a card for why/warnings.
-5. Use **Head-to-head** + **candlestick chart** to confirm range/channel structure.
-6. Keep a **static 1-Hour chart** open for long-term trend context (Quick Reference).
-7. Operate the strategy using **How to operate the strategy (official Quick Reference)**.
-8. Complete the **pre-trade checklist** (all 7 gates) before entering on Ironbeam / NinjaTrader.
-9. Leave **Auto-refresh** on so the pick updates as conditions change.
+**What you’re solving:**  
+Which micro deserves your attention right now — **MES, MNQ, or MYM** — under written CPRP rules? Sometimes the honest answer is **sit out**. Sometimes the tape also offers **CPRP Scalping** as a second protocol. You choose; the desk reports.
 
-**What it will *not* do**
-- Place orders or manage positions  
-- Replace your visual S/R judgment on NinjaTrader  
-- Use live CME tick data (Yahoo is delayed)
+**A clean session flow**
+1. Set your **hard dollar stop** ($50–$100). That number is non-negotiable in the rulebook.  
+2. Read the **top banner** — reversion pick, scalping option, both, or stand aside.  
+3. Walk the **three micro cards** — scores, structure width, boundary vs mid, 60m bias.  
+4. Open **Score breakdown** when you want the “why,” not just the grade.  
+5. Confirm structure on **Head-to-head** and the **5m structure chart**.  
+6. Keep a **static 60-minute** window open for bias (context only — never entries).  
+7. Run the **official operating steps** and the **full pre-trade checklist** before you click buy or sell on NinjaTrader / Ironbeam.  
+8. Leave **auto-refresh** on so the desk updates as the session evolves.
+
+**Hard limits of this tool**
+- It does **not** place or manage orders.  
+- It does **not** replace your eyes on real S/R.  
+- Market data is **Yahoo delayed** — session focus, not tick sniping.
 """
     )
 
-with st.sidebar.expander("▶ What each screen section means"):
+with st.sidebar.expander("▶ What each section of the screen means"):
     st.markdown(
         f"""
-| Area | What it tells you |
-|------|-------------------|
-| **Top banner** | Strategy options: **CPRP Reversion** micro, optional **CPRP Scalping**, or **SIT OUT** |
-| **Metrics row** | Time (ET), session phase, chart pair, static 1H context, min score ({MIN_SCORE_TO_TRADE:.0f}+) |
-| **Three cards** | Per-micro score, last price, structure high/low, $ width, stop pts, boundary position, 1H bias |
-| **Score breakdown** | Structure, risk fit, 1H context, volume, volatility, reasons (+), warnings (!) |
-| **Head-to-head table** | Side-by-side numbers sorted by score |
-| **Bar chart** | Visual score race; gold line = trade threshold |
-| **Price structure** | 5m candles with session high/low (proxy S/R zone lines) |
-| **Strategy ops expander** | Full CPRP process from the Official Quick Reference |
-| **Pre-trade checklist** | All 7 Quick Reference entry confirmations |
-| **Exits expander** | Profit targets + structure-break rules |
-| **Quick Reference card** | Downloadable official one-page card |
+| Area | What a professional reads it as |
+|------|----------------------------------|
+| **Top banner** | Today’s **protocol options**: Reversion, Scalping, both, or sit out |
+| **Strategy options** | Explicit list of what the desk is offering — preference is yours |
+| **Metrics row** | Clock (ET), session phase, chart pair, 60m context, reversion bar ({MIN_SCORE_TO_TRADE:.0f}+) |
+| **Three cards** | Per-micro scorecard: price, structure $, stop distance, boundary, HTF |
+| **Score breakdown** | The honest work — reasons, warnings, structure vs risk fit |
+| **Head-to-head** | Who’s winning the race between micros right now |
+| **Bar chart** | Visual score race; gold line = minimum bar for reversion |
+| **Price structure** | 5m candles with session high/low as **proxy** S/R (confirm live) |
+| **Operating steps** | Full CPRP process from the Official Quick Reference |
+| **Checklist** | Every gate before an entry — miss one, no trade |
+| **Quick References** | Side-by-side Reversion + Scalping one-pagers |
 """
     )
 
-with st.sidebar.expander("▶ Sidebar controls explained"):
+with st.sidebar.expander("▶ Sidebar controls, plain English"):
     st.markdown(
         """
-- **Hard dollar stop** — Rulebook §5 risk cap for a single trade (−$50 to −$100).
-  Changes how “structure fit” is scored (does the visible range/channel match that stop size?).
-- **Auto-refresh** — Re-pulls data and re-scores on a timer.
-- **Refresh every (sec)** — How often to re-run (30–300s). Longer = fewer Yahoo calls.
-- **Desktop alerts on change** — Windows notification when the recommended micro
-  (or sit-out) **changes**.
-- **Analyze now** — Forces an immediate re-run (also happens on refresh).
+- **Hard dollar stop** — Rulebook risk cap per trade ($50–$100). Shapes whether the structure “fits” your money.  
+- **Auto-refresh** — Keeps the desk honest as conditions change.  
+- **Refresh every (sec)** — How often we re-pull Yahoo and re-score. Slower = fewer calls.  
+- **Desktop alerts** — A tap on the shoulder when the pick (or sit-out) flips.  
+- **Analyze now** — Don’t wait for the timer; re-run on command.
 """
     )
 
@@ -846,24 +845,19 @@ Scores (0–100) blend CPRP Official Rulebook v{RULEBOOK_VERSION}:
 """
     )
 
-with st.sidebar.expander("▶ Reading a recommendation"):
+with st.sidebar.expander("▶ How to read a recommendation"):
     st.markdown(
         f"""
-- **PRIMARY · CPRP Reversion** — Focus that micro for range/channel setups (full checklist).
-- **OPTION · CPRP Scalping** — Offered only when primary is quiet + sideways tape (1m Keltner).
-- **SIT OUT** — Neither reversion nor scalping environment clears. Capital preservation.
-- **AT BOUNDARY** — Price near support or resistance (valid entry zone).
-- **mid** — Do **not** fade the middle; wait (even if RSI is extreme — v1.6).
-- **1H / 60m bias** — Static higher-TF filter only (not entries):
-  - *ranging* — standard setups generally higher quality  
-  - *uptrend / downtrend* — more selective fading **against** that trend  
-- **Chart pair** (approved pairs only · v1.6):
-  - *15m + 5m* — **default** (normal volume, clean ranges, active session)  
-  - *30m + 15m* — pre-market, low volume, lunch, wide/choppy  
-- **Static HTF** — Always keep **60-minute (1-Hour)** open (4-Hour acceptable). Bias only.
-- **Order flow** — Bid = buying power · Ask = selling power; confirm on platform at the level.
-- **Structure break** — Decisive close beyond boundary → flatten + pause
-  **{STRUCTURE_BREAK_PAUSE_MINUTES} minutes** (or until new clear structure). Do not hunt lower-TF bounces.
+- **CPRP Reversion** — Primary protocol. That micro gets your range/channel focus and full checklist.  
+- **CPRP Scalping** — Secondary protocol when the environment score clears. Preference is allowed; rules still bind.  
+- **Both available** — Two clean options. One trade, one rulebook — pick, don’t mash.  
+- **Sit out** — Nothing cleared. Standing aside is a professional outcome.  
+- **At boundary** — Near support or resistance; the only honest entry zone for reversion.  
+- **Mid-structure** — Not an invitation. Wait, even if RSI looks dramatic.  
+- **60m bias** — Context only: ranging favors fades; strong trends demand selectivity.  
+- **Chart pairs** — **15m+5m** when the room is clean; **30m+15m** when it’s slow, early, or choppy.  
+- **Order flow** — Bids buy; asks sell. Confirm on the platform at the level.  
+- **Structure break** — Decisive close through the map → flatten and pause **{STRUCTURE_BREAK_PAUSE_MINUTES} minutes** (or until a new map forms).
 """
     )
 
@@ -1132,50 +1126,49 @@ render_bloomberg_audio_option(key_prefix="main_bb", height=280)
 
 page_hero(
     f"{PROTOCOL_NAME} — Session Micro Selector",
-    f"CPRP Strategies · multi-protocol desk · Rulebook v{RULEBOOK_VERSION} · Scalping v{_cprp_cfg.SCALPING_VERSION} · MES · MNQ · MYM",
+    f"CPRP Strategies · multi-protocol day-trader desk · Reversion v{RULEBOOK_VERSION} · Scalping v{_cprp_cfg.SCALPING_VERSION} · MES · MNQ · MYM",
     side="bull",
-    desk_tag="SESSION DESK · STRATEGY OPTIONS",
+    desk_tag="SESSION DESK · FOCUS & PROTOCOL OPTIONS",
 )
 
 st.markdown(
     f"""
-> *“Which protocol fits this tape — primary reversion, secondary scalping, or sit out?”*  
-> *Trade the boundaries. Respect the structure. Control the risk.*  
-> **CPRP Strategies** is a Micro E-mini futures day-trading chart analyst desk — multiple
-> strategy types for different market conditions, backtested and live-tested under Official Rulebook rules.
+> *Trade the boundaries. Respect the structure. Control the risk.*
+
+**CPRP Strategies** is an independent **Micro E-mini futures** desk — chart analysis with written protocols for different market conditions. Primary work is **range/channel reversion**. When the tape goes quiet, **CPRP Scalping** can appear as a second, rules-bound option. Both have been pressure-tested against the Official Rulebooks. Neither replaces your eyes on the chart or your finger on the risk.
 """
 )
 
-with candle_expander("Purpose, who it is for, and how it fits your process", side="bull", expanded=True, kind="up"):
+with candle_expander("What this desk is for — and how to use it well", side="bull", expanded=True, kind="up"):
     st.markdown(
         f"""
-**Purpose**
-- Rank the three micros for **primary CPRP range/channel reversion** conditions.
-- When primary is **quiet** and tape is **sideways**, offer **CPRP Scalping** (1m Keltner) as a **secondary option**.
-- Flag whether price is at a **structure boundary** (valid) or **mid-structure** (avoid).
-- Check whether **structure size fits your hard dollar stop** (${HARD_STOP_MIN_USD:.0f}–${HARD_STOP_MAX_USD:.0f}).
-- Apply **static 60-minute bias**: selective when fading against HTF power.
-- Suggest the **active chart pair** (**15m+5m** default · **30m+15m** slow).
-- Surface **desktop alerts** when the pick or scalping option changes.
-- Remind **order flow + full checklists** — confirm bid/ask and Keltner rules on the platform.
+**What the Selector actually does**
+- Ranks **MES · MNQ · MYM** for **primary CPRP reversion** — who deserves the session.  
+- When conditions allow, offers **CPRP Scalping** (1-minute Keltner) as a **preference option**, not a command.  
+- Flags **boundary vs mid-structure** so you don’t invent trades in the middle of the range.  
+- Checks whether structure width respects your **hard stop** (${HARD_STOP_MIN_USD:.0f}–${HARD_STOP_MAX_USD:.0f}).  
+- Applies **60-minute bias** so you don’t casually fade sustained higher-timeframe power.  
+- Suggests the working pair: **15m+5m** by default, **30m+15m** when the session is slow or choppy.  
+- Alerts when the story changes. Reminds you: **order flow and full checklists live on your platform.**
 
-**Who it is for**
-- You, trading **only** MES / MNQ / MYM under the CPRP rulebook.
-- Traders who want a mechanical pre-session and in-session **focus** tool.
+**Who belongs here**
+Traders who run **only** Micro E-minis under written CPRP rules — people who prefer quality over noise and will sit out when the map is unclear.
 
-**How it is intended to be used**
-1. Run this app **before** you trade (and leave it open while you trade).
-2. Take the **recommended micro** as your focus market for the session.
-3. Open the suggested chart pair (**15m+5m** or **30m+15m**) plus a static **1-Hour** chart on **NinjaTrader Web**.
-4. Build entries only with full confluence: **S/R → price action → volume → RSI**.
-5. Route orders through **Ironbeam**.
-6. Prefer **quality over frequency** (v1.6). Never override the hard stop or micros-only rule.
+**How to run a session with it**
+1. Open the desk **before** you trade; leave it running.  
+2. Read the **protocol options** — reversion, scalping, both, or stand aside.  
+3. On **NinjaTrader**, open the suggested pair plus a static **60-minute** bias chart.  
+4. Enter only with full confluence (reversion stack or scalping checklist — **one** rulebook per trade).  
+5. Route risk through your broker (e.g. Ironbeam). Hard stop is law.  
+6. Prefer fewer, cleaner trades. Ego doesn’t get a vote.
 
-**What this is *not***
-- Not a signal bot that tells you exact fill prices every tick.
-- Not brokerage software; it **does not place or cancel orders**.
-- Not live CME data — quotes are from **Yahoo Finance (delayed)**.
-- Not financial advice. Futures trading involves substantial risk of loss.
+**What this will never be**
+- A bot that fills tickets for you  
+- A replacement for structure you can actually see  
+- Live CME firehose data (Yahoo is delayed by design for this tool)  
+- Personalized financial advice  
+
+Futures can take money. Trade like it.
 """
     )
 
@@ -1331,7 +1324,20 @@ _scalp = getattr(rec, "scalping", None)
 _scalp_on = bool(_scalp and getattr(_scalp, "eligible", False) and _scalp.micro)
 _options = list(getattr(rec, "strategy_options", None) or [])
 
-if _primary_on:
+if _primary_on and _scalp_on:
+    color = {"MES": "🟢", "MNQ": "🔵", "MYM": "🟣"}.get(rec.recommended, "⚪")
+    st.success(
+        f"### {color} **Both strategies available** — choose by preference"
+    )
+    st.info(
+        f"**1 · CPRP Reversion (primary protocol)** → focus **{rec.recommended}**  \n"
+        f"**2 · CPRP Scalping (secondary)** → focus **{_scalp.micro}** "
+        f"(environment **{_scalp.score:.1f}**/100)  \n\n"
+        "Both are offered this session. Use **your preference** and the matching rulebook "
+        "for that trade — do not mix reversion and scalping checklists on the same entry.  \n\n"
+        f"{rec.summary}"
+    )
+elif _primary_on:
     color = {"MES": "🟢", "MNQ": "🔵", "MYM": "🟣"}.get(rec.recommended, "⚪")
     st.success(
         f"### {color} PRIMARY · CPRP Reversion · **{rec.recommended}**"
@@ -1340,8 +1346,8 @@ if _primary_on:
 elif _scalp_on:
     st.warning(
         f"### ⚡ OPTION · CPRP Scalping · **{_scalp.micro}**  \n"
-        f"Primary reversion is quiet — secondary 1m Keltner scalp may apply "
-        f"(environment **{_scalp.score:.1f}**/100)."
+        f"Primary reversion is quiet — **CPRP Scalping** is available "
+        f"(environment **{_scalp.score:.1f}**/100). Use by preference if checklist clears."
     )
     st.info(rec.summary)
 else:
@@ -1351,11 +1357,24 @@ else:
 
 # Strategy options offered this session
 desk_section("Strategy options offered", side="bull")
-st.caption(
-    "CPRP Strategies forms **multiple protocols** for different market conditions. "
-    "Primary = range/channel reversion (Rulebook v1.6). "
-    "Secondary = CPRP Scalping (v1.1) only when primary is quiet and tape is sideways."
-)
+if _primary_on and _scalp_on:
+    st.markdown(
+        """
+**Both protocols cleared this scan.** That’s not an order to trade twice — it’s permission to **choose** with eyes open.
+
+| Protocol | Lean this way when… | Focus |
+|----------|---------------------|--------|
+| **CPRP Reversion** | You can map clean range/channel S/R on 15+5 or 30+15 | Primary micro pick |
+| **CPRP Scalping** | Tape is quiet, sideways, accepting one side of the SMA on 1m | Scalping micro pick |
+
+One trade, one rulebook. Preference is yours; standards are not optional.
+"""
+    )
+else:
+    st.caption(
+        "CPRP Strategies runs more than one playbook. **Reversion** is the main event; "
+        "**Scalping** only steps forward when the environment score says the room is quiet enough."
+    )
 if _options:
     for opt in _options:
         if opt.upper().startswith("PRIMARY"):
@@ -1366,6 +1385,30 @@ if _options:
             st.error(f"**{opt}**")
 else:
     st.caption("No strategy options computed.")
+
+# Explicit dual picker when both are on (preference only — does not place orders)
+if _primary_on and _scalp_on:
+    st.markdown("**Your preference this session (journal hint)**")
+    _pref = st.radio(
+        "Which protocol do you plan to trade?",
+        [
+            f"CPRP Reversion · {rec.recommended}",
+            f"CPRP Scalping · {_scalp.micro}",
+            "Either / decide on the chart",
+        ],
+        horizontal=True,
+        key="session_strategy_preference",
+        help="Saved in session for journaling. Does not place orders.",
+    )
+    st.session_state["journal_default_strategy"] = (
+        "CPRP Reversion"
+        if _pref.startswith("CPRP Reversion")
+        else ("CPRP Scalping" if _pref.startswith("CPRP Scalping") else "")
+    )
+elif _primary_on:
+    st.session_state["journal_default_strategy"] = "CPRP Reversion"
+elif _scalp_on:
+    st.session_state["journal_default_strategy"] = "CPRP Scalping"
 
 if _scalp_on:
     with candle_expander(
@@ -1758,8 +1801,8 @@ from disclosure import render_disclosure_footer
 
 render_disclosure_footer()
 st.caption(
-    f"Personal tool aligned to {PROTOCOL_NAME} Official Rulebook v{RULEBOOK_VERSION}. "
-    "Does not place orders. Market data via Yahoo Finance (delayed). "
+    f"CPRP Strategies · {PROTOCOL_NAME} Rulebook v{RULEBOOK_VERSION} · "
+    "session focus only — no order routing · Yahoo data delayed · "
     f"© 2026 {CREATOR}."
 )
 

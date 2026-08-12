@@ -265,7 +265,7 @@ def render_member_chat(
 
     page_hero(
         "Member Chat",
-        "Live desk chat for signed-in CPRP members · respectful community space — not financial advice",
+        "Live floor talk for signed-in members · keep it sharp, keep it respectful",
         side="bull",
         desk_tag="COMMS DESK · LIVE TAPE",
     )

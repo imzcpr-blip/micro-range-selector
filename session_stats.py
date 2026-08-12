@@ -179,19 +179,19 @@ def render_session_wl_panel() -> None:
 
     page_hero(
         "CPRP Session Statistics",
-        "Winning vs. Losing Trades gallery · illustrative only — not a performance guarantee",
+        "W/L gallery · illustrative honesty, not a marketing track record",
         side="bull",
         desk_tag="PERFORMANCE DESK · W/L TAPE",
     )
     render_disclosure(expanded=False)
 
-    st.caption(f"Uploading as **{display}**")
+    st.caption(f"Uploading as **{display}** · share the work, not the hype")
 
     desk_section("Upload", side="bull")
     with candle_expander("Upload session statistics image", side="bull", expanded=True, kind="up"):
         st.markdown(
-            "Add a chart or screenshot of your **winning vs. losing trades** "
-            "(or contracts-by-instrument) for a session."
+            "Drop a screenshot of **wins vs losses** (or contracts by instrument) for a session. "
+            "Illustrative only — never a performance promise."
         )
         with st.form("session_stats_upload", clear_on_submit=True):
             c1, c2 = st.columns(2)

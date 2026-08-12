@@ -912,8 +912,8 @@ def market_tape(
         f"""
 <div class="ws-tape-wrap">
   <div class="ws-tape-head">
-    <span><span class="live-dot"></span>NYSE-STYLE FLOOR TAPE · DAY TRADER DESK</span>
-    <span>CPRP STRATEGIES · MICRO E-MINI FUTURES</span>
+    <span><span class="live-dot"></span>FLOOR TAPE · DAY TRADER DESK · LIVE</span>
+    <span>CPRP STRATEGIES · MICROS · RULES OVER NOISE</span>
   </div>
   <div class="ws-tape">
     <div class="ws-tape-track">
