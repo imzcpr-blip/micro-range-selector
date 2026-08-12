@@ -80,7 +80,7 @@ def draw_ticks() -> Path:
     )
     d.text(
         (80, notes_y + 110),
-        "Educational reference. Specs can change. Not financial advice.  (c) CPRP Strategies",
+        "Educational reference. Specs can change. See Acknowledgement & Disclosure.  (c) CPRP Strategies",
         fill=muted,
         font=f_foot,
     )
@@ -151,7 +151,7 @@ def draw_sizing() -> Path:
 
     d.text(
         (80, 680),
-        "Educational sizing guide for CPRP. Verify with your broker / CME. Not financial advice.  (c) CPRP Strategies",
+        "Educational sizing guide for CPRP. Verify with your broker / CME. See Acknowledgement & Disclosure.  (c) CPRP Strategies",
         fill=muted,
         font=f_foot,
     )

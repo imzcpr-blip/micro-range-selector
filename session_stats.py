@@ -274,5 +274,5 @@ def render_session_wl_panel() -> None:
     st.markdown("---")
     st.caption(
         "Session statistics images are shared for learning. "
-        "Past results do not indicate future performance. Not financial advice."
+        "Past results do not indicate future performance. See Acknowledgement & Disclosure."
     )

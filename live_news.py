@@ -150,7 +150,7 @@ This is an **external YouTube** stream of Bloomberg Business News Live.
         )
     st.caption(
         "External news stream only. Not affiliated with Bloomberg or YouTube. "
-        "Not financial advice — see disclosures below."
+        "See Acknowledgement & Disclosure below."
     )
     from disclosure import render_disclosure, render_third_party_disclosure
 

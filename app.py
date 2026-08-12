@@ -750,8 +750,8 @@ A craft written, broken, rewritten — and still owned by the person who built i
         )
 
     st.info(
-        "Personal session desk for CPRP Strategies — not a broker, not a signal service, "
-        "not financial advice. Futures trading involves substantial risk of loss."
+        "Personal session desk for CPRP Strategies — not a broker, not a signal service. "
+        f"{_cprp_cfg.DISCLAIMER_CAPTION}"
     )
     from disclosure import render_disclosure_footer
 
@@ -1166,9 +1166,9 @@ Traders who run **only** Micro E-minis under written CPRP rules — people who p
 - A bot that fills tickets for you  
 - A replacement for structure you can actually see  
 - Live CME firehose data (Yahoo is delayed by design for this tool)  
-- Personalized financial advice  
+- A substitute for the **Acknowledgement & Disclosure** — you own your decisions and risk  
 
-Futures can take money. Trade like it.
+Futures can take money. Trade like it. See **Acknowledgement & Disclosure**.
 """
     )
 

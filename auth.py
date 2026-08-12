@@ -574,10 +574,10 @@ Then the full desk is yours.
                 autocomplete="new-password",
             )
             agree = st.checkbox(
-                "I have read and agree to the Acknowledgement & Disclosure above. "
-                "I understand CPRP is not personalized financial advice, "
-                "futures trading involves substantial risk of loss, "
-                "and I participate at my own risk.",
+                "I have read and agree to the Acknowledgement & Disclosure above: "
+                "this is not personalized financial, investment, or trading advice; "
+                "I own my decisions, risk, and results; futures trading involves substantial risk of loss; "
+                "past performance is not indicative of future results; and I participate at my own risk.",
                 key="signup_agree",
             )
             submitted = st.form_submit_button(
@@ -613,10 +613,13 @@ Then the full desk is yours.
                     st.error(msg)
 
     st.markdown("---")
+    from config import DISCLAIMER_CAPTION
+
     st.caption(
-        f"CPRP Trading Strategies · Session Micro Range Selector Tool  \n"
+        f"CPRP Strategies · Session Micro Range Selector Tool  \n"
         f"Accounts use email + password (hashed). After signup, choose a custom username.  \n"
-        f"Not financial advice. © {CREATOR}."
+        f"{DISCLAIMER_CAPTION}  \n"
+        f"© {CREATOR}."
     )
     return False
 

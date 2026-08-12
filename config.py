@@ -214,6 +214,20 @@ By using CPRP materials or joining the conversation, you accept full responsibil
 Founder, CPRP Strategies
 """.strip()
 
+# Short line for captions/footers — always points to the official Acknowledgement & Disclosure
+DISCLAIMER_SHORT = (
+    "**Acknowledgement & Disclosure:** Not personalized financial, investment, or trading advice. "
+    "You own your decisions, risk, and results. Futures trading involves substantial risk of loss "
+    "and is not suitable for everyone. Past performance is not indicative of future results. "
+    "See full Acknowledgement & Disclosure on this site."
+)
+# One-line caption variant (no markdown bold for st.caption contexts that need plain text)
+DISCLAIMER_CAPTION = (
+    "Acknowledgement & Disclosure: not personalized financial, investment, or trading advice. "
+    "You own your decisions, risk, and results. Futures trading involves substantial risk of loss. "
+    "Past performance is not indicative of future results."
+)
+
 DISCLOSURE_THIRD_PARTY_TITLE = "Third-Party Tools, Free Sources & No Partnerships"
 DISCLOSURE_THIRD_PARTY_BODY = """
 **CPRP Strategies** stands alone. We are not owned by, sponsored by, or partnered with any broker, data vendor, news network, calendar site, or platform — even when we link or embed their free tools for convenience.

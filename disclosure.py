@@ -5,6 +5,8 @@ from __future__ import annotations
 import streamlit as st
 
 from config import (
+    DISCLAIMER_CAPTION,
+    DISCLAIMER_SHORT,
     DISCLOSURE_BODY,
     DISCLOSURE_THIRD_PARTY_BODY,
     DISCLOSURE_THIRD_PARTY_TITLE,
@@ -31,12 +33,17 @@ def render_third_party_disclosure(*, expanded: bool = False) -> None:
 
 
 def render_disclosure_footer() -> None:
-    """Short always-visible footer line + full disclosures."""
+    """Always-visible Acknowledgement & Disclosure line + full disclosure panels."""
     st.markdown("---")
+    st.markdown(DISCLAIMER_SHORT)
     st.caption(
-        "Not financial advice. Futures trading involves substantial risk of loss. "
         "Free third-party tools (if any) are not partnerships. "
-        "Expand the 📂 / 📄 disclosure panels below for full legal text."
+        "Expand the disclosure panels below for the full legal text."
     )
     render_disclosure(expanded=False)
     render_third_party_disclosure(expanded=False)
+
+
+def disclaimer_caption() -> str:
+    """Plain-text Acknowledgement & Disclosure for captions."""
+    return DISCLAIMER_CAPTION

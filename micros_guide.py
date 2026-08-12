@@ -508,5 +508,6 @@ $ / point). Live values on this page use the same delayed Yahoo feed as the Sess
     st.caption(
         f"Educational content for {PROTOCOL_SHORT} members. "
         f"CME multipliers: MES $5/pt · MNQ $2/pt · MYM $0.50/pt. "
-        f"Live tape: Yahoo Finance (delayed). © {CREATOR}. Not financial advice."
+        f"Live tape: Yahoo Finance (delayed). © {CREATOR}. "
+        "See Acknowledgement & Disclosure."
     )

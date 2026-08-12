@@ -197,7 +197,7 @@ def render_community_panel() -> None:
     display = current_display_name() or "Member"
     page_hero(
         "Community",
-        "Member idea board · structure notes & charts · respect first — never personalized advice",
+        "Member idea board · structure notes & charts · respect first · see Acknowledgement & Disclosure",
         side="bull",
         desk_tag="IDEA DESK · MEMBER BOARD",
     )
