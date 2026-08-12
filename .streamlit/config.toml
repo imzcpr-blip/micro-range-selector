@@ -7,9 +7,9 @@ gatherUsageStats = false
 
 [theme]
 base = "dark"
-# Old-school brokerage desk: deep mahogany-navy + brass gold
+# Retro day-trader floor: mahogany pit + brass gold + amber CRT
 primaryColor = "#C9A84C"
-backgroundColor = "#080b12"
+backgroundColor = "#080a0c"
 secondaryBackgroundColor = "#14100a"
-textColor = "#e8e4d8"
-font = "sans serif"
+textColor = "#e8e0cc"
+font = "monospace"

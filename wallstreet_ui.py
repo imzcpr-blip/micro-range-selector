@@ -1,9 +1,9 @@
 """
 Wall Street market theme for CPRP Streamlit app.
 
-Old-school stock-exchange / brokerage-firm desk aesthetic, aligned to CPRP branding:
-  Deep mahogany-navy wood · Brass gold (#C9A84C / #D4AF37) · Amber ticker LEDs · Steel silver.
-Classic letterhead serif + ticker mono. Trading-booth panels, brass plaques, floor tape.
+Retro day-trader / stock-exchange floor aesthetic, aligned to CPRP branding:
+  Mahogany pit desk · Brass rails · Amber CRT quote boards · Green phosphor ticks ·
+  Scanlines · Exchange floor tape · Order-ticket panels.
 """
 
 from __future__ import annotations
@@ -28,66 +28,97 @@ WS_CSS = """
 @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0,0&display=swap');
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   OLD-SCHOOL WALL STREET BROKERAGE FIRM
-   Mahogany desk · Brass rails · Amber quote boards · Floor tape
+   RETRO WALL STREET DAY-TRADER FLOOR
+   Pit desk · CRT quote boards · Amber LEDs · Scanlines · Order tickets
    ═══════════════════════════════════════════════════════════════════════════ */
 
-/* ── Base canvas — dark wood trading floor ─────────────────────────────── */
+/* ── Base canvas — exchange floor + CRT glow ───────────────────────────── */
 html, body, [data-testid="stAppViewContainer"], .stApp {
   background:
-    /* subtle wood grain stripes */
+    /* CRT horizontal scanlines */
+    repeating-linear-gradient(
+      0deg,
+      transparent 0px,
+      transparent 2px,
+      rgba(0,0,0,0.12) 2px,
+      rgba(0,0,0,0.12) 3px
+    ),
+    /* wood grain */
     repeating-linear-gradient(
       90deg,
-      rgba(0,0,0,0.04) 0px,
-      rgba(0,0,0,0.04) 1px,
+      rgba(0,0,0,0.05) 0px,
+      rgba(0,0,0,0.05) 1px,
       transparent 1px,
-      transparent 7px
+      transparent 8px
     ),
-    radial-gradient(1100px 520px at 6% -6%, rgba(201,168,76,0.10) 0%, transparent 52%),
-    radial-gradient(900px 480px at 100% 0%, rgba(80,40,12,0.18) 0%, transparent 48%),
-    radial-gradient(800px 600px at 50% 120%, rgba(12,28,20,0.25) 0%, transparent 55%),
-    linear-gradient(180deg, #0a0e16 0%, #080c14 40%, #060910 100%) !important;
-  color: #e8e4d8 !important;
-  font-family: 'IBM Plex Sans', 'Segoe UI', system-ui, sans-serif !important;
+    radial-gradient(1000px 480px at 8% -4%, rgba(240,193,75,0.09) 0%, transparent 50%),
+    radial-gradient(900px 500px at 100% 0%, rgba(61,40,12,0.22) 0%, transparent 48%),
+    radial-gradient(700px 400px at 50% 100%, rgba(8,40,24,0.18) 0%, transparent 55%),
+    linear-gradient(180deg, #0c0a08 0%, #080a10 35%, #050608 100%) !important;
+  color: #e8e0cc !important;
+  font-family: 'IBM Plex Mono', 'IBM Plex Sans', ui-monospace, system-ui, sans-serif !important;
+}
+
+/* Soft vignette over main app (day-trader booth) */
+[data-testid="stAppViewContainer"]::before {
+  content: "";
+  pointer-events: none;
+  position: fixed;
+  inset: 0;
+  z-index: 9998;
+  background: radial-gradient(ellipse at center, transparent 55%, rgba(0,0,0,0.35) 100%);
 }
 
 [data-testid="stHeader"] {
-  background: linear-gradient(180deg, #12100c 0%, #0a0c12 100%) !important;
-  border-bottom: 2px solid #C9A84C !important;
-  box-shadow: 0 2px 0 rgba(232,213,163,0.15), 0 4px 18px rgba(0,0,0,0.55);
+  background: linear-gradient(180deg, #1a140c 0%, #0a0c10 100%) !important;
+  border-bottom: 3px double #C9A84C !important;
+  box-shadow: 0 2px 0 rgba(232,213,163,0.2), 0 6px 20px rgba(0,0,0,0.65);
 }
 
-/* Main content — desk blotter inset */
+/* Main content — blotter pad with brass left rail */
+[data-testid="stMain"] {
+  background: transparent !important;
+}
 [data-testid="stMain"] > div {
-  border-left: 1px solid rgba(201,168,76,0.08);
+  border-left: 3px double rgba(201,168,76,0.35);
+  padding-left: 0.25rem;
+  box-shadow: inset 8px 0 24px rgba(0,0,0,0.25);
 }
 
-/* ── Sidebar — member booth / order ticket stand ──────────────────────── */
+/* ── Sidebar — order-ticket booth / pit station ───────────────────────── */
 [data-testid="stSidebar"] {
   background:
+    repeating-linear-gradient(
+      0deg,
+      transparent 0px,
+      transparent 3px,
+      rgba(0,0,0,0.08) 3px,
+      rgba(0,0,0,0.08) 4px
+    ),
     linear-gradient(180deg,
-      #14100a 0%,
-      #0c1018 18%,
-      #0a0e16 55%,
-      #080b12 100%) !important;
-  border-right: 3px double #C9A84C !important;
-  box-shadow: inset -8px 0 24px rgba(0,0,0,0.45), 4px 0 20px rgba(0,0,0,0.4);
-  font-family: 'IBM Plex Sans', system-ui, sans-serif !important;
+      #1a1208 0%,
+      #100e0a 20%,
+      #0a0c10 55%,
+      #06080c 100%) !important;
+  border-right: 4px double #C9A84C !important;
+  box-shadow: inset -10px 0 28px rgba(0,0,0,0.55), 6px 0 24px rgba(0,0,0,0.5);
+  font-family: 'IBM Plex Mono', system-ui, sans-serif !important;
 }
 [data-testid="stSidebar"]::before {
-  content: "CPRP · MEMBER FIRM DESK";
+  content: "▼ CPRP · DAY TRADER DESK · MICROS";
   display: block;
   text-align: center;
   font-family: 'Cinzel', 'Times New Roman', serif !important;
-  font-size: 0.62rem;
-  font-weight: 600;
-  letter-spacing: 0.18em;
-  color: #C9A84C;
-  padding: 0.55rem 0.4rem 0.45rem;
-  margin: 0 0 0.35rem 0;
-  border-bottom: 1px solid rgba(201,168,76,0.35);
-  background: linear-gradient(180deg, rgba(201,168,76,0.12), transparent);
-  text-shadow: 0 1px 0 rgba(0,0,0,0.6);
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  color: #F0C14B;
+  padding: 0.6rem 0.35rem 0.5rem;
+  margin: 0 0 0.4rem 0;
+  border-bottom: 2px solid rgba(201,168,76,0.45);
+  background:
+    linear-gradient(180deg, rgba(201,168,76,0.18), rgba(10,12,16,0.9));
+  text-shadow: 0 0 10px rgba(240,193,75,0.35), 0 1px 0 rgba(0,0,0,0.8);
 }
 /*
   Apply brand font carefully. Never override Material Symbols / icon spans —
@@ -105,17 +136,22 @@ html, body, [data-testid="stAppViewContainer"], .stApp {
   font-family: 'IBM Plex Sans', system-ui, sans-serif !important;
 }
 [data-testid="stSidebar"] .stRadio label {
-  padding: 0.48rem 0.6rem !important;
-  margin: 0.12rem 0 !important;
-  border-radius: 2px !important;
-  border-left: 3px solid transparent !important;
-  border-bottom: 1px solid rgba(201,168,76,0.06) !important;
-  transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
-  background: rgba(8,12,20,0.35);
+  padding: 0.5rem 0.55rem !important;
+  margin: 0.1rem 0 !important;
+  border-radius: 0 !important;
+  border-left: 4px solid transparent !important;
+  border-bottom: 1px dashed rgba(201,168,76,0.12) !important;
+  transition: background 0.12s ease, border-color 0.12s ease, box-shadow 0.12s ease;
+  background: rgba(6,8,12,0.55);
+  font-family: 'IBM Plex Mono', monospace !important;
+  font-size: 0.84rem !important;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
 }
 [data-testid="stSidebar"] .stRadio label:hover {
-  background: rgba(201,168,76,0.08) !important;
-  box-shadow: inset 0 0 0 1px rgba(201,168,76,0.18);
+  background: rgba(240,193,75,0.1) !important;
+  box-shadow: inset 0 0 0 1px rgba(201,168,76,0.28);
+  color: #F0C14B !important;
 }
 [data-testid="stSidebar"] .stRadio > div > label:nth-child(odd) {
   border-left-color: #C9A84C !important;
@@ -152,51 +188,52 @@ code, .stCaption, [data-testid="stCaption"] {
   letter-spacing: 0.02em;
 }
 
-/* ── Cards / containers — glass trading booths ────────────────────────── */
+/* ── Cards / containers — pit booth frames ────────────────────────────── */
 div[data-testid="stVerticalBlockBorderWrapper"] {
   background:
-    linear-gradient(180deg, rgba(22,18,12,0.92), rgba(10,14,22,0.95)) !important;
-  border: 1px solid rgba(201, 168, 76, 0.28) !important;
-  outline: 1px solid rgba(201, 168, 76, 0.10);
+    linear-gradient(180deg, rgba(26,20,12,0.96), rgba(8,10,14,0.98)) !important;
+  border: 2px solid rgba(201, 168, 76, 0.35) !important;
+  outline: 1px solid rgba(0, 0, 0, 0.5);
   outline-offset: 2px;
-  border-radius: 4px !important;
+  border-radius: 0 !important;
   box-shadow:
-    inset 0 1px 0 rgba(232,213,163,0.08),
-    inset 0 0 40px rgba(0,0,0,0.25),
-    0 8px 28px rgba(0,0,0,0.45);
+    inset 0 1px 0 rgba(232,213,163,0.1),
+    inset 0 0 40px rgba(0,0,0,0.3),
+    0 8px 28px rgba(0,0,0,0.5);
 }
 
-/* ── Expanders as brass-framed desk panels ────────────────────────────── */
+/* ── Expanders — trading-booth / pit panels ───────────────────────────── */
 [data-testid="stExpander"] {
   background:
-    linear-gradient(180deg, rgba(24,20,14,0.98) 0%, rgba(10,14,22,0.99) 100%) !important;
-  border: 1px solid rgba(201, 168, 76, 0.32) !important;
-  border-radius: 3px !important;
-  margin-bottom: 0.7rem !important;
+    linear-gradient(180deg, rgba(28,22,12,0.99) 0%, rgba(8,10,14,0.99) 100%) !important;
+  border: 2px solid rgba(201, 168, 76, 0.4) !important;
+  border-radius: 0 !important;
+  margin-bottom: 0.75rem !important;
   overflow: visible;
   box-shadow:
-    inset 0 1px 0 rgba(232,213,163,0.07),
-    0 0 0 1px rgba(0,0,0,0.5),
-    0 6px 20px rgba(0,0,0,0.4);
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    inset 0 1px 0 rgba(232,213,163,0.1),
+    inset 0 0 0 1px rgba(0,0,0,0.5),
+    0 0 0 1px rgba(0,0,0,0.7),
+    0 8px 22px rgba(0,0,0,0.5);
+  transition: border-color 0.12s ease, box-shadow 0.12s ease;
 }
 [data-testid="stExpander"] summary,
 [data-testid="stExpander"] details summary,
 [data-testid="stExpander"] > details > summary {
-  font-weight: 600 !important;
+  font-weight: 700 !important;
   font-family: 'IBM Plex Mono', monospace !important;
-  font-size: 0.88rem !important;
-  letter-spacing: 0.05em;
+  font-size: 0.82rem !important;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  padding: 0.72rem 0.95rem !important;
+  padding: 0.72rem 0.9rem !important;
   cursor: pointer !important;
-  color: #e8e4d8 !important;
+  color: #f0e6d0 !important;
   list-style: none !important;
   display: flex !important;
   align-items: center !important;
   gap: 0.4rem !important;
-  background: linear-gradient(180deg, rgba(201,168,76,0.08), transparent 70%);
-  border-bottom: 1px solid rgba(201,168,76,0.12);
+  background: linear-gradient(180deg, rgba(201,168,76,0.14), transparent 75%);
+  border-bottom: 1px solid rgba(201,168,76,0.22);
 }
 [data-testid="stExpander"] summary:hover {
   background: linear-gradient(180deg, rgba(201,168,76,0.16), rgba(201,168,76,0.04)) !important;
@@ -283,66 +320,79 @@ div[data-testid="stVerticalBlockBorderWrapper"] {
   background: linear-gradient(90deg, rgba(139,155,180,0.14), transparent 55%);
 }
 
-/* ── Primary / secondary buttons — brass desk CTAs ────────────────────── */
+/* ── Buttons — pit ticket punch / brass CTA ───────────────────────────── */
 .stButton > button[kind="primary"],
 .stButton > button[data-testid="baseButton-primary"] {
-  background: linear-gradient(180deg, #E0C060 0%, #C9A84C 42%, #8B7329 100%) !important;
-  border: 1px solid #E8D5A3 !important;
-  color: #1a1408 !important;
-  font-weight: 700 !important;
-  font-family: 'Cinzel', serif !important;
-  letter-spacing: 0.06em !important;
+  background: linear-gradient(180deg, #E8C860 0%, #C9A84C 40%, #8B7329 100%) !important;
+  border: 2px solid #E8D5A3 !important;
+  color: #120e06 !important;
+  font-weight: 800 !important;
+  font-family: 'IBM Plex Mono', monospace !important;
+  letter-spacing: 0.1em !important;
   text-transform: uppercase;
-  font-size: 0.82rem !important;
-  border-radius: 2px !important;
+  font-size: 0.8rem !important;
+  border-radius: 0 !important;
   box-shadow:
-    0 1px 0 rgba(255,255,255,0.25) inset,
-    0 -1px 0 rgba(0,0,0,0.25) inset,
-    0 4px 12px rgba(201,168,76,0.28);
+    0 1px 0 rgba(255,255,255,0.3) inset,
+    0 -2px 0 rgba(0,0,0,0.3) inset,
+    0 0 16px rgba(201,168,76,0.2),
+    0 4px 12px rgba(0,0,0,0.4);
 }
 .stButton > button[kind="primary"]:hover,
 .stButton > button[data-testid="baseButton-primary"]:hover {
-  filter: brightness(1.06);
-  box-shadow: 0 0 0 1px #E8D5A3, 0 6px 18px rgba(201,168,76,0.35);
+  filter: brightness(1.08);
+  box-shadow: 0 0 0 1px #F0C14B, 0 0 18px rgba(240,193,75,0.35);
 }
 .stButton > button[kind="secondary"],
 .stButton > button {
-  border-radius: 2px !important;
-  border: 1px solid rgba(201,168,76,0.4) !important;
-  background: linear-gradient(180deg, rgba(30,26,18,0.98), rgba(12,16,24,0.98)) !important;
-  color: #e8e4d8 !important;
+  border-radius: 0 !important;
+  border: 1px solid rgba(201,168,76,0.45) !important;
+  background: linear-gradient(180deg, rgba(32,26,16,0.98), rgba(10,12,16,0.98)) !important;
+  color: #e8e0cc !important;
   font-family: 'IBM Plex Mono', monospace !important;
-  letter-spacing: 0.03em;
-  box-shadow: inset 0 1px 0 rgba(232,213,163,0.06);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-size: 0.78rem !important;
+  box-shadow: inset 0 1px 0 rgba(232,213,163,0.08);
 }
 .stButton > button:hover {
-  border-color: rgba(201, 168, 76, 0.75) !important;
-  color: #E8D5A3 !important;
+  border-color: rgba(240, 193, 75, 0.85) !important;
+  color: #F0C14B !important;
 }
 
-/* ── Metrics — amber quote board tiles ────────────────────────────────── */
+/* ── Metrics — amber CRT quote tiles ──────────────────────────────────── */
 [data-testid="stMetric"] {
   background:
-    linear-gradient(180deg, #0c1008 0%, #080c10 100%);
-  border: 1px solid rgba(240, 193, 75, 0.28);
-  border-radius: 2px;
-  padding: 0.55rem 0.8rem;
+    repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0,0,0,0.15) 2px,
+      rgba(0,0,0,0.15) 3px
+    ),
+    linear-gradient(180deg, #0a1208 0%, #060a08 100%);
+  border: 2px solid rgba(240, 193, 75, 0.4);
+  border-radius: 0;
+  padding: 0.55rem 0.75rem;
   box-shadow:
-    inset 0 0 20px rgba(240,193,75,0.04),
-    0 0 0 1px rgba(0,0,0,0.4);
+    inset 0 0 24px rgba(240,193,75,0.06),
+    inset 0 0 0 1px rgba(0,0,0,0.6),
+    0 0 12px rgba(240,193,75,0.08),
+    0 4px 14px rgba(0,0,0,0.45);
 }
 [data-testid="stMetricLabel"] {
   font-family: 'IBM Plex Mono', monospace !important;
-  font-size: 0.72rem !important;
-  letter-spacing: 0.08em !important;
+  font-size: 0.68rem !important;
+  letter-spacing: 0.12em !important;
   text-transform: uppercase !important;
-  color: #8B9BB4 !important;
+  color: #7a9070 !important;
 }
 [data-testid="stMetricValue"] {
   font-family: 'IBM Plex Mono', monospace !important;
   color: #F0C14B !important;
-  text-shadow: 0 0 12px rgba(240,193,75,0.25);
-  font-weight: 600 !important;
+  text-shadow: 0 0 14px rgba(240,193,75,0.45), 0 0 2px rgba(240,193,75,0.8);
+  font-weight: 700 !important;
+  letter-spacing: 0.04em;
 }
 [data-testid="stMetricDelta"] {
   font-family: 'IBM Plex Mono', monospace !important;
@@ -395,6 +445,26 @@ button[data-baseweb="tab"][aria-selected="true"] {
 /* ═══════════════════════════════════════════════════════════════════════
    FLOOR TAPE — classic stock-exchange LED ticker board
    ═══════════════════════════════════════════════════════════════════════ */
+/* Success / warning / error — pit status lights */
+div[data-testid="stAlert"] {
+  border-radius: 0 !important;
+  border-left-width: 5px !important;
+  font-family: 'IBM Plex Mono', monospace !important;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.35);
+}
+
+/* Progress bars — amber fill like old quote boards */
+[data-testid="stProgress"] > div > div {
+  background: linear-gradient(90deg, #8B7329, #F0C14B) !important;
+}
+
+/* Checkboxes / radio in main — ticket style */
+[data-testid="stCheckbox"] label,
+[data-testid="stRadio"] label {
+  font-family: 'IBM Plex Mono', monospace !important;
+  letter-spacing: 0.02em;
+}
+
 .ws-tape-wrap {
   margin: 0 0 1.1rem 0;
   border: 2px solid #C9A84C;
@@ -494,11 +564,11 @@ button[data-baseweb="tab"][aria-selected="true"] {
   margin-bottom: 1.15rem;
   background:
     linear-gradient(145deg,
-      rgba(36,30,18,0.98) 0%,
-      rgba(16,20,28,0.98) 48%,
-      rgba(12,14,20,0.99) 100%);
-  border: 2px solid #C9A84C;
-  border-radius: 2px;
+      rgba(40,32,16,0.99) 0%,
+      rgba(14,16,20,0.99) 48%,
+      rgba(8,10,12,0.99) 100%);
+  border: 3px double #C9A84C;
+  border-radius: 0;
   box-shadow:
     inset 0 1px 0 rgba(232,213,163,0.2),
     inset 0 -1px 0 rgba(0,0,0,0.35),
@@ -797,7 +867,7 @@ _EMOJI_PREFIXES = (
 
 
 def inject_wallstreet_theme() -> None:
-    """Inject global old-school brokerage CSS + candle expander colorizer once per run."""
+    """Inject global retro day-trader floor CSS + candle expander colorizer once per run."""
     st.markdown(WS_CSS, unsafe_allow_html=True)
     # Tiny zero-height component so JS can reach parent DOM expanders
     components.html(_CANDLE_COLORIZER_JS, height=0)
@@ -828,20 +898,22 @@ def market_tape(
     """Top-of-page stock-exchange LED ticker board (scrolling floor tape)."""
     # Duplicate track for seamless marquee loop
     segment = f"""
-  <span class="sym">{protocol}</span><span class="sep">◆</span>
+  <span class="sym">{protocol} STRATEGIES</span><span class="sep">◆</span>
+  <span class="label">DAY TRADER DESK</span><span class="sep">◆</span>
   <span class="label">RULEBOOK</span> <span class="bull">v{version}</span><span class="sep">◆</span>
   <span class="sym">{instruments}</span><span class="sep">◆</span>
   <span class="label">HARD RISK</span> <span class="bear">{risk}</span><span class="sep">◆</span>
-  <span class="label">DESK</span> <span class="sym">MICROS ONLY</span><span class="sep">◆</span>
-  <span class="label">FLOOR</span> <span class="bull">RANGE REVERSION</span><span class="sep">◆</span>
-  <span class="label">SESSION</span> <span class="sym">MEMBER FIRM</span><span class="sep">◆</span>
+  <span class="label">PRIMARY</span> <span class="bull">RANGE REVERSION</span><span class="sep">◆</span>
+  <span class="label">SECONDARY</span> <span class="sym">SCALPING</span><span class="sep">◆</span>
+  <span class="label">MICROS ONLY</span><span class="sep">◆</span>
+  <span class="label">FLOOR OPEN</span> <span class="bull">LIVE</span><span class="sep">◆</span>
 """
     st.markdown(
         f"""
 <div class="ws-tape-wrap">
   <div class="ws-tape-head">
-    <span><span class="live-dot"></span>Exchange Floor Tape · Live Desk</span>
-    <span>CPRP Strategies · Established Desk</span>
+    <span><span class="live-dot"></span>NYSE-STYLE FLOOR TAPE · DAY TRADER DESK</span>
+    <span>CPRP STRATEGIES · MICRO E-MINI FUTURES</span>
   </div>
   <div class="ws-tape">
     <div class="ws-tape-track">
@@ -860,9 +932,9 @@ def page_hero(
     subtitle: str = "",
     *,
     side: CandleSide = "bull",
-    desk_tag: str = "CPRP TRADING DESK",
+    desk_tag: str = "CPRP DAY TRADER DESK",
 ) -> None:
-    """Brass nameplate page header — classic brokerage firm letterhead."""
+    """Brass nameplate page header — retro exchange-floor letterhead."""
     edge = "bear-edge" if side == "bear" else ""
     mark = "bear" if side == "bear" else "bull"
     sub_html = f'<p class="sub">{subtitle}</p>' if subtitle else ""

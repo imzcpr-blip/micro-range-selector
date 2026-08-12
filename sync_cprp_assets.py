@@ -53,6 +53,22 @@ DOC_RULES: list[tuple[str, str, str]] = [
         "CPRP_Quick_Reference_legacy",
         "quick_ref_legacy",
     ),
+    # CPRP Scalping (secondary strategy) docs
+    (
+        r"(?i)CPRP_Scalping_Official_Rulebook_v?(\d+\.\d+)\.pdf$",
+        "CPRP_Scalping_Official_Rulebook",
+        "scalping_rulebook",
+    ),
+    (
+        r"(?i)CPRP_Scalping_Quick_Reference_v?(\d+\.\d+)\.pdf$",
+        "CPRP_Scalping_Quick_Reference",
+        "scalping_quick_ref_pdf",
+    ),
+    (
+        r"(?i)CPRP_Scalping_Quick_Reference_v?(\d+\.\d+)\.jpe?g$",
+        "CPRP_Scalping_Quick_Reference",
+        "scalping_quick_ref_img",
+    ),
 ]
 
 # Branding files to copy (source name under CPRP_Branding or roots → dest name)
@@ -325,6 +341,41 @@ def sync_documents(search_roots: list[Path] | None = None, report: SyncReport | 
         _copy_if_newer(path, DOCS_DIR / dest_name, report)
     else:
         report.missing.append("Official Rulebook base PDF")
+
+    # CPRP Scalping secondary strategy docs
+    if "scalping_rulebook" in latest:
+        path, ver = latest["scalping_rulebook"]
+        dest_name = (
+            f"CPRP_Scalping_Official_Rulebook_v{ver}.pdf" if ver else path.name
+        )
+        _copy_if_newer(path, ASSETS / dest_name, report)
+        _copy_if_newer(path, DOCS_DIR / dest_name, report)
+    else:
+        report.missing.append("CPRP Scalping Official Rulebook PDF")
+
+    if "scalping_quick_ref_pdf" in latest:
+        path, ver = latest["scalping_quick_ref_pdf"]
+        dest_name = (
+            f"CPRP_Scalping_Quick_Reference_v{ver}.pdf" if ver else path.name
+        )
+        _copy_if_newer(path, ASSETS / dest_name, report)
+        _copy_if_newer(path, DOCS_DIR / dest_name, report)
+        # Preview JPG when missing
+        jpg_dest = ASSETS / (
+            f"CPRP_Scalping_Quick_Reference_v{ver}.jpg" if ver else "CPRP_Scalping_Quick_Reference.jpg"
+        )
+        if not jpg_dest.is_file() or _newer(path, jpg_dest):
+            if _render_pdf_preview(path, jpg_dest, report):
+                report.copied.append(f"(rendered) {jpg_dest.name}")
+    else:
+        report.missing.append("CPRP Scalping Quick Reference PDF")
+
+    if "scalping_quick_ref_img" in latest:
+        path, ver = latest["scalping_quick_ref_img"]
+        dest_name = (
+            f"CPRP_Scalping_Quick_Reference_v{ver}.jpg" if ver else path.name
+        )
+        _copy_if_newer(path, ASSETS / dest_name, report)
 
     return report
 

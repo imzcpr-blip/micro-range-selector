@@ -224,7 +224,8 @@ if not render_loop_media(
 ):
     pass
 st.sidebar.markdown("### CPRP Strategies")
-st.sidebar.caption(f"Rulebook v{RULEBOOK_VERSION} · {CREATOR}")
+st.sidebar.caption(f"Day Trader Desk · Rulebook v{RULEBOOK_VERSION}")
+st.sidebar.caption(f"{CREATOR}")
 
 # Icon legend — explains nav / panel emoji meanings (desk-style mini panel)
 with st.sidebar.expander("Icon legend", expanded=False):
@@ -1063,6 +1064,46 @@ if _rb_base.is_file():
         mime="application/pdf",
         use_container_width=True,
         key="sidebar_rulebook_base_pdf",
+    )
+
+# CPRP Scalping documents (secondary strategy)
+st.sidebar.markdown("##### CPRP Scalping docs")
+st.sidebar.caption(
+    f"Secondary 1m Keltner protocol · v{_cprp_cfg.SCALPING_VERSION}"
+)
+_scalp_qr_pdf = Path(_cprp_cfg.SCALPING_QUICK_REFERENCE_PDF)
+_scalp_qr_img = Path(_cprp_cfg.SCALPING_QUICK_REFERENCE_IMAGE)
+_scalp_rb_pdf = Path(_cprp_cfg.SCALPING_RULEBOOK_PDF)
+if _scalp_qr_pdf.is_file():
+    st.sidebar.download_button(
+        label="📄 Scalping Quick Reference (PDF)",
+        data=_scalp_qr_pdf.read_bytes(),
+        file_name=_cprp_cfg.SCALPING_QUICK_REFERENCE_DOWNLOAD_NAME,
+        mime="application/pdf",
+        use_container_width=True,
+        key="sidebar_scalp_qr_pdf",
+    )
+if _scalp_qr_img.is_file():
+    st.sidebar.download_button(
+        label="📃 Scalping QR card (JPG)",
+        data=_scalp_qr_img.read_bytes(),
+        file_name=f"CPRP_Scalping_Quick_Reference_v{_cprp_cfg.SCALPING_VERSION}.jpg",
+        mime="image/jpeg",
+        use_container_width=True,
+        key="sidebar_scalp_qr_jpg",
+    )
+if _scalp_rb_pdf.is_file():
+    st.sidebar.download_button(
+        label="📂 Scalping Official Rulebook (PDF)",
+        data=_scalp_rb_pdf.read_bytes(),
+        file_name=_cprp_cfg.SCALPING_RULEBOOK_DOWNLOAD_NAME,
+        mime="application/pdf",
+        use_container_width=True,
+        key="sidebar_scalp_rulebook_pdf",
+    )
+if not (_scalp_qr_pdf.is_file() or _scalp_rb_pdf.is_file()):
+    st.sidebar.caption(
+        "Scalping docs missing — run **Sync docs** (Founder) or re-deploy assets."
     )
 
 st.sidebar.markdown("---")
