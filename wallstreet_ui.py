@@ -821,7 +821,7 @@ def link_label(text: str) -> str:
 def market_tape(
     *,
     protocol: str = "CPRP",
-    version: str = "1.5",
+    version: str = "1.6",
     instruments: str = "MES · MNQ · MYM",
     risk: str = "−$50 / −$100",
 ) -> None:

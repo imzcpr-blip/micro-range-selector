@@ -1,14 +1,14 @@
 """
 Score MES / MNQ / MYM for Cooper Precision Reversion Protocol (CPRP) session suitability.
 
-Scoring maps to Official Rulebook v1.5 (Final):
-  §2 Instruments & chart setup — micros only; two chart pairs only; static 1H context
+Scoring maps to Official Rulebook v1.6:
+  §2 Instruments & chart setup — micros only; multi-TF hierarchy; two pairs; static 60m bias
   §3 Structure definition      — confirmed S/R range OR channel (≥2 touches each side)
-  §4 Entry rules               — confirmation hierarchy: S/R → PA → volume → RSI (v1.5)
-  §5 Risk & exits              — range/channel geometry vs −$50 to −$100 hard stop;
-                               structure-break → flatten + 30-min pause (or new clear range)
-  §6 Pre-trade checklist       — full confluence required
-  §7 Operational discipline    — prefer MES; quality over frequency (v1.5)
+  §4 Order flow                — Bid/Ask power on platform (not scored from Yahoo OHLC)
+  §5 Entry rules               — S/R → PA → volume → order flow → RSI (v1.6)
+  §6 Risk & exits              — geometry vs −$50 to −$100 hard stop; 30-min structure-break pause
+  §7 Pre-trade checklist       — 9 items; full confluence required
+  §8 Operational discipline    — prefer MES; quality over frequency; not scalping
 """
 
 from __future__ import annotations
@@ -129,7 +129,7 @@ def _session_phase(now: Optional[datetime] = None) -> str:
 
 
 def suggest_chart_pair(phase: str, range_width_usd: float, volume_ratio: float) -> str:
-    """Rulebook §2 + v1.5 chart-pair hierarchy (two pairs only).
+    """Rulebook §2 + v1.6 chart-pair hierarchy (two pairs only · multi-TF).
 
     PRIMARY / DEFAULT:  15m structure + 5m execution
     LARGER / SLOWER:    30m structure + 15m execution
@@ -359,9 +359,10 @@ def score_instrument(
     else:
         rejection = float(np.clip((max(upper_wick, lower_wick) / bar_range) * 70, 0, 70))
 
-    # --- RSI filter (§4 / v1.5): secondary confirmation; prefer divergence at S/R ---
-    # Absolute 70/30 is not a mandatory hard gate. Full entry still needs S/R + PA + volume.
-    # Hierarchy: confirmed S/R → price action → volume → RSI.
+    # --- RSI filter (§5 / v1.6): secondary confirmation; prefer divergence at S/R ---
+    # Elevated RSI that *stays* high often = strong buying power — do not auto-fade
+    # solely because the reading is overbought. Absolute 70/30 is not a hard gate.
+    # Full entry still needs S/R + PA + volume + order flow (platform) + RSI.
     rsi = _rsi(look["Close"]).iloc[-1]
     rsi_val = float(rsi) if not np.isnan(rsi) else 50.0
     rsi_score = 50.0
@@ -370,16 +371,16 @@ def score_instrument(
         if rsi_val >= 70 or rsi_val <= 30:
             rsi_score = 30.0
             warnings.append(
-                f"RSI extreme ({rsi_val:.0f}) while mid-range — wait for boundary + PA + volume (v1.5)"
+                f"RSI extreme ({rsi_val:.0f}) while mid-range — wait for boundary + PA + volume + order flow (v1.6)"
             )
         else:
             rsi_score = 40.0
     # Long at support: prefer oversold / recovery; warn if strongly opposing (not hard fail)
     elif pos <= 0.25:
         if rsi_val >= 70:
-            rsi_score = 35.0
+            rsi_score = 40.0  # v1.6: elevated RSI can still be strength — softer penalty
             warnings.append(
-                f"RSI overbought ({rsi_val:.0f}) at support — low-quality long confluence (v1.5)"
+                f"RSI elevated ({rsi_val:.0f}) at support — confirm bid defense / OF; not auto-fade (v1.6)"
             )
         elif rsi_val <= 35:
             rsi_score = 90.0
@@ -389,16 +390,28 @@ def score_instrument(
             reasons.append(f"RSI not opposing long at support ({rsi_val:.0f})")
         else:
             rsi_score = 50.0
-    # Short at resistance: prefer overbought / fade; warn if strongly opposing
+    # Short at resistance: do NOT treat high RSI alone as a short green light (v1.6 strength)
     elif pos >= 0.75:
         if rsi_val <= 30:
             rsi_score = 35.0
             warnings.append(
-                f"RSI oversold ({rsi_val:.0f}) at resistance — low-quality short confluence (v1.5)"
+                f"RSI oversold ({rsi_val:.0f}) at resistance — low-quality short confluence (v1.6)"
             )
-        elif rsi_val >= 65:
-            rsi_score = 90.0
-            reasons.append(f"RSI favorable at resistance ({rsi_val:.0f}) — overbought / fade zone")
+        elif rsi_val >= 70:
+            # Elevated + still at highs often = buying power still in control
+            rsi_score = 45.0
+            warnings.append(
+                f"RSI elevated ({rsi_val:.0f}) at resistance — may still be strength; "
+                "need OF shift + structure crack before fade (v1.6)"
+            )
+            reasons.append(
+                f"RSI high at resistance ({rsi_val:.0f}) — treat as alert, not standalone short signal"
+            )
+        elif rsi_val >= 55:
+            rsi_score = 65.0
+            reasons.append(
+                f"RSI elevated at resistance ({rsi_val:.0f}) — prefer divergence + ask aggression"
+            )
         elif rsi_val > 45:
             rsi_score = 70.0
             reasons.append(f"RSI not opposing short at resistance ({rsi_val:.0f})")

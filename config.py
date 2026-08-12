@@ -1,7 +1,7 @@
 """Cooper Precision Reversion Protocol (CPRP) — instrument & risk config.
 
-Aligned to Official Rulebook v1.5 (Final) + Quick Reference v1.5
-(Chart Pair Hierarchy Locked — Aug 10, 2026).
+Aligned to Official Rulebook v1.6 + Quick Reference v1.6
+(Multi-Timeframe Hierarchy & Order Flow Clarified — Aug 12, 2026).
 """
 
 from __future__ import annotations
@@ -11,9 +11,9 @@ from pathlib import Path
 
 PROTOCOL_NAME = "Cooper Precision Reversion Protocol"
 PROTOCOL_SHORT = "CPRP"
-RULEBOOK_VERSION = "1.5"
-RULEBOOK_BASE_VERSION = "1.5"  # Official full rulebook edition
-RULEBOOK_EDITION_DATE = "2026-08-10"
+RULEBOOK_VERSION = "1.6"
+RULEBOOK_BASE_VERSION = "1.6"  # Official full rulebook edition
+RULEBOOK_EDITION_DATE = "2026-08-12"
 CREATOR = "Raymon Michael Cooper"
 
 # ONLY this account may see/use the Admin / Founder panel (case-insensitive).
@@ -83,10 +83,11 @@ STATIC_HTF_INTERVAL = "1h"
 STATIC_HTF_PERIOD = "10d"
 STATIC_HTF_ALT_LABEL = "4-Hour (acceptable alternative)"
 
-# Chart pair hierarchy (Rulebook Update v1.5 final)
-# Only two working pairs. No chart lower than 5-minute for structure or execution.
-CHART_PAIR_DEFAULT = "15m + 5m (default / most sessions)"
-CHART_PAIR_SLOW = "30m + 15m (larger / slower / lower volume)"
+# Chart pair hierarchy (Rulebook v1.6 — multi-timeframe hierarchy)
+# 60m = bias · 15m/30m = structure · 5m/15m = timing. Only two working pairs.
+# No chart lower than 5-minute for structure or execution. 5m+1m fully retired.
+CHART_PAIR_DEFAULT = "15m + 5m (default / normal volume · active session)"
+CHART_PAIR_SLOW = "30m + 15m (pre-market · low volume · lunch · wide/choppy)"
 
 # Range/channel-reversion scoring thresholds
 MIN_SCORE_TO_TRADE = 55.0  # below this → "SIT OUT"
@@ -140,8 +141,18 @@ SESSIONS_DIR = _ASSETS / "sessions"
 QUICK_REFERENCE_IMAGE = _ASSETS / f"CPRP_Quick_Reference_v{RULEBOOK_VERSION}.jpg"
 QUICK_REFERENCE_PDF = _ASSETS / f"CPRP_Quick_Reference_v{RULEBOOK_VERSION}.pdf"
 QUICK_REFERENCE_DOWNLOAD_NAME = f"CPRP_Quick_Reference_v{RULEBOOK_VERSION}.jpg"
-RULEBOOK_UPDATE_PDF = _ASSETS / f"CPRP_Rulebook_Update_v{RULEBOOK_VERSION}.pdf"
-RULEBOOK_UPDATE_DOWNLOAD_NAME = f"CPRP_Rulebook_Update_v{RULEBOOK_VERSION}.pdf"
+# v1.6 ships as a full Official Rulebook (no separate Update PDF). Fall back to base.
+_update_candidate = _ASSETS / f"CPRP_Rulebook_Update_v{RULEBOOK_VERSION}.pdf"
+RULEBOOK_UPDATE_PDF = (
+    _update_candidate
+    if _update_candidate.is_file()
+    else _ASSETS / f"CPRP_Official_Rulebook_v{RULEBOOK_BASE_VERSION}.pdf"
+)
+RULEBOOK_UPDATE_DOWNLOAD_NAME = (
+    f"CPRP_Rulebook_Update_v{RULEBOOK_VERSION}.pdf"
+    if _update_candidate.is_file()
+    else f"CPRP_Official_Rulebook_v{RULEBOOK_BASE_VERSION}.pdf"
+)
 RULEBOOK_BASE_PDF = _ASSETS / f"CPRP_Official_Rulebook_v{RULEBOOK_BASE_VERSION}.pdf"
 RULEBOOK_BASE_DOWNLOAD_NAME = f"CPRP_Official_Rulebook_v{RULEBOOK_BASE_VERSION}.pdf"
 

@@ -1,6 +1,6 @@
 """
 Cooper Precision Reversion Protocol (CPRP) — Session Micro Selector
-Official Rulebook v1.5 (Final)
+Official Rulebook v1.6 (Multi-Timeframe Hierarchy & Order Flow)
 
 Run:
   streamlit run app.py
@@ -630,7 +630,7 @@ if page == PAGE_BRANDING:
 - Still images remain available for favicon, downloads, and offline use.
 - Brand name: **{PROTOCOL_NAME} ({PROTOCOL_SHORT})**
 - Founder: **{FOUNDER_NAME}**
-- Rulebook: **Official Rulebook v{RULEBOOK_VERSION} (Final)**
+- Rulebook: **Official Rulebook v{RULEBOOK_VERSION}**
 - Tagline: *Trade the boundaries. Respect the structure. Control the risk.*
 """
         )
@@ -662,8 +662,8 @@ if page == PAGE_ABOUT:
         st.markdown(
             f"""
 **Protocol:** {PROTOCOL_NAME} ({PROTOCOL_SHORT})  
-**Rulebook:** Official Rulebook v{RULEBOOK_VERSION} (Final)  
-**Focus:** Range / channel reversion on Micro futures (MES · MNQ · MYM)
+**Rulebook:** Official Rulebook v{RULEBOOK_VERSION}  
+**Focus:** Range / channel reversion on Micro futures (MES · MNQ · MYM) — not scalping
 """
         )
 
@@ -783,10 +783,11 @@ Scores (0–100) blend CPRP Official Rulebook v{RULEBOOK_VERSION}:
 | At boundaries | §4 | Near Support/Resistance beats mid-structure |
 | Static 1H context | §2 | Filter quality when fading against HTF trend |
 | Volume | §4 | Elevated volume as rejection/absorption confirm |
-| Rejection / RSI | §4 / v1.5 | Wick rejection; RSI is last confirm (prefer divergence) |
+| Rejection / RSI | §4 / v1.6 | Wick rejection; RSI secondary (elevated may = strength) |
 | Volatility | §5 | Quiet enough for a micro hard stop |
 
-**Near ties:** prefer **MES → MNQ → MYM** (§7). **Quality over frequency** (v1.5).
+**Near ties:** prefer **MES → MNQ → MYM** (§8). **Quality over frequency** (v1.6).  
+**Order flow** (Bid/Ask power) is confirmed on your platform — not scored here.
 
 **Grades**
 - **A** 75+ strong candidate  
@@ -803,16 +804,17 @@ with st.sidebar.expander("▶ Reading a recommendation"):
   Still wait for **full confluence** at **boundaries** on your charts.
 - **SIT OUT** — No micro cleared the trade threshold. Capital preservation wins.
 - **AT BOUNDARY** — Price near support or resistance (valid entry zone).
-- **mid** — Do **not** fade the middle; wait (even if RSI is extreme — v1.5).
-- **1H bias** — Static higher-TF filter only (not entries):
+- **mid** — Do **not** fade the middle; wait (even if RSI is extreme — v1.6).
+- **1H / 60m bias** — Static higher-TF filter only (not entries):
   - *ranging* — standard setups generally higher quality  
   - *uptrend / downtrend* — more selective fading **against** that trend  
-- **Chart pair** (approved pairs only):
-  - *15m + 5m* — **default** for most sessions  
-  - *30m + 15m* — larger / slower / lower volume  
-- **Static HTF** — Always keep **1-Hour** open (4-Hour acceptable). Context only.
-- **Structure break** — New session high/low that breaks prior range → flatten + pause
-  **{STRUCTURE_BREAK_PAUSE_MINUTES} minutes** (or until new clear range forms). Do not hunt lower-TF bounces.
+- **Chart pair** (approved pairs only · v1.6):
+  - *15m + 5m* — **default** (normal volume, clean ranges, active session)  
+  - *30m + 15m* — pre-market, low volume, lunch, wide/choppy  
+- **Static HTF** — Always keep **60-minute (1-Hour)** open (4-Hour acceptable). Bias only.
+- **Order flow** — Bid = buying power · Ask = selling power; confirm on platform at the level.
+- **Structure break** — Decisive close beyond boundary → flatten + pause
+  **{STRUCTURE_BREAK_PAUSE_MINUTES} minutes** (or until new clear structure). Do not hunt lower-TF bounces.
 """
     )
 
@@ -820,49 +822,65 @@ with st.sidebar.expander("▶ How to operate the strategy (official Quick Refere
     st.markdown(
         f"""
 Source: **CPRP Official Quick Reference v{RULEBOOK_VERSION}**  
-(Official Rulebook v{RULEBOOK_VERSION} (Final) is authoritative).
+(Official Rulebook v{RULEBOOK_VERSION} is authoritative · Multi-TF hierarchy & order flow).
 
 *“Trade the boundaries. Respect the structure. Control the risk.”*
 
 ### 1. Strategy identity
-Range-bound mean-reversion on **MES** (primary), **MNQ**, **MYM**.  
-**Sell confirmed resistance · Buy confirmed support.**  
+**Intraday range / channel reversion** on **MES** (primary), **MNQ**, **MYM** — **not scalping**.  
+**Sell confirmed resistance · Buy confirmed support** until structure breaks.  
 Hard risk **−${HARD_STOP_MIN_USD:.0f} to −${HARD_STOP_MAX_USD:.0f}** max per trade.  
-Pause **{STRUCTURE_BREAK_PAUSE_MINUTES} minutes** (or until a new clear range forms) after any S/R break.  
-Static **1-Hour (or 4H)** is context only — never generates entries.
+Pause **{STRUCTURE_BREAK_PAUSE_MINUTES} minutes** (or until new clear structure) after any S/R break.  
+Static **60-minute (or 4H)** = overall bias only — never generates entries.
 
-### 2. Chart pair hierarchy (approved pairs only)
-| Situation | Structure | Execution | Notes |
-|-----------|-----------|-----------|-------|
-| **Default / most sessions** | **15-minute** | **5-minute** | Cleaner RSI, better range definition, still responsive |
-| Larger / slower / lower volume | **30-minute** | **15-minute** | Highest quality S/R, least noise |
+### 2. Multi-timeframe hierarchy (v1.6)
+| Chart | Role | Use for |
+|-------|------|---------|
+| **60-minute (static)** | Overall bias / sentiment | Trend context only — never entries |
+| **15m or 30m** | Structure & levels | Confirmed S/R + swing structure (“map”) |
+| **5m or 15m** | Timing & pressure | Entry timing, rejection, order flow (“trigger”) |
 
-When in doubt, use **15m + 5m**. 
+### 3. Working pairs (select by conditions)
+| Pair | When | Roles |
+|------|------|-------|
+| **15m + 5m (default)** | Normal volume, clean ranges, active session | 15m = structure · 5m = timing + pressure |
+| **30m + 15m** | Pre-market, low volume, lunch, wide/choppy | 30m = structure · 15m = timing · 5m fine-tune only |
 
-### 3. RSI rules (v1.5)
-- Prefer **divergence at the actual S/R level** over absolute **70/30** extremes.
-- On **15m and 30m**, RSI extremes are useful as **alerts / preparation only**. If price is still mid-range, do **not** enter — wait for the confirmed boundary + price action + volume.
-- RSI is **secondary** confirmation. Full entry stack: **confirmed S/R + price action + volume**.
-- Optional: faster RSI (**7 or 9**) on the execution chart for divergence visualization only. Keep standard **14** on the structure chart.
+**No 1-minute charts.** Former 5m+1m pair is fully retired.
 
-### 4. Confirmation hierarchy (v1.5)
-1. Confirmed Support / Resistance of the active range (**structure chart**)
-2. Price action at the level (rejection, absorption, engulfs)
-3. Volume confirmation
-4. RSI (secondary — mainly divergence at S/R; absolute levels more useful on 15m/30m as alerts)
+### 4. Order flow (v1.6)
+- **Bid = buying power** · **Ask = selling power**  
+- More aggressive asks → price tends down · more aggressive bids → price tends up  
+- Shift in dominance at a **key level** is strong confirmation (hold or break)
 
-### 5. Key operating rules
-- New session lows / highs that **break the prior range** → **pause**. Do not hunt lower-TF bounces.
-- 1-Hour (or 4H) window is a **mandatory context filter only**.
-- Hard dollar risk remains **−${HARD_STOP_MIN_USD:.0f} to −${HARD_STOP_MAX_USD:.0f}**. Stay on micros.
-- **Fewer, higher-quality trades** preferred over high-frequency noise trades.
-- Prefer **MES** unless MNQ/MYM is clearly superior.
-- Platform preference: **NinjaTrader Web** (high/low display).
+### 5. RSI guidance (v1.6)
+- Secondary confirmation only. Prefer **divergence at the actual S/R level**.  
+- **Elevated RSI that stays high** often = **strong buying power still in control** — do **not** fade solely because it is overbought.  
+- Wait for **structure break + order-flow shift + RSI failure to reclaim** before treating as exhaustion.  
+- On structure TF: extremes = alerts only; mid-range → wait for boundary + PA + volume + order flow.  
+- Optional RSI **7 or 9** on execution chart for divergence only; keep **14** on structure chart.
 
-### 6. Using *this selector* with the Protocol
-1. Let the app pick the **session micro** (or sit out).
-2. Open the suggested chart pair + static 1H on NinjaTrader.
-3. Confirm structure and the confirmation hierarchy before ordering.
+### 6. Confirmation hierarchy (v1.6)
+1. Confirmed S/R on higher TF of working pair  
+2. Price at/near boundary (Support = long · Resistance = short)  
+3. Price-action rejection on lower TF  
+4. Volume supports rejection / absorption  
+5. **Order flow confirms** (bids defend / asks aggressive)  
+6. RSI favorable (divergence preferred at level)  
+7. Hard stop fits −$50 to −$100  
+8. No recent structure break (or 30-min pause done)  
+9. 60m bias not strongly opposing (or highly selective)
+
+### 7. Key operating rules
+- **New session highs:** old highs/lows lose relevance — trade **current developing structure**.  
+- Hard dollar risk **−${HARD_STOP_MIN_USD:.0f} to −${HARD_STOP_MAX_USD:.0f}**. Micros only.  
+- Early pre-market → default **30m+15m**. Prefer **MES** unless MNQ/MYM clearly superior.  
+- **Fewer, higher-quality trades** — do not force scalping in slow markets.
+
+### 8. Using *this selector* with the Protocol
+1. Let the app pick the **session micro** (or sit out).  
+2. Open the suggested chart pair + static 60m on NinjaTrader.  
+3. Confirm structure, order flow, and the full checklist before ordering.  
 4. Re-check after structure breaks or major session shifts.
 """
     )
@@ -873,17 +891,19 @@ with st.sidebar.expander("▶ Strategy hard rules (always)"):
 **Core philosophy**
 - Trade only **confirmed** structure — never anticipate  
 - Fade the **extremes** of the range/channel until structure fails  
-- Confirmation order: **S/R → price action → volume → RSI** (v1.5)  
+- Confirm: **S/R → PA → volume → order flow → RSI** (v1.6)  
 - Hard dollar risk limit on every trade — **no exceptions**  
 - When structure breaks, **step aside** — do not force trades  
+- Respect higher-TF bias — do not fight sustained buying/selling power  
 
 **Operational rules (Quick Reference v{RULEBOOK_VERSION})**
 - **Instruments:** MES, MNQ, MYM only — no other contracts  
-- **Default charts:** **15m + 5m** (or **30m + 15m** when structure is larger/slower)  
+- **Style:** Intraday range/channel reversion — **not scalping**  
+- **Default charts:** **15m + 5m** (or **30m + 15m** pre-market / slow / choppy)  
 - **Risk:** Hard stop **−${HARD_STOP_MIN_USD:.0f} to −${HARD_STOP_MAX_USD:.0f}** per trade  
 - **Target:** Opposite boundary; partials at mid-range  
 - **No averaging down.** Exit immediately at the hard limit  
-- **After structure break:** Flat + **{STRUCTURE_BREAK_PAUSE_MINUTES}-min** pause (or until new clear range)  
+- **After structure break:** Flat + **{STRUCTURE_BREAK_PAUSE_MINUTES}-min** pause (or until new clear structure)  
 - **Prefer MES**; quality over frequency  
 - Protocol is complete as written — no discretionary overrides  
 """
@@ -1018,7 +1038,7 @@ render_bloomberg_audio_option(key_prefix="main_bb", height=280)
 
 page_hero(
     f"{PROTOCOL_NAME} — Session Micro Selector",
-    f"Official Rulebook v{RULEBOOK_VERSION} (Final) · rank MES · MNQ · MYM for range/channel reversion — or sit out",
+    f"Official Rulebook v{RULEBOOK_VERSION} · rank MES · MNQ · MYM for range/channel reversion — or sit out",
     side="bull",
     desk_tag="SESSION DESK · MICRO SELECTOR",
 )
@@ -1037,9 +1057,10 @@ with candle_expander("Purpose, who it is for, and how it fits your process", sid
 - Rank the three micros for **support/resistance range or channel reversion** conditions.
 - Flag whether price is at a **structure boundary** (valid) or **mid-structure** (avoid).
 - Check whether the current **structure size fits your hard dollar stop** (${HARD_STOP_MIN_USD:.0f}–${HARD_STOP_MAX_USD:.0f}).
-- Apply **static 1-Hour trend context**: be more selective when fading against the HTF trend.
+- Apply **static 60-minute (1H) bias context**: be more selective when fading against HTF power.
 - Suggest the **active chart pair** from approved pairs only (**15m+5m** default · **30m+15m** slow).
 - Surface **desktop alerts** when the recommended micro changes.
+- Remind **order flow + full v1.6 checklist** — you confirm bid/ask on the platform.
 
 **Who it is for**
 - You, trading **only** MES / MNQ / MYM under the CPRP rulebook.
@@ -1051,7 +1072,7 @@ with candle_expander("Purpose, who it is for, and how it fits your process", sid
 3. Open the suggested chart pair (**15m+5m** or **30m+15m**) plus a static **1-Hour** chart on **NinjaTrader Web**.
 4. Build entries only with full confluence: **S/R → price action → volume → RSI**.
 5. Route orders through **Ironbeam**.
-6. Prefer **quality over frequency** (v1.5). Never override the hard stop or micros-only rule.
+6. Prefer **quality over frequency** (v1.6). Never override the hard stop or micros-only rule.
 
 **What this is *not***
 - Not a signal bot that tells you exact fill prices every tick.
@@ -1066,9 +1087,9 @@ st.info(
     "app instructions, and the 📈 / 📉 / 📂 panels for full CPRP operating steps."
 )
 
-# ── Strategy operating instructions (Official Quick Reference v1.5) ──────
+# ── Strategy operating instructions (Official Quick Reference v1.6) ──────
 with candle_expander(
-    "How to properly operate the strategy (CPRP Official Quick Reference v1.5)",
+    "How to properly operate the strategy (CPRP Official Quick Reference v1.6)",
     side="bear",
     expanded=False,
     kind="doc",
@@ -1076,8 +1097,8 @@ with candle_expander(
     st.markdown(
         f"""
 Official operating instructions for the **{PROTOCOL_NAME}**, distilled from the
-**Official Quick Reference v{RULEBOOK_VERSION}** and **Rulebook Update v{RULEBOOK_VERSION}**
-(the Official Rulebook v{RULEBOOK_VERSION} (Final) is authoritative).  
+**Official Quick Reference v{RULEBOOK_VERSION}** and **Official Rulebook v{RULEBOOK_VERSION}**
+(Multi-Timeframe Hierarchy & Order Flow Clarified — authoritative).  
 This selector chooses *which micro* to focus on; **you** still operate the Protocol on the charts.
 
 > *Trade the boundaries. Respect the structure. Control the risk.*
@@ -1087,46 +1108,54 @@ This selector chooses *which micro* to focus on; **you** still operate the Proto
 ### Step A — Session setup
 1. Open this selector and note the **recommended micro** (or **SIT OUT**).
 2. Trade **only** approved micros: **MES** (primary), **MNQ**, **MYM**. No other contracts.
-3. Open the suggested **chart pair** on **NinjaTrader Web** (approved pairs only):
+3. Open the suggested **working pair** on **NinjaTrader** (v1.6 hierarchy):
 
-| Situation | Structure | Execution | Role |
-|-----------|-----------|-----------|------|
-| **Default / most sessions** | **15-minute** | **5-minute** | Cleaner RSI, better range definition, still responsive |
-| Larger / slower / lower volume | **30-minute** | **15-minute** | Highest quality S/R, least noise |
+| Pair | When | Roles |
+|------|------|-------|
+| **15m + 5m (default)** | Normal volume, clean ranges, active session | 15m = structure · 5m = timing + pressure |
+| **30m + 15m** | Pre-market, low volume, lunch, wide/choppy | 30m = structure · 15m = timing · 5m fine-tune only |
 
-4. Keep a **static 1-Hour** chart in a separate window (4-Hour acceptable).  
-   *Mandatory context filter only — never generates entries.*
-5. Prefer **MES** unless MNQ or MYM is **clearly** superior. Prefer **quality over frequency**.
+4. Keep a **static 60-minute** chart in a separate window (4-Hour acceptable).  
+   *Overall bias / sentiment only — never generates entries.*
+5. Prefer **MES** unless MNQ or MYM is **clearly** superior. Prefer **quality over frequency**.  
+   Protocol is **not scalping** — do not force ultra-short holds in slow markets.
 
-**Chart roles:** Structure chart = S/R · Execution chart = entry timing.  
-
+**Multi-TF roles (v1.6):** 60m = bias · structure TF = map · timing TF = trigger + order flow.
 
 ---
 
 ### Step B — Build structure (do not trade until confirmed)
-Identify a **confirmed** Support/Resistance **range** (range-bound mean-reversion edge).
+Identify a **confirmed** Support/Resistance **range or channel** (sideways or trending — direction does not change fade logic).
 
 | Requirement | Rule |
 |-------------|------|
 | Zones | **Sell confirmed resistance · Buy confirmed support** |
-| Clarity | Structure must be unambiguous — if unclear, **stand aside** |
-| Break rule | New session highs/lows that **break the prior range** → **pause** (do not hunt lower-TF bounces) |
+| Touches | ≥2 clear touches (or near-touches) at **both** upper and lower boundaries |
+| Clarity | Structure unambiguous — if unclear, **stand aside** |
+| Developing structure | New session highs/lows: trade **current** swing structure — do not fade “new high” alone |
+| Break rule | Decisive close beyond boundary → **pause** (do not hunt lower-TF bounces) |
 
 ---
 
-### Step C — Confirmation hierarchy (v1.5 — in this order)
-1. **Confirmed S/R** level of the active range (structure chart)
-2. **Price action** at the level (rejection, absorption, engulfs)
-3. **Volume** confirmation
-4. **RSI** (mainly divergence on execution TF; absolute levels more useful on 15m/30m)
+### Step C — Confirmation hierarchy (v1.6 — all required)
+1. **Confirmed S/R** on higher TF of working pair  
+2. Price **at/near boundary** (Support = long · Resistance = short)  
+3. **Price-action rejection** on lower TF  
+4. **Volume** supports rejection / absorption  
+5. **Order flow** confirms (bids defend for longs · asks aggressive for shorts)  
+6. **RSI** favorable (divergence preferred at level; not opposing extreme alone)  
+7. Hard stop fits **−${HARD_STOP_MIN_USD:.0f} to −${HARD_STOP_MAX_USD:.0f}**  
+8. No recent structure break (or pause / new clear structure done)  
+9. **60m bias** not strongly opposing (or you are highly selective)
 
-**RSI rules (v1.5)**
-- Prefer **divergence at S/R** over absolute 70/30 extremes
-- On 15m/30m: RSI extremes are **alerts / preparation only** — mid-range → wait
-- RSI is **secondary**; entry still requires confirmed S/R + price action + volume
-- Optional: RSI **7 or 9** on execution chart for divergence only; keep **14** on structure chart
+**Order flow (v1.6):** Bid = buying power · Ask = selling power. Shift at a key level is strong confirmation.
 
-Also confirm hard stop fits **−${HARD_STOP_MIN_USD:.0f} to −${HARD_STOP_MAX_USD:.0f}** and that no structure-break pause is active.
+**RSI rules (v1.6)**
+- Prefer **divergence at S/R** over absolute 70/30 extremes  
+- **Elevated RSI that stays high** often = **strong buying power** — do **not** fade solely because overbought  
+- Treat exhaustion only with **structure break + order-flow shift + RSI failure to reclaim**  
+- On structure TF: extremes = alerts only · mid-range → wait  
+- Optional RSI **7 or 9** on execution chart for divergence only; keep **14** on structure chart
 
 If **any** required item fails → **no trade**.
 
@@ -1136,22 +1165,23 @@ If **any** required item fails → **no trade**.
 - Maximum loss per trade: **−${HARD_STOP_MIN_USD:.0f} to −${HARD_STOP_MAX_USD:.0f}**
 - Exit **immediately** when the hard limit is hit
 - **No averaging down** · stay on micros only
+- Primary target = opposite boundary · partials OK at mid-range
 
 ---
 
 ### Step E — Structure break & pause
 - After any S/R break: **flatten** and pause **{STRUCTURE_BREAK_PAUSE_MINUTES} minutes**
-  **or until a new clear range forms** on the higher structure chart
+  **or until a new clear structure forms** on the higher structure chart
 - Do **not** chase lower-TF bounces after a break
 - Wait for new clear structure before taking setups again
 
 ---
 
 ### Step F — Operational discipline
-- **Fewer, higher-quality trades** preferred over high-frequency noise trades
-- Prefer **MES**; journal and review vs these rules
-- **No discretionary overrides** — the Protocol is complete as written
-- Platform preference: **NinjaTrader Web** (high/low display)
+- **Fewer, higher-quality trades** — do not force scalping when the market is slow  
+- Early pre-market → default **30m+15m**  
+- Prefer **MES**; journal every trade; weekly review vs rules  
+- **No discretionary overrides** — the Protocol is complete as written  
 
 ---
 
@@ -1159,10 +1189,10 @@ If **any** required item fails → **no trade**.
 | This app does | You still do on the platform |
 |---------------|------------------------------|
 | Rank MES / MNQ / MYM for session suitability | Confirm real S/R structure visually |
-| Flag boundary vs mid-structure (proxy) | Apply confirmation hierarchy before entry |
+| Flag boundary vs mid-structure (proxy) | Apply full checklist (incl. **order flow**) before entry |
 | Check structure width vs hard dollar stop | Place / manage / exit orders |
-| Suggest chart pair (v1.5 defaults) + 1H context | Enforce hard stop and structure-break pause |
-| Alert when the pick changes | Prefer quality over frequency |
+| Suggest chart pair (v1.6) + 60m context | Enforce hard stop and structure-break pause |
+| Alert when the pick changes | Prefer quality over frequency · not scalping |
 
 Futures trading involves substantial risk of loss. Official documents are personal trading aids, not investment advice.
 """
@@ -1367,45 +1397,52 @@ if rec.scores:
         except Exception as exc:
             st.warning(f"Chart unavailable: {exc}")
 
-# ── Pre-trade checklist (Official Quick Reference v1.5) ──────────────────
+# ── Pre-trade checklist (Official Quick Reference v1.6) ──────────────────
 st.markdown("---")
-desk_section("Pre-trade confirmation checklist (Quick Reference v1.5)", side="bear")
+desk_section("Pre-trade confirmation checklist (Quick Reference v1.6)", side="bear")
 st.caption(
-    "Confirmation hierarchy from CPRP Quick Reference v1.5 — apply in order. "
-    "If any item fails, stand aside. "
+    "All 9 items required — CPRP Quick Reference v1.6. If any fails, stand aside. "
     f"After a structure break, pause at least {STRUCTURE_BREAK_PAUSE_MINUTES} minutes "
-    "(or until a new clear range forms). "
-    "Hard risk: max loss −$50 to −$100 · exit immediately at limit · no averaging down."
+    "(or until a new clear structure forms). "
+    "Hard risk: max loss −$50 to −$100 · exit immediately at limit · no averaging down. "
+    "Order flow is confirmed on your platform (Bid/Ask power)."
 )
 checks = [
-    "1. Confirmed Support / Resistance of the active range (structure chart)",
+    "1. Confirmed S/R on higher TF of working pair (structure chart)",
     "2. Price at/near boundary — Support = long | Resistance = short (not mid-range)",
-    "3. Price action at the level (rejection, absorption, engulfs)",
-    "4. Volume confirmation",
-    "5. RSI secondary confirm (prefer divergence at S/R; absolute 70/30 not mandatory alone)",
-    f"6. Hard stop fits inside −${hard_stop} risk limit (−$50 to −$100 max)",
-    f"7. No recent structure break (or {STRUCTURE_BREAK_PAUSE_MINUTES}-min pause / new clear range)",
+    "3. Price-action rejection on lower TF of working pair",
+    "4. Volume supports rejection / absorption",
+    "5. Order flow confirms (bids defend for longs / asks aggressive for shorts)",
+    "6. RSI favorable (divergence preferred at level; elevated RSI ≠ auto-fade)",
+    f"7. Hard stop fits inside −${hard_stop} risk limit (−$50 to −$100 max)",
+    f"8. No recent structure break (or {STRUCTURE_BREAK_PAUSE_MINUTES}-min pause / new clear structure)",
+    "9. 60m bias not strongly opposing the intended trade (or highly selective)",
 ]
-for item in checks:
-    st.checkbox(item, key=f"chk_{item[:28]}")
+for i, item in enumerate(checks):
+    st.checkbox(item, key=f"chk_v16_{i}")
 
-with candle_expander("RSI rules & exits (Quick Reference v1.5)", side="bear", expanded=False, kind="doc"):
+with candle_expander("RSI · order flow · exits (Quick Reference v1.6)", side="bear", expanded=False, kind="doc"):
     st.markdown(
         f"""
-**RSI (v1.5)**
-- Prefer **divergence at S/R** over absolute 70/30 extremes
-- On 15m/30m: RSI extremes are alerts / preparation only — not automatic entries
-- RSI extreme while **mid-range** → wait for boundary + PA + volume
-- RSI is **secondary**; full entry still needs confirmed S/R + PA + volume
-- Optional: RSI 7/9 on execution chart for divergence only; keep RSI 14 on structure
+**Order flow (v1.6)**
+- **Bid = buying power** · **Ask = selling power**  
+- Aggressive asks → pressure down · aggressive bids → pressure up  
+- Shift at a key level = strong confirmation of hold or break  
+
+**RSI (v1.6)**
+- Prefer **divergence at S/R** over absolute 70/30 extremes  
+- **Elevated RSI that stays high** often = **strong buying power** — do **not** fade solely because overbought  
+- Exhaustion needs **structure break + order-flow shift + RSI failure to reclaim**  
+- On structure TF: extremes = alerts only · mid-range → wait for boundary + PA + volume + OF  
+- Optional RSI 7/9 on execution chart for divergence only; keep RSI 14 on structure  
 
 **Structure break**
 | Action | Rule |
 |--------|------|
-| Break of prior range (new session high/low) | **Pause** — do not hunt lower-TF bounces |
-| After break | Flatten · wait **{STRUCTURE_BREAK_PAUSE_MINUTES} min** or **new clear range** |
+| Decisive close beyond boundary | **Pause** — do not hunt lower-TF bounces |
+| After break | Flatten · wait **{STRUCTURE_BREAK_PAUSE_MINUTES} min** or **new clear structure** |
 | Hard risk | **−${HARD_STOP_MIN_USD:.0f} to −${HARD_STOP_MAX_USD:.0f}** · exit at limit · no averaging down |
-| Trade count | **Fewer, higher-quality** trades preferred (v1.5) |
+| Trade count | **Fewer, higher-quality** trades preferred · not scalping (v1.6) |
 """
     )
 
@@ -1426,7 +1463,7 @@ if _rb_base_main.is_file():
             file_name=RULEBOOK_BASE_DOWNLOAD_NAME,
             mime="application/pdf",
             use_container_width=True,
-            help=f"Official Rulebook v{RULEBOOK_BASE_VERSION} (Final).",
+            help=f"Official Rulebook v{RULEBOOK_BASE_VERSION}.",
         )
         st.caption(
             "Open **Trading Journal** in the sidebar for full history, filters, and edit/delete. "
@@ -1437,7 +1474,7 @@ from disclosure import render_disclosure_footer
 
 render_disclosure_footer()
 st.caption(
-    f"Personal tool aligned to {PROTOCOL_NAME} Official Rulebook v{RULEBOOK_VERSION} (Final). "
+    f"Personal tool aligned to {PROTOCOL_NAME} Official Rulebook v{RULEBOOK_VERSION}. "
     "Does not place orders. Market data via Yahoo Finance (delayed). "
     f"© 2026 {CREATOR}."
 )

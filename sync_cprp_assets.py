@@ -44,6 +44,11 @@ DOC_RULES: list[tuple[str, str, str]] = [
         "rulebook_base",
     ),
     (
+        r"(?i)Cooper_Precision_Reversion_Protocol_Quick_Reference_v?(\d+\.\d+)\.pdf$",
+        "CPRP_Quick_Reference",
+        "quick_ref_pdf",
+    ),
+    (
         r"(?i)Cooper_Precision_Reversion_Protocol_Quick_Reference\.pdf$",
         "CPRP_Quick_Reference_legacy",
         "quick_ref_legacy",
