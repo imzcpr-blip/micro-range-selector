@@ -1,4 +1,9 @@
-# CPRP publish-to-cloud.ps1  VERSION=2026-08-12-v4
+"""Rewrite publish-to-cloud.ps1 as pure ASCII (no smart dashes/quotes)."""
+from pathlib import Path
+
+OUT = Path(__file__).resolve().parent / "publish-to-cloud.ps1"
+
+CONTENT = r"""# CPRP publish-to-cloud.ps1  VERSION=2026-08-12-v4
 # Publish local changes to GitHub so Streamlit Community Cloud redeploys.
 # Usage:
 #   powershell -File scripts\publish-to-cloud.ps1
@@ -216,3 +221,12 @@ Write-Host '[publish] Streamlit Community Cloud auto-redeploys from branch main'
 Write-Host '[publish]   (usually 1-3 minutes). Refresh your public .streamlit.app URL.'
 Write-Host "[publish] Repo: https://github.com/$GitHubOwnerRepo"
 exit 0
+"""
+
+# Validate pure ASCII
+if any(ord(ch) > 127 for ch in CONTENT):
+    bad = sorted({ch for ch in CONTENT if ord(ch) > 127})
+    raise SystemExit(f"Non-ASCII characters in script template: {bad!r}")
+
+OUT.write_text(CONTENT, encoding="ascii", newline="\n")
+print(f"Wrote {OUT} ({OUT.stat().st_size} bytes, pure ASCII)")
