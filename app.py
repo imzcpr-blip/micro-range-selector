@@ -1365,7 +1365,7 @@ if _primary_on and _scalp_on:
 | Protocol | Lean this way when… | Focus |
 |----------|---------------------|--------|
 | **CPRP Reversion** | You can map clean range/channel S/R on 15+5 or 30+15 | Primary micro pick |
-| **CPRP Scalping** | Tape is quiet, sideways, accepting one side of the SMA on 1m | Scalping micro pick |
+| **CPRP Scalping** | **Sideways** movement on the **1-minute** chart (Keltner / SMA) — no 1H for scalping | Scalping micro pick |
 
 One trade, one rulebook. Preference is yours; standards are not optional.
 """
@@ -1442,19 +1442,21 @@ if _scalp_on:
         with _body_col:
             st.markdown(
                 f"""
-**Secondary tool only** — *Fade the extremes only when the market is quiet.*
+**Secondary tool only** — *Fade the extremes only when the market is quiet / **sideways**.*
 
 | Item | Setting |
 |------|---------|
 | Focus micro | **{_scalp.micro}** |
-| Environment score | **{_scalp.score:.1f}** / 100 (need {_cprp_cfg.SCALPING_MIN_SCORE:.0f}+) |
-| Timeframe | **1-minute only** |
+| Status | **{getattr(_scalp, 'status_label', 'Option Conclusive')}** |
+| Environment score | **{_scalp.score:.1f}** / 100 |
+| **Chart** | **1-minute only** — scalping does **not** use a 1-Hour chart for entries |
 | Indicators | Keltner (NT default) · **SMA(14)** midline · RSI 14 (80 / 20) |
 | Risk | **$30 – $50** max per scalp · no averaging |
 | Target | SMA(14) · Stop = SMA or opposite Keltner band |
 
-**Stand aside when:** strong 15m/60m trend · chop through SMA · major news ·  
-dead volume · **or any high-quality primary CPRP range/channel is present.**
+**Conclusive when:** chart **movement is sideways** on the **1m**.  
+**Stand aside when:** directional tape · chop through SMA · major news · dead volume ·  
+or high-quality primary CPRP range/channel is present.
 """
             )
         if _scalp.reasons:
@@ -1524,8 +1526,8 @@ with candle_expander(
         st.markdown(
             f"""
 **CPRP Scalping v{_cprp_cfg.SCALPING_VERSION}** — secondary **1-minute Keltner** mean-reversion.  
-Use only when **primary CPRP is quiet** and the market is **sideways / accumulation**.  
-Risk **$30–$50** · SMA(14) midline · RSI 80/20 · never during strong 15m/60m trends.
+**Chart: 1-minute only** (not 1H). **Option Conclusive** when movement is **sideways**.  
+Risk **$30–$50** · SMA(14) · RSI 80/20 · stand aside on directional tape or when primary CPRP structure is strong.
 """
         )
         _sq = Path(_cprp_cfg.SCALPING_QUICK_REFERENCE_PDF)
@@ -1609,51 +1611,53 @@ desk_section("Micro comparison cards · CPRP Scalping", side="bear")
 _scalp_obj = getattr(rec, "scalping", None)
 _scalp_status = (
     getattr(_scalp_obj, "status_label", None)
-    or ("Option Available" if _scalp_on else "Option Inconclusive")
+    or ("Option Conclusive" if _scalp_on else "Option Inconclusive")
 )
 _scalp_env = float(getattr(_scalp_obj, "score", 0.0) or 0.0)
 _scalp_cards = list(getattr(_scalp_obj, "micro_scores", None) or [])
 
-if _scalp_status == "Option Available":
+if _scalp_status == "Option Conclusive":
     st.success(
-        f"**CPRP Scalping · {_scalp_status}** · best env **{_scalp_env:.1f}**/100 "
-        f"(need {_cprp_cfg.SCALPING_MIN_SCORE:.0f}+) · "
-        f"focus **{getattr(_scalp_obj, 'micro', '—') or '—'}**"
+        f"**CPRP Scalping · {_scalp_status}** · best env **{_scalp_env:.1f}**/100 · "
+        f"focus **{getattr(_scalp_obj, 'micro', '—') or '—'}** · "
+        f"chart **1-minute only** (sideways movement)"
     )
 else:
     st.warning(
-        f"**CPRP Scalping · {_scalp_status}** · best env **{_scalp_env:.1f}**/100 "
-        f"(need {_cprp_cfg.SCALPING_MIN_SCORE:.0f}+, or primary structure may hard-block). "
-        "Do not force 1m Keltner scalps — wait for quieter tape or run primary reversion."
+        f"**CPRP Scalping · {_scalp_status}** · best env **{_scalp_env:.1f}**/100. "
+        "Need **sideways** movement on the **1m** chart — not directional tape, "
+        "and not when high-quality primary CPRP structure hard-blocks scalps."
     )
 if _scalp_obj and getattr(_scalp_obj, "warnings", None):
     for _w in _scalp_obj.warnings[:2]:
         st.caption(f"⚠️ {_w}")
 
 st.caption(
-    "Secondary protocol scorecards for **MES · MNQ · MYM**. "
-    "⚡ = best scalping focus when **Option Available**. "
-    "Each card shows **Option Available** or **Option Inconclusive** for that micro."
+    "Scalping uses the **1-minute chart only** (Keltner · SMA 14 · RSI) — **no 1-Hour chart** for scalping entries. "
+    "If movement is **sideways** → **Option Conclusive**. If directional → **Option Inconclusive**. "
+    "⚡ = best scalping focus when conclusive."
 )
 
 if not _scalp_cards and rec.scores:
-    # Fallback if older session object lacks micro_scores
     _scalp_cards = []
     for s in sorted(rec.scores, key=lambda x: x.priority):
-        _avail = bool(_scalp_on and _scalp_obj and _scalp_obj.micro == s.short)
+        _er = float(getattr(s, "path_efficiency", 0.5) or 0.5)
+        _sideways = _er <= 0.42
+        _avail = bool(_scalp_on and _sideways)
         _scalp_cards.append(
             type("SC", (), {
                 "short": s.short,
                 "name": s.name,
                 "priority": s.priority,
                 "score": _scalp_env if _avail else max(0.0, _scalp_env - 10),
-                "status": "Option Available" if _avail else "Option Inconclusive",
+                "status": "Option Conclusive" if _avail else "Option Inconclusive",
                 "available": _avail,
-                "htf_bias": s.htf_bias,
-                "htf_label": s.htf_label,
+                "movement": "Sideways" if _sideways else "Directional",
+                "path_efficiency": _er,
                 "volume_score": s.volume_score,
                 "volatility_score": s.volatility_score,
                 "structure_score": s.structure_score,
+                "chart": "1-minute only",
                 "notes": [],
             })()
         )
@@ -1674,13 +1678,17 @@ if _scalp_cards:
             st.metric(
                 "Scalp env score",
                 f"{sm.score:.1f}",
-                help=f"Need {_cprp_cfg.SCALPING_MIN_SCORE:.0f}+ for Option Available",
+                help="Sideways 1m movement → Option Conclusive",
             )
             if sm.available:
                 st.success(f"**{sm.status}**")
             else:
                 st.warning(f"**{sm.status}**")
-            st.write(f"1H context: **{sm.htf_label}**")
+            st.write(f"**Chart:** {getattr(sm, 'chart', '1-minute only')}")
+            st.write(
+                f"**Movement:** **{getattr(sm, 'movement', '—')}** "
+                f"(efficiency {getattr(sm, 'path_efficiency', 0):.2f})"
+            )
             st.write(f"Volume env: **{sm.volume_score:.0f}** · Volatility: **{sm.volatility_score:.0f}**")
             st.write(f"Primary map structure: **{sm.structure_score:.0f}**")
             st.progress(min(float(sm.score) / 100.0, 1.0))
@@ -1689,8 +1697,9 @@ if _scalp_cards:
                 side="bull" if sm.available else "bear",
             ):
                 st.write(f"Status: **{sm.status}**")
+                st.write(f"Chart: **1-minute only** (no 1H for scalping entries)")
+                st.write(f"Movement: **{getattr(sm, 'movement', '—')}**")
                 st.write(f"Environment score: {sm.score:.1f} / 100")
-                st.write(f"Threshold: {_cprp_cfg.SCALPING_MIN_SCORE:.0f}+")
                 st.write("Setup: 1m Keltner · SMA(14) · RSI 80/20 · risk $30–$50")
                 if sm.notes:
                     st.markdown("**Notes**")

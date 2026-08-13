@@ -735,18 +735,19 @@ def score_scalping_environment(
         )
         env = float(np.clip(env, 0, 100))
 
-        # Sideways = conclusive (unless hard-blocked by primary)
-        # Directional = always inconclusive for scalping
+        # User / rulebook: **sideways movement → Option Conclusive** on 1m protocol
+        # Directional movement → Option Inconclusive (scalping not appropriate)
         sideways = movement == "Sideways"
-        micro_available = (not hard_block) and sideways and env >= (SCALPING_MIN_SCORE - 8)
-        # If sideways, boost score so cards reflect conclusive strength
-        if sideways and not hard_block:
-            env = max(env, SCALPING_MIN_SCORE + 5.0)
+        if sideways:
+            env = max(env, SCALPING_MIN_SCORE + 8.0)
             micro_available = True
-
-        if hard_block:
+            if hard_block:
+                notes.append(
+                    "Primary CPRP structure is also strong — both may show; "
+                    "prefer reversion unless you choose quiet 1m scalps by preference"
+                )
+        else:
             micro_available = False
-            notes.append("Hard-blocked while high-quality primary CPRP is active")
 
         status = "Option Conclusive" if micro_available else "Option Inconclusive"
         micro_scores.append(
@@ -785,8 +786,15 @@ def score_scalping_environment(
     micro_scores.sort(key=lambda m: (-m.score, m.priority))
     reasons.extend(env_notes)
 
-    any_conclusive = any(m.available for m in micro_scores)
-    eligible = any_conclusive and not hard_block
+    # Prefer best conclusive (sideways) micro; else best env score
+    conclusive_cards = [m for m in micro_scores if m.available]
+    if conclusive_cards:
+        conclusive_cards.sort(key=lambda m: (-m.score, m.priority))
+        best_short = conclusive_cards[0].short
+        best_env = conclusive_cards[0].score
+
+    any_conclusive = bool(conclusive_cards)
+    eligible = any_conclusive
     status_label = "Option Conclusive" if eligible else "Option Inconclusive"
 
     if eligible and best_short:
@@ -797,19 +805,24 @@ def score_scalping_environment(
             "Keltner · SMA(14) · RSI 80/20 · risk $30–$50."
         )
         reasons.append(
-            "Confirm on **1m** chart: price accepted one side of SMA · repeated Keltner touches · RSI stretch."
+            "Confirm on the **1-minute** chart only (not 1H): "
+            "price accepted one side of SMA · repeated Keltner touches · RSI stretch."
         )
         if primary_active:
             reasons.append(
                 "**Both strategies available** — CPRP Reversion and CPRP Scalping. "
                 "One rulebook per trade; preference is yours."
             )
+        if hard_block:
+            warnings.append(
+                "Primary CPRP structure is also high quality — "
+                "reversion remains preferred, but sideways 1m still marks scalping **Option Conclusive**."
+            )
     else:
         warnings.append(
-            f"CPRP Scalping: **Option Inconclusive** — need **sideways** 1m movement "
-            f"(efficiency ≤ {SCALPING_SIDEWAYS_MAX_ER:.2f})"
-            + ("; primary structure hard-blocks scalps" if hard_block else "")
-            + f". Best env {best_env:.1f}."
+            f"CPRP Scalping: **Option Inconclusive** — need **sideways** chart movement "
+            f"(path efficiency ≤ {SCALPING_SIDEWAYS_MAX_ER:.2f}) on the **1-minute** protocol. "
+            f"Best env {best_env:.1f}."
         )
 
     return ScalpingOption(
