@@ -88,9 +88,15 @@ class InstrumentScore:
     htf_label: str
     chart_pair: str
     static_htf: str
+    path_efficiency: float = 0.5  # low = sideways / choppy; high = directional
     reasons: list[str] = field(default_factory=list)
     warnings: list[str] = field(default_factory=list)
     as_of: str = ""
+
+
+# Scalping uses **1-minute** charts only (not 1H). Sideways path efficiency → Conclusive.
+SCALPING_SIDEWAYS_MAX_ER = 0.42  # efficiency at/below this = sideways movement
+SCALPING_DIRECTIONAL_MIN_ER = 0.55  # clearly one-way → inconclusive
 
 
 @dataclass
@@ -101,19 +107,20 @@ class ScalpingMicroScore:
     name: str
     priority: int
     score: float
-    status: str  # "Option Available" | "Option Inconclusive"
+    status: str  # "Option Conclusive" | "Option Inconclusive"
     available: bool
-    htf_bias: str
-    htf_label: str
+    movement: str  # "Sideways" | "Mixed" | "Directional"
+    path_efficiency: float
     volume_score: float
     volatility_score: float
     structure_score: float
+    chart: str = "1-minute only"
     notes: list[str] = field(default_factory=list)
 
 
 @dataclass
 class ScalpingOption:
-    """Secondary CPRP Scalping offer when environment clears."""
+    """Secondary CPRP Scalping offer when environment clears (1m chart · sideways tape)."""
 
     eligible: bool
     micro: Optional[str]
@@ -123,7 +130,7 @@ class ScalpingOption:
     label: str = SCALPING_STYLE
     # Always filled for Session Selector comparison cards
     micro_scores: list[ScalpingMicroScore] = field(default_factory=list)
-    status_label: str = "Option Inconclusive"  # overall: Available vs Inconclusive
+    status_label: str = "Option Inconclusive"  # overall: Conclusive vs Inconclusive
 
 
 @dataclass
@@ -588,6 +595,7 @@ def score_instrument(
         htf_label=htf.label,
         chart_pair=chart_pair,
         static_htf=static_htf,
+        path_efficiency=round(float(er), 3),
         reasons=reasons,
         warnings=warnings,
         as_of=now.strftime("%Y-%m-%d %H:%M:%S %Z"),
@@ -604,10 +612,10 @@ def score_scalping_environment(
     """
     CPRP Scalping v1.1 — secondary tool only.
 
+    Chart for scalping: **1-minute only** (Keltner + SMA 14 + RSI). No 1H chart for scalping entries.
+    Movement rule: **sideways** path efficiency → **Option Conclusive**; directional → **Option Inconclusive**.
+
     Always scores every micro for Session Selector comparison cards.
-    Overall status:
-      • Option Available   — at least one micro clears SCALPING_MIN_SCORE (and not hard-blocked)
-      • Option Inconclusive — environment does not support scalping this scan
     """
     reasons: list[str] = []
     warnings: list[str] = []
@@ -624,45 +632,59 @@ def score_scalping_environment(
             "prefer reversion; scalping stands aside until structure goes quiet."
         )
 
-    # Primary quiet = best scalping env; can still offer as preference when env is good
     primary_quiet = not primary_active or primary_best.structure_score < 58
     if not primary_active:
         quiet_score = 90.0
         reasons.append(
-            f"Primary CPRP is quiet (best {primary_best.short} {primary_best.score:.1f} "
-            f"< {MIN_SCORE_TO_TRADE:.0f}) — scalping may clear if tape is quiet."
+            f"Primary CPRP is quiet (best {primary_best.short} {primary_best.score:.1f}) — "
+            "if **sideways 1m movement**, scalping can be **Option Conclusive**."
         )
     elif primary_quiet:
         quiet_score = 78.0
         reasons.append(
-            f"Primary structure soft ({primary_best.short} structure {primary_best.structure_score:.0f}) — "
-            "both strategies may be used by preference if scalp tape is clean."
+            f"Primary structure soft ({primary_best.short}) — "
+            "sideways 1m tape can make scalping **Option Conclusive** by preference."
         )
     else:
         quiet_score = 62.0
         reasons.append(
-            f"Primary CPRP is also tradeable on {primary_best.short} — "
-            "if scalping env clears, **both strategies are available**; choose by preference / rules."
+            f"Primary CPRP also tradeable on {primary_best.short} — "
+            "if movement is **sideways**, both protocols may be offered; pick by preference."
         )
 
-    # Score each micro for quiet / sideways suitability
+    reasons.append(
+        "CPRP Scalping chart: **1-minute only** (Keltner · SMA 14 · RSI 80/20). "
+        "No 1-Hour chart for scalping entries."
+    )
+
     micro_scores: list[ScalpingMicroScore] = []
     best_short: Optional[str] = None
     best_env = -1.0
     env_notes: list[str] = []
 
     for s in scores:
-        notes: list[str] = []
-        # Sideways: prefer ranging HTF
-        if s.htf_bias == "ranging":
-            htf_pts = 90.0
-            notes.append("60m/1H ranging — favors scalping")
-        elif s.htf_bias == "unknown":
-            htf_pts = 55.0
-            notes.append("1H context unclear")
+        notes: list[str] = [
+            "Chart for this protocol: **1-minute only** (not 1H / 60m for entries)",
+        ]
+        er = float(getattr(s, "path_efficiency", 0.5) or 0.5)
+
+        # Sideways movement = core conclusive signal for scalping
+        if er <= SCALPING_SIDEWAYS_MAX_ER:
+            movement = "Sideways"
+            move_pts = 95.0
+            notes.append(
+                f"Movement **sideways** (efficiency {er:.2f}) → favors **Option Conclusive**"
+            )
+        elif er >= SCALPING_DIRECTIONAL_MIN_ER:
+            movement = "Directional"
+            move_pts = 20.0
+            notes.append(
+                f"Movement **directional** (efficiency {er:.2f}) → **Option Inconclusive** for scalping"
+            )
         else:
-            htf_pts = 25.0
-            notes.append(f"1H {s.htf_bias} — scalping disfavored (HTF power)")
+            movement = "Mixed"
+            move_pts = 50.0
+            notes.append(f"Movement mixed (efficiency {er:.2f}) — need clearer sideways tape")
 
         vol = s.volume_score
         if 40 <= vol <= 72:
@@ -689,49 +711,58 @@ def score_scalping_environment(
             notes.append("Primary map weak — room for 1m Keltner")
         elif s.structure_score < 62:
             struct_pts = 65.0
-            notes.append("Primary map soft — scalping possible")
         else:
-            struct_pts = 30.0
-            notes.append("Strong primary map — reversion preferred")
+            struct_pts = 35.0
+            notes.append("Strong primary map — reversion often preferred")
 
         phase_pts = {
             "midday": 90.0,
             "afternoon": 75.0,
-            "morning_open": 45.0,
+            "morning_open": 50.0,
             "overnight_globex": 70.0,
             "after_hours": 55.0,
         }.get(phase, 55.0)
 
+        # Weight sideways movement heaviest — user rule: sideways → conclusive
         env = (
-            0.28 * quiet_score
-            + 0.24 * htf_pts
-            + 0.16 * vol_pts
-            + 0.14 * vlt_pts
+            0.38 * move_pts
+            + 0.20 * quiet_score
+            + 0.14 * vol_pts
+            + 0.12 * vlt_pts
             + 0.10 * struct_pts
-            + 0.08 * phase_pts
+            + 0.06 * phase_pts
             + {1: 3.0, 2: 1.0, 3: 0.0}.get(s.priority, 0.0)
         )
         env = float(np.clip(env, 0, 100))
 
-        # Strong HTF trend context soft-caps this micro
-        if s.htf_bias in ("up", "down") and s.trend_context_score >= 70:
-            env = min(env, 48.0)
-            notes.append("Strong HTF trend context — stand aside on scalps (Rulebook §6)")
+        # Sideways = conclusive (unless hard-blocked by primary)
+        # Directional = always inconclusive for scalping
+        sideways = movement == "Sideways"
+        micro_available = (not hard_block) and sideways and env >= (SCALPING_MIN_SCORE - 8)
+        # If sideways, boost score so cards reflect conclusive strength
+        if sideways and not hard_block:
+            env = max(env, SCALPING_MIN_SCORE + 5.0)
+            micro_available = True
 
-        micro_available = (not hard_block) and env >= SCALPING_MIN_SCORE
+        if hard_block:
+            micro_available = False
+            notes.append("Hard-blocked while high-quality primary CPRP is active")
+
+        status = "Option Conclusive" if micro_available else "Option Inconclusive"
         micro_scores.append(
             ScalpingMicroScore(
                 short=s.short,
                 name=s.name,
                 priority=s.priority,
                 score=round(env, 1),
-                status="Option Available" if micro_available else "Option Inconclusive",
+                status=status,
                 available=micro_available,
-                htf_bias=s.htf_bias,
-                htf_label=s.htf_label,
+                movement=movement,
+                path_efficiency=round(er, 3),
                 volume_score=s.volume_score,
                 volatility_score=s.volatility_score,
                 structure_score=s.structure_score,
+                chart="1-minute only",
                 notes=notes,
             )
         )
@@ -751,32 +782,34 @@ def score_scalping_environment(
             status_label="Option Inconclusive",
         )
 
-    # Sort by score desc, then priority (MES first on ties)
     micro_scores.sort(key=lambda m: (-m.score, m.priority))
     reasons.extend(env_notes)
 
-    eligible = (not hard_block) and best_env >= SCALPING_MIN_SCORE
-    status_label = "Option Available" if eligible else "Option Inconclusive"
+    any_conclusive = any(m.available for m in micro_scores)
+    eligible = any_conclusive and not hard_block
+    status_label = "Option Conclusive" if eligible else "Option Inconclusive"
 
     if eligible and best_short:
+        best_card = next((m for m in micro_scores if m.short == best_short), micro_scores[0])
         reasons.append(
-            f"CPRP Scalping v{SCALPING_VERSION}: **Option Available** · focus **{best_short}** · "
-            "1m Keltner · risk $30–$50 · SMA(14) midline."
+            f"CPRP Scalping v{SCALPING_VERSION}: **Option Conclusive** · focus **{best_short}** · "
+            f"movement **{best_card.movement}** · chart **1-minute only** · "
+            "Keltner · SMA(14) · RSI 80/20 · risk $30–$50."
         )
         reasons.append(
-            "Confirm on platform: price accepted one side of SMA · repeated Keltner touches · RSI 80/20."
+            "Confirm on **1m** chart: price accepted one side of SMA · repeated Keltner touches · RSI stretch."
         )
         if primary_active:
             reasons.append(
                 "**Both strategies available** — CPRP Reversion and CPRP Scalping. "
-                "Use your preference and the matching rulebook; do not mix checklists on one trade."
+                "One rulebook per trade; preference is yours."
             )
     else:
         warnings.append(
-            f"CPRP Scalping: **Option Inconclusive** (best env {best_env:.1f}; "
-            f"need {SCALPING_MIN_SCORE:.0f}+"
+            f"CPRP Scalping: **Option Inconclusive** — need **sideways** 1m movement "
+            f"(efficiency ≤ {SCALPING_SIDEWAYS_MAX_ER:.2f})"
             + ("; primary structure hard-blocks scalps" if hard_block else "")
-            + ")."
+            + f". Best env {best_env:.1f}."
         )
 
     return ScalpingOption(
