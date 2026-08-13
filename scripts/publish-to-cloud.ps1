@@ -50,7 +50,10 @@ function Invoke-Git {
     $code = $LASTEXITCODE
     $ErrorActionPreference = $prev
     foreach ($line in $out) {
-        Write-Host ("{0}" -f $line)
+        # Skip bare exit-code noise; only show real git messages
+        $text = "{0}" -f $line
+        if ($text -match '^\s*\d+\s*$') { continue }
+        Write-Host $text
     }
     if ($null -eq $code) { $code = 0 }
     if ($code -ne 0) {
@@ -58,7 +61,84 @@ function Invoke-Git {
         Write-Error $FailMessage
         exit 1
     }
-    return $code
+    # Do not return $code — PowerShell would print "0" to the console.
+}
+
+function Show-PushAuthHelp {
+    Write-Host ""
+    Write-Host "[publish] GitHub would not accept the push (sign-in missing or expired)."
+    Write-Host "[publish] Fix once, then re-run:  RUNCPRP push"
+    Write-Host ""
+    Write-Host "  Option A — GitHub CLI (recommended):"
+    Write-Host "    gh auth login"
+    Write-Host "    (choose GitHub.com → HTTPS → Login with a web browser)"
+    Write-Host "    gh auth setup-git"
+    Write-Host "    RUNCPRP push"
+    Write-Host ""
+    Write-Host "  Option B — Git Credential Manager popup:"
+    Write-Host "    git push origin main"
+    Write-Host "    Sign in when the browser/popup appears, then re-run RUNCPRP push."
+    Write-Host ""
+}
+
+function Invoke-GitPush {
+    <#
+    Push main to origin. Fails fast with clear auth help if credentials are missing
+    (instead of hanging forever on a Credential Manager prompt).
+    #>
+    Write-Host "[publish] Pushing to GitHub (origin main)..."
+
+    # Prefer gh if already logged in — wires git credentials automatically
+    $gh = Get-Command gh -ErrorAction SilentlyContinue
+    if ($gh) {
+        $prev = $ErrorActionPreference
+        $ErrorActionPreference = "Continue"
+        $null = & gh auth status 2>&1
+        $ghOk = ($LASTEXITCODE -eq 0)
+        $ErrorActionPreference = $prev
+        if ($ghOk) {
+            & gh auth setup-git 2>$null | Out-Null
+        }
+    }
+
+    $prev = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
+    # Give Credential Manager a window to finish; fail if still stuck
+    $job = Start-Job -ScriptBlock {
+        param($gitPath, $repoRoot)
+        Set-Location $repoRoot
+        & $gitPath push origin main 2>&1
+        "___EXIT___$LASTEXITCODE"
+    } -ArgumentList $git, $root
+
+    $finished = Wait-Job $job -Timeout 90
+    if (-not $finished) {
+        Stop-Job $job -ErrorAction SilentlyContinue
+        Remove-Job $job -Force -ErrorAction SilentlyContinue
+        Write-Host "[publish] Push timed out after 90s (usually stuck on GitHub login)."
+        Show-PushAuthHelp
+        exit 1
+    }
+
+    $lines = @(Receive-Job $job)
+    Remove-Job $job -Force -ErrorAction SilentlyContinue
+    $ErrorActionPreference = $prev
+
+    $code = 1
+    foreach ($line in $lines) {
+        $text = "{0}" -f $line
+        if ($text -match '^___EXIT___(\d+)$') {
+            $code = [int]$Matches[1]
+            continue
+        }
+        if ($text.Trim().Length -gt 0) { Write-Host $text }
+    }
+
+    if ($code -ne 0) {
+        Write-Host "[publish] git push origin main  → exit $code"
+        Show-PushAuthHelp
+        exit 1
+    }
 }
 
 function Sync-WithOrigin {
@@ -124,8 +204,8 @@ if (-not $status) {
         Sync-WithOrigin
         $ahead = & $git rev-list --count "origin/main..HEAD" 2>$null
         if ($ahead -and [int]$ahead -gt 0) {
-            Write-Host "[publish] Local is $ahead commit(s) ahead - pushing..."
-            Invoke-Git -Args @("push", "origin", "main") -FailMessage "git push failed. Check GitHub sign-in / credentials."
+            Write-Host "[publish] Local is $ahead commit(s) ahead of GitHub (not uploaded yet)."
+            Invoke-GitPush
             Write-Host "[publish] Done. Streamlit Cloud will redeploy from main shortly."
             exit 0
         }
@@ -153,8 +233,7 @@ Invoke-Git -Args @("commit", "-m", $Message) -FailMessage "git commit failed."
 # Integrate any remote commits before push (avoids non-fast-forward reject)
 Sync-WithOrigin
 
-Write-Host "[publish] Pushing to GitHub (origin)..."
-Invoke-Git -Args @("push", "origin", "main") -FailMessage "git push failed. Check GitHub sign-in / credentials, then retry."
+Invoke-GitPush
 
 Write-Host ""
 Write-Host "[publish] SUCCESS - code is on GitHub."
