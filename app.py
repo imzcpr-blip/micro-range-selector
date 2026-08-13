@@ -114,6 +114,7 @@ from journal import render_journal_page, render_reference_and_journal_side_by_si
 from community import render_community_panel
 from economic_calendar import render_economic_calendar_panel
 from live_news import render_bloomberg_audio_option, render_bloomberg_panel
+from market_deep_dive import render_market_deep_dive_panel
 from micro_futures_news import render_micro_futures_news_panel
 from micros_guide import render_micros_guide_panel
 from platforms_brokers import render_platforms_brokers_panel
@@ -276,6 +277,7 @@ PAGE_CHAT = "Member Chat"
 PAGE_CALENDAR = "Economic Calendar"
 PAGE_NEWS = "Bloomberg Live"
 PAGE_MICRO_NEWS = "Micro Futures News"
+PAGE_DEEP_DIVE = "Market Deep Dive"
 PAGE_PLATFORMS = "Platforms & Brokers"
 PAGE_MICROS = "Micro E-mini Futures"
 PAGE_BRANDING = "Company Branding"
@@ -291,12 +293,13 @@ _nav_pages_clean = [
     PAGE_PLATFORMS,      # 4. Charting / broker links
     PAGE_SELECTOR,       # 5. Main session tool
     PAGE_CALENDAR,       # 6. Event risk filter
-    PAGE_MICRO_NEWS,     # 7. TradingView micro futures news
-    PAGE_NEWS,           # 8. Live news desk
-    PAGE_JOURNAL,        # 9. Private session notes
-    PAGE_SESSION_WL,     # 10. Shared session stats
-    PAGE_COMMUNITY,      # 11. Ideas board
-    PAGE_CHAT,           # 12. Live member chat
+    PAGE_DEEP_DIVE,      # 7. CPRP Strategies portfolio deep dive
+    PAGE_MICRO_NEWS,     # 8. TradingView micro futures news
+    PAGE_NEWS,           # 9. Live news desk
+    PAGE_JOURNAL,        # 10. Private session notes
+    PAGE_SESSION_WL,     # 11. Shared session stats
+    PAGE_COMMUNITY,      # 12. Ideas board
+    PAGE_CHAT,           # 13. Live member chat
 ]
 _is_founder = is_current_user_admin()
 if _is_founder:
@@ -338,6 +341,11 @@ if page == PAGE_NEWS:
 # ── Micro Futures News (TradingView Top Stories for MES/MNQ/MYM) ──────────
 if page == PAGE_MICRO_NEWS:
     render_micro_futures_news_panel()
+    st.stop()
+
+# ── Market Deep Dive (CPRP Strategies Portfolio · 60s auto deep dive) ─────
+if page == PAGE_DEEP_DIVE:
+    render_market_deep_dive_panel()
     st.stop()
 
 # ── Economic Calendar (Forex Factory — free third-party) ──────────────────

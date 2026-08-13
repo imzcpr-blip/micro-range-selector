@@ -1,0 +1,51 @@
+{
+  "name": "CPRP Strategies Portfolio",
+  "source": "Google Finance (mirrored holdings — private portfolios have no public API)",
+  "google_finance_url": "https://www.google.com/finance/portfolio",
+  "notes": "Edit holdings here or in the Market Deep Dive panel (Founder). Keep this list aligned with your Google Finance CPRP Strategies portfolio. Yahoo symbols are used for live quotes (e.g. MES=F for Micro ES).",
+  "updated_at": null,
+  "holdings": [
+    {
+      "symbol": "MES=F",
+      "name": "Micro E-mini S&P 500",
+      "google_symbol": "MES:CME_EMINIS",
+      "shares": null,
+      "notes": "Primary CPRP micro"
+    },
+    {
+      "symbol": "MNQ=F",
+      "name": "Micro E-mini Nasdaq-100",
+      "google_symbol": "MNQ:CME_EMINIS",
+      "shares": null,
+      "notes": "Primary CPRP micro"
+    },
+    {
+      "symbol": "MYM=F",
+      "name": "Micro E-mini Dow",
+      "google_symbol": "MYM:CBOT_MINI",
+      "shares": null,
+      "notes": "Primary CPRP micro"
+    },
+    {
+      "symbol": "ES=F",
+      "name": "E-mini S&P 500",
+      "google_symbol": "ES:CME_EMINIS",
+      "shares": null,
+      "notes": "Full-size related"
+    },
+    {
+      "symbol": "NQ=F",
+      "name": "E-mini Nasdaq-100",
+      "google_symbol": "NQ:CME_EMINIS",
+      "shares": null,
+      "notes": "Full-size related"
+    },
+    {
+      "symbol": "YM=F",
+      "name": "E-mini Dow",
+      "google_symbol": "YM:CBOT",
+      "shares": null,
+      "notes": "Full-size related"
+    }
+  ]
+}

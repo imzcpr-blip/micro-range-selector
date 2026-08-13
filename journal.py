@@ -54,17 +54,18 @@ JOURNAL_MAX_ENTRIES = 50
 
 # Yahoo Finance continuous Micro E-mini futures (same symbols as Session Selector)
 #   MES → MES=F   MNQ → MNQ=F   MYM → MYM=F
-# Chart: 1-Hour candles · ~1 trading day of bars + Keltner / RSI / Volume
+# Chart: 1-Hour candles · multi-day window + Keltner / RSI / Volume
+# Wider bar count so structure / trend is readable (not just one session).
 YF_MICRO_ORDER = ("MES", "MNQ", "MYM")
-YF_CHART_PERIOD = "10d"  # warmup history for EMA/ATR/RSI, then clip to ~1D
+YF_CHART_PERIOD = "60d"  # enough history for KC/RSI warmup + multi-day display
 YF_CHART_INTERVAL = "1h"
-YF_CHART_BARS = 24  # ~1 day of hourly futures bars (display window)
+YF_CHART_BARS = 120  # ~5 sessions of hourly futures bars (display window)
 # Indicator defaults (structure-friendly; RSI 14 matches CPRP structure chart)
 KC_EMA = 20
 KC_ATR = 10
 KC_MULT = 2.0
 RSI_PERIOD = 14
-TV_CHART_HEIGHT = 680  # price + volume + RSI stacked, still one-screen
+TV_CHART_HEIGHT = 920  # larger price pane + volume + RSI; full-width board
 
 
 @dataclass
@@ -978,7 +979,8 @@ def _keltner_channels(
 def _yahoo_1h_1d_bars(yahoo_symbol: str) -> pd.DataFrame:
     """
     Yahoo Finance 1-Hour bars with Keltner / RSI warmed up on longer history,
-    then clipped to ~1 trading day for the quote-board display.
+    then clipped to a multi-day display window (~YF_CHART_BARS hours) so trend
+    and structure are visible — not just a single session.
     Cached ~60s so tab switches stay snappy without hammering Yahoo.
     """
     raw = fetch_bars(
@@ -1019,10 +1021,10 @@ def _yahoo_candlestick_figure(
         rows=3,
         cols=1,
         shared_xaxes=True,
-        vertical_spacing=0.04,
-        row_heights=[0.58, 0.18, 0.24],
+        vertical_spacing=0.035,
+        row_heights=[0.62, 0.16, 0.22],  # prioritize price candles for trend read
         subplot_titles=(
-            f"{short}  ·  Keltner ({KC_EMA}/{KC_ATR}×{KC_MULT:g})",
+            f"{short}  ·  Keltner ({KC_EMA}/{KC_ATR}×{KC_MULT:g})  ·  1H · {len(bars)} bars",
             "Volume",
             f"RSI ({RSI_PERIOD})",
         ),
@@ -1187,14 +1189,15 @@ def _yahoo_candlestick_figure(
                 f"<span style='font-size:12px;color:{rsi_color}'>"
                 f"  ·  RSI {rsi_last:.1f}</span>"
                 f"<span style='font-size:11px;color:#8a8478'>"
-                f"  ·  KC {KC_EMA}/{KC_ATR}×{KC_MULT:g}  ·  1H · ~1D · Yahoo</span>"
+                f"  ·  KC {KC_EMA}/{KC_ATR}×{KC_MULT:g}  ·  1H · {len(bars)} bars · Yahoo</span>"
             ),
             x=0.01,
             xanchor="left",
             font=dict(size=13, color="#E8D5A3", family="IBM Plex Mono, monospace"),
         ),
         height=height,
-        margin=dict(t=72, b=24, l=48, r=52),
+        # Tight side margins so the candle pane uses full board width
+        margin=dict(t=68, b=28, l=36, r=56),
         paper_bgcolor="rgba(6,10,14,1)",
         plot_bgcolor="rgba(8,12,16,0.96)",
         font=dict(color="#e8e4d8", family="IBM Plex Mono, monospace", size=10),
@@ -1240,14 +1243,15 @@ def render_live_micro_charts(
     default_micro: str = "MES",
 ) -> None:
     """
-    Bottom-right LIVE Yahoo Finance charts: MES / MNQ / MYM
-    1-Hour candles over ~1 day with Keltner Channels, Volume, and RSI.
+    Full-width LIVE Yahoo Finance charts: MES / MNQ / MYM
+    1-Hour candles over a multi-day window with Keltner Channels, Volume, and RSI.
     """
-    desk_section("Quote Board · 1 Day / 1 Hour", side="bull")
+    desk_section("Quote Board · 1 Hour · multi-day trend", side="bull")
     st.caption(
         "Yahoo Finance continuous micros: **MES=F** · **MNQ=F** · **MYM=F**  ·  "
-        f"**1H** · **~1D**  ·  Keltner ({KC_EMA}/{KC_ATR}×{KC_MULT:g}) · "
-        f"Volume · RSI ({RSI_PERIOD}). Switch tabs — full multi-pane chart."
+        f"**1H** · **~{YF_CHART_BARS} bars** (multi-day)  ·  "
+        f"Keltner ({KC_EMA}/{KC_ATR}×{KC_MULT:g}) · "
+        f"Volume · RSI ({RSI_PERIOD}). Wider board for structure and trend."
     )
 
     pick = (default_micro or "MES").strip().upper()
@@ -1258,8 +1262,8 @@ def render_live_micro_charts(
     ordered = [pick] + [s for s in YF_MICRO_ORDER if s != pick]
 
     quote_board_header(
-        "Floor Quote Board · MES=F · MNQ=F · MYM=F · KC · Vol · RSI",
-        live_label="YAHOO · 1H / 1D",
+        f"Floor Quote Board · MES=F · MNQ=F · MYM=F · KC · Vol · RSI · {YF_CHART_BARS}×1H",
+        live_label="YAHOO · 1H · TREND",
     )
     tabs = st.tabs([f"● {s} ({INSTRUMENTS[s].symbol})" for s in ordered])
 
@@ -1317,7 +1321,7 @@ def render_live_micro_charts(
                     "Try again in a moment, or confirm market data on your platform."
                 )
     quote_board_footer(
-        "MES=F · MNQ=F · MYM=F · Keltner + Volume + RSI · Yahoo Finance · Desk display only"
+        f"MES=F · MNQ=F · MYM=F · {YF_CHART_BARS}×1H · Keltner + Volume + RSI · Yahoo Finance · Desk display only"
     )
 
 
@@ -1377,7 +1381,7 @@ def render_journal_page(default_micro: str = "") -> None:
     render_disclosure(expanded=False)
 
     # Top row: Quick Reference (left) | Journal composer (right)
-    # Bottom-right of this pair: LIVE 1D/1H charts filling the remaining space
+    # Full-width below: LIVE multi-day 1H charts (wider trend view)
     left, right = st.columns([1, 1], gap="large")
     with left:
         render_quick_reference_panel()
@@ -1387,13 +1391,14 @@ def render_journal_page(default_micro: str = "") -> None:
             default_micro=default_micro,
             compact=False,
         )
-        st.markdown("---")
-        # Bottom-right panel — large enough to show full 1 Day / 1 Hour chart
-        render_live_micro_charts(
-            key_prefix="page_tv",
-            height=TV_CHART_HEIGHT,
-            default_micro=default_micro or "MES",
-        )
+
+    st.markdown("---")
+    # Full board width so more 1H candles / structure are readable
+    render_live_micro_charts(
+        key_prefix="page_tv",
+        height=TV_CHART_HEIGHT,
+        default_micro=default_micro or "MES",
+    )
 
     st.markdown("---")
     render_journal_history(key_prefix="pagehist", show_edit=True)
