@@ -127,7 +127,11 @@ SIDEBAR_VIDEO_GIF = _ASSETS / "cprp_sidebar_video.gif"
 SIDEBAR_VIDEO = _ASSETS / "cprp_sidebar_video.mp4"
 SIDEBAR_VIDEO_BRAND = BRANDING_DIR / "cprp_sidebar_video.mp4"
 SIDEBAR_VIDEO_BRAND_GIF = BRANDING_DIR / "cprp_sidebar_video.gif"
-# Session Selector header (prefer GIF; MP4 fallback)
+# Session Selector header — prefer official Strategies brand logo still, then GIF/MP4
+SESSION_SELECTOR_IMAGE = _ASSETS / "cprp_session_selector_image.jpg"
+SESSION_SELECTOR_IMAGE_BRAND = BRANDING_DIR / "cprp_session_selector_image.jpg"
+SESSION_SELECTOR_BRAND_LOGO = _ASSETS / "cprp_strategies_brand_logo.jpg"
+SESSION_SELECTOR_BRAND_LOGO_BRAND = BRANDING_DIR / "cprp_strategies_brand_logo.jpg"
 SESSION_SELECTOR_VIDEO_GIF = _ASSETS / "cprp_session_selector_video.gif"
 SESSION_SELECTOR_VIDEO = _ASSETS / "cprp_session_selector_video.mp4"
 SESSION_SELECTOR_VIDEO_BRAND = BRANDING_DIR / "cprp_session_selector_video.mp4"

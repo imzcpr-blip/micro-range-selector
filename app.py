@@ -31,6 +31,18 @@ SIDEBAR_VIDEO_BRAND_GIF = getattr(
     _cprp_cfg, "SIDEBAR_VIDEO_BRAND_GIF", BRANDING_DIR / "cprp_sidebar_video.gif"
 )
 SIDEBAR_VIDEO_GIF = getattr(_cprp_cfg, "SIDEBAR_VIDEO_GIF", Path(BRANDING_DIR).parent / "cprp_sidebar_video.gif")
+SESSION_SELECTOR_IMAGE = getattr(
+    _cprp_cfg, "SESSION_SELECTOR_IMAGE", Path(BRANDING_DIR).parent / "cprp_session_selector_image.jpg"
+)
+SESSION_SELECTOR_IMAGE_BRAND = getattr(
+    _cprp_cfg, "SESSION_SELECTOR_IMAGE_BRAND", BRANDING_DIR / "cprp_session_selector_image.jpg"
+)
+SESSION_SELECTOR_BRAND_LOGO = getattr(
+    _cprp_cfg, "SESSION_SELECTOR_BRAND_LOGO", Path(BRANDING_DIR).parent / "cprp_strategies_brand_logo.jpg"
+)
+SESSION_SELECTOR_BRAND_LOGO_BRAND = getattr(
+    _cprp_cfg, "SESSION_SELECTOR_BRAND_LOGO_BRAND", BRANDING_DIR / "cprp_strategies_brand_logo.jpg"
+)
 SESSION_SELECTOR_VIDEO = getattr(
     _cprp_cfg, "SESSION_SELECTOR_VIDEO", Path(BRANDING_DIR).parent / "cprp_session_selector_video.mp4"
 )
@@ -381,6 +393,36 @@ if page == PAGE_BRANDING:
         desk_tag="BRAND DESK · FLOOR IDENTITY",
     )
 
+    # CPRP Strategies Brand Logo (Session Selector + brand suite hero)
+    desk_section("CPRP Strategies Brand Logo", side="bull")
+    _brand_logo_paths = [
+        Path(BRANDING_DIR) / "cprp_strategies_brand_logo.jpg",
+        Path(getattr(_cprp_cfg, "SESSION_SELECTOR_BRAND_LOGO", Path(BRANDING_DIR).parent / "cprp_strategies_brand_logo.jpg")),
+        Path(getattr(_cprp_cfg, "SESSION_SELECTOR_IMAGE", Path(BRANDING_DIR).parent / "cprp_session_selector_image.jpg")),
+    ]
+    _bl_cols = st.columns([1, 1.6, 1])
+    with _bl_cols[1]:
+        _bl_shown = False
+        for _bp in _brand_logo_paths:
+            if _bp.is_file():
+                st.image(
+                    str(_bp),
+                    use_container_width=True,
+                    caption="CPRP Strategies Brand Logo · Session Selector",
+                )
+                st.download_button(
+                    label="📁 Download Strategies Brand Logo",
+                    data=_bp.read_bytes(),
+                    file_name="CPRP_Strategies_Brand_Logo.jpg",
+                    mime="image/jpeg",
+                    key=f"dl_strategies_brand_logo_{_bp.name}",
+                    use_container_width=True,
+                )
+                _bl_shown = True
+                break
+        if not _bl_shown:
+            st.warning("CPRP Strategies Brand Logo not found — run branding sync.")
+
     # Official Seal hero (transparent PNG preferred)
     desk_section("Official Seal", side="bull")
     seal_cols = st.columns([1, 1.4, 1])
@@ -650,10 +692,11 @@ if page == PAGE_BRANDING:
             "cprp_dark_support_resistance_theme": "Dark Support / Resistance theme",
             "cprp_lock_in_theme": "Lock-in theme",
             "cprp_logo_classic": "Classic logo",
-            "cprp_logo_classic": "Classic wordmark",
             "cprp_logo_icon": "App icon",
             "cprp_logo_primary": "Primary logo",
             "cprp_member_chat_poster": "Member Chat poster",
+            "cprp_strategies_brand_logo": "CPRP Strategies Brand Logo",
+            "cprp_session_selector_image": "Session Selector brand image",
         }
         cols = st.columns(3)
         for i, img in enumerate(stills):
@@ -1106,8 +1149,12 @@ st.sidebar.caption(f"Pages: Selector · Branding · About · © {CREATOR}")
 # ══════════════════════════════════════════════════════════════════════════
 # MAIN — Session Selector header video + description + analysis
 # ══════════════════════════════════════════════════════════════════════════
-# Session Selector banner: clean looping GIF/video (no play button chrome)
+# Session Selector banner: CPRP Strategies Brand Logo first, then motion fallbacks
 if not render_loop_media(
+    Path(SESSION_SELECTOR_BRAND_LOGO),
+    Path(SESSION_SELECTOR_BRAND_LOGO_BRAND),
+    Path(SESSION_SELECTOR_IMAGE),
+    Path(SESSION_SELECTOR_IMAGE_BRAND),
     Path(SESSION_SELECTOR_VIDEO_GIF),
     Path(SESSION_SELECTOR_VIDEO_BRAND_GIF),
     Path(SESSION_SELECTOR_VARIANT_GIF),
@@ -1116,7 +1163,7 @@ if not render_loop_media(
     Path(BRANDING_DIR) / "cprp_logo_video_variant_2.mp4",
     Path(BRANDING_LOGO_IMAGE),
     Path(BRANDING_LOGO_ICON),
-    caption="CPRP Session Selector",
+    caption="CPRP Strategies Brand Logo · Session Selector",
     height=380,
 ):
     st.warning("CPRP Session Selector media not found in assets/.")

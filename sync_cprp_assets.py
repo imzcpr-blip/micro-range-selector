@@ -105,6 +105,13 @@ BRANDING_MAP: dict[str, str] = {
     "grok_video_2026-08-09-09-53-06.mp4": "cprp_logo_video_variant_4.mp4",
     # Sidebar panel video
     "grok-video-4bdc3ca9-daa2-4dad-84e6-7f270bc2ca95.mp4": "cprp_sidebar_video.mp4",
+    # Official CPRP Strategies brand logo (Session Selector + branding suite)
+    "CPRP Strategies Brand Logo.jpg": "cprp_strategies_brand_logo.jpg",
+    "CPRP_Strategies_Brand_Logo.jpg": "cprp_strategies_brand_logo.jpg",
+    # Session Selector / brand logo motion video
+    "CPRP Brand Logo Video.mp4": "cprp_session_selector_video.mp4",
+    "CPRP_Brand_Logo_Video.mp4": "cprp_session_selector_video.mp4",
+    "CPRP Brand Logo Video.mp4": "cprp_brand_logo_video.mp4",
     # CPRP Scalping brand motion + newer stills
     "CPRP Scalping Vid 1.mp4": "cprp_scalping_video.mp4",
     "CPRP_Scalping_Vid_1.mp4": "cprp_scalping_video.mp4",
@@ -152,6 +159,10 @@ PRIMARY_BRANDING_LINKS: list[tuple[str, str]] = [
     # CPRP Scalping brand media (root + branding)
     ("cprp_scalping_video.mp4", "cprp_scalping_video.mp4"),
     ("cprp_scalping_video.gif", "cprp_scalping_video.gif"),
+    # Strategies brand logo → Session Selector still + app root
+    ("cprp_strategies_brand_logo.jpg", "cprp_strategies_brand_logo.jpg"),
+    ("cprp_strategies_brand_logo.jpg", "cprp_session_selector_image.jpg"),
+    ("cprp_session_selector_image.jpg", "cprp_session_selector_image.jpg"),
 ]
 
 
@@ -433,6 +444,7 @@ def list_official_brand_suite() -> list[tuple[str, Path]]:
     seal_jpg = BRANDING_DIR / "cprp_official_seal.jpg"
     seal_path = seal_png if seal_png.is_file() else seal_jpg
     suite = [
+        ("CPRP Strategies Brand Logo", BRANDING_DIR / "cprp_strategies_brand_logo.jpg"),
         ("Candlestick brand logo", BRANDING_DIR / "cprp_brand_logo_candlestick.jpg"),
         ("Support / Resistance brand logo", BRANDING_DIR / "cprp_brand_logo_support_resistance.jpg"),
         ("Minimal icon", BRANDING_DIR / "cprp_icon_minimal.jpg"),
