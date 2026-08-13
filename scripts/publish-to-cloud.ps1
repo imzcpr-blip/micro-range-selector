@@ -37,31 +37,40 @@ if (-not (Test-Path (Join-Path $root "app.py"))) {
 }
 Set-Location $root
 
+$GitHubOwnerRepo = "imzcpr-blip/micro-range-selector"
+
+function Write-GitLines {
+    param($Lines)
+    foreach ($line in @($Lines)) {
+        if ($null -eq $line) { continue }
+        if ($line -is [System.Management.Automation.ErrorRecord]) {
+            $text = $line.ToString()
+        } else {
+            $text = "$line"
+        }
+        if ($text -match '^\s*\d+\s*$') { continue }
+        if ($text.Trim().Length -gt 0) { Write-Host $text }
+    }
+}
+
 function Invoke-Git {
     param(
         [Parameter(Mandatory = $true)]
         [string[]]$Args,
         [string]$FailMessage = "git command failed."
     )
-    # Run git; print all output lines (stdout + stderr) without treating stderr as fatal.
     $prev = $ErrorActionPreference
     $ErrorActionPreference = "Continue"
     $out = & $git @Args 2>&1
     $code = $LASTEXITCODE
     $ErrorActionPreference = $prev
-    foreach ($line in $out) {
-        # Skip bare exit-code noise; only show real git messages
-        $text = "{0}" -f $line
-        if ($text -match '^\s*\d+\s*$') { continue }
-        Write-Host $text
-    }
+    Write-GitLines $out
     if ($null -eq $code) { $code = 0 }
     if ($code -ne 0) {
-        Write-Host "[publish] git $($Args -join ' ')  → exit $code"
+        Write-Host "[publish] git $($Args -join ' ')  -> exit $code"
         Write-Error $FailMessage
         exit 1
     }
-    # Do not return $code — PowerShell would print "0" to the console.
 }
 
 function Show-PushAuthHelp {
@@ -69,81 +78,70 @@ function Show-PushAuthHelp {
     Write-Host "[publish] GitHub would not accept the push (sign-in missing or expired)."
     Write-Host "[publish] Fix once, then re-run:  RUNCPRP push"
     Write-Host ""
-    Write-Host "  Option A — GitHub CLI (recommended):"
-    Write-Host "    gh auth login"
-    Write-Host "    (choose GitHub.com → HTTPS → Login with a web browser)"
-    Write-Host "    gh auth setup-git"
-    Write-Host "    RUNCPRP push"
-    Write-Host ""
-    Write-Host "  Option B — Git Credential Manager popup:"
-    Write-Host "    git push origin main"
-    Write-Host "    Sign in when the browser/popup appears, then re-run RUNCPRP push."
+    Write-Host "  1) gh auth login"
+    Write-Host "     (GitHub.com -> HTTPS -> Login with a web browser)"
+    Write-Host "  2) gh auth setup-git"
+    Write-Host "  3) RUNCPRP push"
     Write-Host ""
 }
 
 function Invoke-GitPush {
     <#
-    Push main to origin in-process (NOT Start-Job).
-    Background jobs cannot use gh/keyring credentials, so they hang forever at "Pushing...".
+    Push main to GitHub without hanging on Git Credential Manager.
+
+    On Windows, plain "git push origin main" often hangs forever waiting for a
+    GCM GUI that never shows (especially when launched from RUNCPRP.cmd).
+
+    Fix: one-shot push URL using `gh auth token`. Token is not saved to config.
     #>
     Write-Host "[publish] Pushing to GitHub (origin main)..."
-    Write-Host "[publish] (Large branding GIFs/videos can take several minutes — progress below.)"
-
-    # Wire gh credentials into git so HTTPS push works without a GUI popup
-    $gh = Get-Command gh -ErrorAction SilentlyContinue
-    if ($gh) {
-        $prev = $ErrorActionPreference
-        $ErrorActionPreference = "Continue"
-        $null = & gh auth status 2>&1
-        $ghOk = ($LASTEXITCODE -eq 0)
-        $ErrorActionPreference = $prev
-        if ($ghOk) {
-            Write-Host "[publish] Using GitHub CLI credentials (gh auth setup-git)..."
-            & gh auth setup-git 2>$null | Out-Null
-        } else {
-            Write-Host "[publish] gh is installed but not logged in."
-            Show-PushAuthHelp
-            exit 1
-        }
-    }
+    Write-Host "[publish] (Large branding files can take a minute - please wait.)"
 
     $prev = $ErrorActionPreference
     $ErrorActionPreference = "Continue"
-    # Stream progress live (do not capture into a job — that breaks auth + hides progress)
-    & $git -c credential.helper= -c "credential.helper=!gh auth git-credential" push -u origin main 2>&1 | ForEach-Object {
-        Write-Host ("{0}" -f $_)
-    }
-    $code = $LASTEXITCODE
-    $ErrorActionPreference = $prev
+    $code = 1
 
-    if ($null -eq $code) { $code = 0 }
-    if ($code -ne 0) {
-        # Fallback: plain push (uses whatever credential.helper is configured)
-        Write-Host "[publish] Retrying with default git credentials..."
-        $ErrorActionPreference = "Continue"
-        & $git push -u origin main 2>&1 | ForEach-Object { Write-Host ("{0}" -f $_) }
+    $gh = Get-Command gh -ErrorAction SilentlyContinue
+    $token = $null
+    if ($gh) {
+        $null = & gh auth status 2>&1
+        if ($LASTEXITCODE -eq 0) {
+            $token = (& gh auth token 2>$null | Out-String).Trim()
+        }
+    }
+
+    if ($token -and $token.Length -ge 20) {
+        Write-Host "[publish] Auth: GitHub CLI token (no popup)..."
+        $pushUrl = "https://x-access-token:${token}@github.com/${GitHubOwnerRepo}.git"
+        # Do not pipe - piping drops $LASTEXITCODE on Windows PowerShell.
+        # Disable credential helpers so nothing prompts or hangs.
+        $out = & $git -c credential.helper= -c http.version=HTTP/1.1 push $pushUrl "HEAD:main" 2>&1
         $code = $LASTEXITCODE
-        $ErrorActionPreference = $prev
+        Write-GitLines $out
+    } else {
+        Write-Host "[publish] gh token unavailable - trying plain git push..."
+        $out = & $git -c http.version=HTTP/1.1 push origin main 2>&1
+        $code = $LASTEXITCODE
+        Write-GitLines $out
     }
 
+    $ErrorActionPreference = $prev
     if ($null -eq $code) { $code = 0 }
+
     if ($code -ne 0) {
-        Write-Host "[publish] git push origin main  → exit $code"
+        Write-Host "[publish] git push failed (exit $code)."
         Show-PushAuthHelp
         exit 1
     }
+
+    & $git fetch origin main 2>$null | Out-Null
+    Write-Host "[publish] Push complete."
 }
 
 function Sync-WithOrigin {
-    <#
-    Safer than `git pull --rebase origin main`, which on some Git/Windows setups
-    fails with: "fatal: Cannot rebase onto multiple branches."
-    Sequence: fetch refs, then rebase onto origin/main only.
-    #>
     Write-Host "[publish] Fetching origin..."
     Invoke-Git -Args @("fetch", "origin") -FailMessage "git fetch failed. Check network / GitHub credentials."
 
-    # Abort any stuck rebase/merge from a previous failed publish
     $rebaseMerge = Join-Path $root ".git\rebase-merge"
     $rebaseApply = Join-Path $root ".git\rebase-apply"
     if ((Test-Path $rebaseMerge) -or (Test-Path $rebaseApply)) {
@@ -157,18 +155,13 @@ function Sync-WithOrigin {
     $out = & $git rebase origin/main 2>&1
     $code = $LASTEXITCODE
     $ErrorActionPreference = $prev
-    foreach ($line in $out) { Write-Host ("{0}" -f $line) }
+    Write-GitLines $out
 
     if ($code -ne 0) {
         Write-Host ""
         Write-Host "[publish] Rebase failed (exit $code). Common fixes:"
-        Write-Host "  1) If conflicts: resolve files, then:"
-        Write-Host "       git add -A"
-        Write-Host "       git rebase --continue"
-        Write-Host "       git push origin main"
-        Write-Host "  2) To cancel the rebase:"
-        Write-Host "       git rebase --abort"
-        Write-Host "  3) If stuck mid-rebase, run: git rebase --abort  then re-run this script."
+        Write-Host "  1) Resolve conflicts, then: git add -A ; git rebase --continue ; git push origin main"
+        Write-Host "  2) Cancel: git rebase --abort"
         Write-Error "git rebase onto origin/main failed."
         exit 1
     }
@@ -188,7 +181,6 @@ if ($SyncAssets) {
     python (Join-Path $root "sync_cprp_assets.py")
 }
 
-# Stage everything
 & $git add -A 2>&1 | Out-Null
 $status = & $git status --porcelain
 if (-not $status) {
@@ -223,7 +215,6 @@ if ($DryRun) {
 
 Invoke-Git -Args @("commit", "-m", $Message) -FailMessage "git commit failed."
 
-# Integrate any remote commits before push (avoids non-fast-forward reject)
 Sync-WithOrigin
 
 Invoke-GitPush
@@ -232,5 +223,5 @@ Write-Host ""
 Write-Host "[publish] SUCCESS - code is on GitHub."
 Write-Host "[publish] Streamlit Community Cloud auto-redeploys from branch main"
 Write-Host "[publish]   (usually 1-3 minutes). Refresh your public .streamlit.app URL."
-Write-Host "[publish] Repo: https://github.com/imzcpr-blip/micro-range-selector"
+Write-Host "[publish] Repo: https://github.com/$GitHubOwnerRepo"
 exit 0
