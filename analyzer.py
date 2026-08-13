@@ -94,8 +94,26 @@ class InstrumentScore:
 
 
 @dataclass
+class ScalpingMicroScore:
+    """Per-micro CPRP Scalping environment score for comparison cards."""
+
+    short: str
+    name: str
+    priority: int
+    score: float
+    status: str  # "Option Available" | "Option Inconclusive"
+    available: bool
+    htf_bias: str
+    htf_label: str
+    volume_score: float
+    volatility_score: float
+    structure_score: float
+    notes: list[str] = field(default_factory=list)
+
+
+@dataclass
 class ScalpingOption:
-    """Secondary CPRP Scalping offer when primary reversion is quiet."""
+    """Secondary CPRP Scalping offer when environment clears."""
 
     eligible: bool
     micro: Optional[str]
@@ -103,6 +121,9 @@ class ScalpingOption:
     reasons: list[str] = field(default_factory=list)
     warnings: list[str] = field(default_factory=list)
     label: str = SCALPING_STYLE
+    # Always filled for Session Selector comparison cards
+    micro_scores: list[ScalpingMicroScore] = field(default_factory=list)
+    status_label: str = "Option Inconclusive"  # overall: Available vs Inconclusive
 
 
 @dataclass
@@ -583,28 +604,24 @@ def score_scalping_environment(
     """
     CPRP Scalping v1.1 — secondary tool only.
 
-    Offer scalping when:
-      • Primary CPRP is quiet (no high-quality range/channel trade)
-      • Market is sideways / accumulation (not strong 60m trend)
-      • Volume & volatility are subdued (not dead, not explosive)
-    Never when a strong primary CPRP setup is present.
+    Always scores every micro for Session Selector comparison cards.
+    Overall status:
+      • Option Available   — at least one micro clears SCALPING_MIN_SCORE (and not hard-blocked)
+      • Option Inconclusive — environment does not support scalping this scan
     """
     reasons: list[str] = []
     warnings: list[str] = []
 
-    # Hard block only when primary structure is clearly high-quality (rulebook preference)
-    if primary_active and primary_best.structure_score >= 72 and primary_best.score >= 70:
-        return ScalpingOption(
-            eligible=False,
-            micro=None,
-            score=0.0,
-            reasons=[],
-            warnings=[
-                f"High-quality primary CPRP on {primary_best.short} "
-                f"(score {primary_best.score:.1f}, structure {primary_best.structure_score:.0f}) — "
-                "prefer reversion; scalping stands aside until structure goes quiet."
-            ],
-            label=SCALPING_STYLE,
+    hard_block = (
+        primary_active
+        and primary_best.structure_score >= 72
+        and primary_best.score >= 70
+    )
+    if hard_block:
+        warnings.append(
+            f"High-quality primary CPRP on {primary_best.short} "
+            f"(score {primary_best.score:.1f}, structure {primary_best.structure_score:.0f}) — "
+            "prefer reversion; scalping stands aside until structure goes quiet."
         )
 
     # Primary quiet = best scalping env; can still offer as preference when env is good
@@ -613,7 +630,7 @@ def score_scalping_environment(
         quiet_score = 90.0
         reasons.append(
             f"Primary CPRP is quiet (best {primary_best.short} {primary_best.score:.1f} "
-            f"< {MIN_SCORE_TO_TRADE:.0f}) — scalping is an available option."
+            f"< {MIN_SCORE_TO_TRADE:.0f}) — scalping may clear if tape is quiet."
         )
     elif primary_quiet:
         quiet_score = 78.0
@@ -629,36 +646,36 @@ def score_scalping_environment(
         )
 
     # Score each micro for quiet / sideways suitability
-    best_micro: Optional[InstrumentScore] = None
+    micro_scores: list[ScalpingMicroScore] = []
+    best_short: Optional[str] = None
     best_env = -1.0
     env_notes: list[str] = []
 
     for s in scores:
-        # Sideways: prefer ranging HTF and non-directional 5m structure (efficiency proxy via structure)
-        htf_pts = 0.0
+        notes: list[str] = []
+        # Sideways: prefer ranging HTF
         if s.htf_bias == "ranging":
             htf_pts = 90.0
-            htf_note = "60m/1H context ranging — favors scalping"
+            notes.append("60m/1H ranging — favors scalping")
         elif s.htf_bias == "unknown":
             htf_pts = 55.0
-            htf_note = "1H context unclear"
+            notes.append("1H context unclear")
         else:
-            # Strong HTF trend = stand aside for scalping
             htf_pts = 25.0
-            htf_note = f"1H {s.htf_bias} — scalping disfavored (stronger HTF power)"
+            notes.append(f"1H {s.htf_bias} — scalping disfavored (HTF power)")
 
-        # Subdued volume: volume_score ~40–70 is ideal; very high or dead is bad
         vol = s.volume_score
         if 40 <= vol <= 72:
             vol_pts = 85.0
         elif 30 <= vol < 40 or 72 < vol <= 85:
             vol_pts = 60.0
         elif vol < 30:
-            vol_pts = 35.0  # dead volume
+            vol_pts = 35.0
+            notes.append("Volume light / dead — weak scalp tape")
         else:
-            vol_pts = 40.0  # elevated — not ideal for quiet scalp
+            vol_pts = 40.0
+            notes.append("Volume elevated — less ideal for quiet scalp")
 
-        # Volatility: mid-low preferred for tight $30–$50 risk
         vlt = s.volatility_score
         if 45 <= vlt <= 75:
             vlt_pts = 85.0
@@ -667,16 +684,16 @@ def score_scalping_environment(
         else:
             vlt_pts = 40.0
 
-        # Structure: for scalping we want *lack* of clean high-quality CPRP range
-        # but still two-sided oscillation (not one-way)
         if s.structure_score < 50:
-            struct_pts = 80.0  # no clean CPRP map — room for 1m Keltner
+            struct_pts = 80.0
+            notes.append("Primary map weak — room for 1m Keltner")
         elif s.structure_score < 62:
             struct_pts = 65.0
+            notes.append("Primary map soft — scalping possible")
         else:
-            struct_pts = 30.0  # high-quality structure → use primary CPRP instead
+            struct_pts = 30.0
+            notes.append("Strong primary map — reversion preferred")
 
-        # Session phase: midday / lunch often quieter
         phase_pts = {
             "midday": 90.0,
             "afternoon": 75.0,
@@ -696,42 +713,55 @@ def score_scalping_environment(
         )
         env = float(np.clip(env, 0, 100))
 
+        # Strong HTF trend context soft-caps this micro
+        if s.htf_bias in ("up", "down") and s.trend_context_score >= 70:
+            env = min(env, 48.0)
+            notes.append("Strong HTF trend context — stand aside on scalps (Rulebook §6)")
+
+        micro_available = (not hard_block) and env >= SCALPING_MIN_SCORE
+        micro_scores.append(
+            ScalpingMicroScore(
+                short=s.short,
+                name=s.name,
+                priority=s.priority,
+                score=round(env, 1),
+                status="Option Available" if micro_available else "Option Inconclusive",
+                available=micro_available,
+                htf_bias=s.htf_bias,
+                htf_label=s.htf_label,
+                volume_score=s.volume_score,
+                volatility_score=s.volatility_score,
+                structure_score=s.structure_score,
+                notes=notes,
+            )
+        )
+
         if env > best_env:
             best_env = env
-            best_micro = s
-            env_notes = [
-                htf_note,
-                f"Volume env score {vol:.0f} · volatility {vlt:.0f}",
-                f"Structure for primary map {s.structure_score:.0f} "
-                f"({'weak → scalping OK' if s.structure_score < 62 else 'strong → prefer CPRP'})",
-                f"Session phase: {phase.replace('_', ' ')}",
-            ]
+            best_short = s.short
+            env_notes = list(notes)
 
-    if best_micro is None:
+    if not micro_scores:
         return ScalpingOption(
             eligible=False,
             micro=None,
             score=0.0,
             warnings=["No micro data for scalping environment."],
+            micro_scores=[],
+            status_label="Option Inconclusive",
         )
 
+    # Sort by score desc, then priority (MES first on ties)
+    micro_scores.sort(key=lambda m: (-m.score, m.priority))
     reasons.extend(env_notes)
 
-    # Hard stand-aside: strong HTF trend on best micro
-    if best_micro.htf_bias in ("up", "down") and best_micro.trend_context_score >= 70:
-        warnings.append(
-            f"Stronger {best_micro.htf_bias} context on {best_micro.short} — "
-            "do not scalp against sustained HTF power (Scalping Rulebook §6)."
-        )
-        best_env = min(best_env, 48.0)
+    eligible = (not hard_block) and best_env >= SCALPING_MIN_SCORE
+    status_label = "Option Available" if eligible else "Option Inconclusive"
 
-    # Offer when environment score clears — dual with primary is allowed as user preference
-    eligible = best_env >= SCALPING_MIN_SCORE
-
-    if eligible:
+    if eligible and best_short:
         reasons.append(
-            f"CPRP Scalping v{SCALPING_VERSION} option: focus **{best_micro.short}** · "
-            "1m Keltner mean-reversion · risk $30–$50 · SMA(14) midline."
+            f"CPRP Scalping v{SCALPING_VERSION}: **Option Available** · focus **{best_short}** · "
+            "1m Keltner · risk $30–$50 · SMA(14) midline."
         )
         reasons.append(
             "Confirm on platform: price accepted one side of SMA · repeated Keltner touches · RSI 80/20."
@@ -743,17 +773,21 @@ def score_scalping_environment(
             )
     else:
         warnings.append(
-            f"Scalping environment score {best_env:.1f} "
-            f"(need {SCALPING_MIN_SCORE:.0f}+) — scalping not offered this scan."
+            f"CPRP Scalping: **Option Inconclusive** (best env {best_env:.1f}; "
+            f"need {SCALPING_MIN_SCORE:.0f}+"
+            + ("; primary structure hard-blocks scalps" if hard_block else "")
+            + ")."
         )
 
     return ScalpingOption(
         eligible=eligible,
-        micro=best_micro.short if eligible else None,
+        micro=best_short if eligible else None,
         score=round(best_env, 1),
         reasons=reasons,
         warnings=warnings,
         label=SCALPING_STYLE,
+        micro_scores=micro_scores,
+        status_label=status_label,
     )
 
 
