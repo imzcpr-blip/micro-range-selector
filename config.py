@@ -138,16 +138,18 @@ SESSION_SELECTOR_VIDEO_BRAND = BRANDING_DIR / "cprp_session_selector_video.mp4"
 SESSION_SELECTOR_VIDEO_BRAND_GIF = BRANDING_DIR / "cprp_session_selector_video.gif"
 # Also reuse existing variant GIF when session gif missing
 SESSION_SELECTOR_VARIANT_GIF = BRANDING_DIR / "cprp_logo_video_variant_2.gif"
-# Official CPRP seal (branding suite; landing uses Company Seal below) — PNG has transparent background
-BRANDING_OFFICIAL_SEAL = _ASSETS / "cprp_official_seal.png"
-BRANDING_OFFICIAL_SEAL_JPG = _ASSETS / "cprp_official_seal.jpg"  # original fallback
-BRANDING_OFFICIAL_SEAL_FULL = _ASSETS / "cprp_official_seal_full.jpg"  # desktop CPRP Official Seal.jpg
+# Official CPRP seal (landing + branding suite) — JPG is canonical (from CPRP Official Seal.jpg)
+BRANDING_OFFICIAL_SEAL = _ASSETS / "cprp_official_seal.jpg"
+BRANDING_OFFICIAL_SEAL_JPG = _ASSETS / "cprp_official_seal.jpg"
+BRANDING_OFFICIAL_SEAL_PNG = _ASSETS / "cprp_official_seal.png"  # same art, PNG export
+BRANDING_OFFICIAL_SEAL_FULL = _ASSETS / "cprp_official_seal_full.jpg"  # alias of official seal
 BRANDING_OFFICIAL_SEAL_ANIM = _ASSETS / "cprp_official_seal_anim.gif"
-BRANDING_OFFICIAL_SEAL_BRAND = BRANDING_DIR / "cprp_official_seal.png"
+BRANDING_OFFICIAL_SEAL_BRAND = BRANDING_DIR / "cprp_official_seal.jpg"
 BRANDING_OFFICIAL_SEAL_BRAND_JPG = BRANDING_DIR / "cprp_official_seal.jpg"
+BRANDING_OFFICIAL_SEAL_BRAND_PNG = BRANDING_DIR / "cprp_official_seal.png"
 BRANDING_OFFICIAL_SEAL_FULL_BRAND = BRANDING_DIR / "cprp_official_seal_full.jpg"
 BRANDING_OFFICIAL_SEAL_ANIM_BRAND = BRANDING_DIR / "cprp_official_seal_anim.gif"
-# CPRP Strategies Company Seal (landing page + full company identity)
+# CPRP Strategies Company Seal (company identity still; not landing seal)
 BRANDING_COMPANY_SEAL = _ASSETS / "cprp_strategies_company_seal.jpg"
 BRANDING_COMPANY_SEAL_BRAND = BRANDING_DIR / "cprp_strategies_company_seal.jpg"
 BRANDING_BANNER = _ASSETS / "cprp_banner_horizontal.jpg"

@@ -296,17 +296,23 @@ def sync_branding(search_roots: list[Path] | None = None, report: SyncReport | N
         candidate_dirs.append(r)
 
     found_names: set[str] = set()
+    filled_dests: set[str] = set()
     for d in candidate_dirs:
         for src_name, dest_name in BRANDING_MAP.items():
             if src_name in found_names:
+                continue
+            # First preferred source for a dest wins (e.g. CPRP Official Seal.jpg over suite 05_)
+            if dest_name in filled_dests:
                 continue
             src = d / src_name
             if src.is_file():
                 found_names.add(src_name)
                 _copy_if_newer(src, BRANDING_DIR / dest_name, report)
+                if (BRANDING_DIR / dest_name).is_file():
+                    filled_dests.add(dest_name)
 
     for missing_src, dest_name in BRANDING_MAP.items():
-        if missing_src not in found_names and not (BRANDING_DIR / dest_name).is_file():
+        if dest_name not in filled_dests and not (BRANDING_DIR / dest_name).is_file():
             if dest_name not in report.missing:
                 report.missing.append(dest_name)
 
@@ -459,10 +465,10 @@ def list_branding_images() -> list[Path]:
 
 
 def list_official_brand_suite() -> list[tuple[str, Path]]:
-    """Ordered official 2026 brand stills (label, path). Prefer transparent seal PNG."""
-    seal_png = BRANDING_DIR / "cprp_official_seal.png"
+    """Ordered official 2026 brand stills (label, path). Official Seal prefers JPG."""
     seal_jpg = BRANDING_DIR / "cprp_official_seal.jpg"
-    seal_path = seal_png if seal_png.is_file() else seal_jpg
+    seal_png = BRANDING_DIR / "cprp_official_seal.png"
+    seal_path = seal_jpg if seal_jpg.is_file() else seal_png
     suite = [
         ("CPRP Strategies Brand Logo", BRANDING_DIR / "cprp_strategies_brand_logo.jpg"),
         ("CPRP Strategies Company Seal", BRANDING_DIR / "cprp_strategies_company_seal.jpg"),
@@ -470,8 +476,7 @@ def list_official_brand_suite() -> list[tuple[str, Path]]:
         ("Support / Resistance brand logo", BRANDING_DIR / "cprp_brand_logo_support_resistance.jpg"),
         ("Minimal icon", BRANDING_DIR / "cprp_icon_minimal.jpg"),
         ("Horizontal banner", BRANDING_DIR / "cprp_banner_horizontal.jpg"),
-        ("Official Seal (suite)", seal_path),
-        ("Official Seal (full)", BRANDING_DIR / "cprp_official_seal_full.jpg"),
+        ("CPRP Official Seal", seal_path),
         ("Dark Support / Resistance theme", BRANDING_DIR / "cprp_dark_support_resistance_theme.jpg"),
         ("Lock-in theme", BRANDING_DIR / "cprp_lock_in_theme.jpg"),
         ("Primary chart logo", BRANDING_DIR / "cprp_logo_primary_chart.jpg"),

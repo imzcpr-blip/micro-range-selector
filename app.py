@@ -58,7 +58,7 @@ SESSION_SELECTOR_VIDEO_GIF = getattr(
 SESSION_SELECTOR_VARIANT_GIF = getattr(
     _cprp_cfg, "SESSION_SELECTOR_VARIANT_GIF", BRANDING_DIR / "cprp_logo_video_variant_2.gif"
 )
-BRANDING_OFFICIAL_SEAL = getattr(_cprp_cfg, "BRANDING_OFFICIAL_SEAL", BRANDING_DIR / "cprp_official_seal.png")
+BRANDING_OFFICIAL_SEAL = getattr(_cprp_cfg, "BRANDING_OFFICIAL_SEAL", Path(BRANDING_DIR).parent / "cprp_official_seal.jpg")
 BRANDING_OFFICIAL_SEAL_ANIM = getattr(
     _cprp_cfg, "BRANDING_OFFICIAL_SEAL_ANIM", Path(BRANDING_DIR).parent / "cprp_official_seal_anim.gif"
 )
@@ -66,7 +66,7 @@ BRANDING_OFFICIAL_SEAL_ANIM_BRAND = getattr(
     _cprp_cfg, "BRANDING_OFFICIAL_SEAL_ANIM_BRAND", BRANDING_DIR / "cprp_official_seal_anim.gif"
 )
 BRANDING_OFFICIAL_SEAL_BRAND = getattr(
-    _cprp_cfg, "BRANDING_OFFICIAL_SEAL_BRAND", BRANDING_DIR / "cprp_official_seal.png"
+    _cprp_cfg, "BRANDING_OFFICIAL_SEAL_BRAND", BRANDING_DIR / "cprp_official_seal.jpg"
 )
 BRANDING_OFFICIAL_SEAL_BRAND_JPG = getattr(
     _cprp_cfg, "BRANDING_OFFICIAL_SEAL_BRAND_JPG", BRANDING_DIR / "cprp_official_seal.jpg"
@@ -454,58 +454,40 @@ if page == PAGE_BRANDING:
         if not _cs_shown:
             st.warning("CPRP Strategies Company Seal not found — run branding sync.")
 
-    # Official Seal hero — prefer full-res desktop seal, then transparent PNG / suite still
+    # Official Seal hero (canonical CPRP Official Seal.jpg)
     desk_section("Official Seal", side="bull")
-    seal_cols = st.columns(2)
-    _seal_candidates = [
-        (
-            "CPRP Official Seal (full)",
-            (
-                Path(getattr(_cprp_cfg, "BRANDING_OFFICIAL_SEAL_FULL", Path(BRANDING_DIR).parent / "cprp_official_seal_full.jpg")),
-                Path(getattr(_cprp_cfg, "BRANDING_OFFICIAL_SEAL_FULL_BRAND", BRANDING_DIR / "cprp_official_seal_full.jpg")),
-                Path(BRANDING_DIR) / "cprp_official_seal_full.jpg",
-            ),
-        ),
-        (
-            "Official Seal (PNG / suite)",
-            (
-                Path(BRANDING_OFFICIAL_SEAL),
-                Path(BRANDING_OFFICIAL_SEAL_BRAND),
-                Path(BRANDING_OFFICIAL_SEAL_ANIM),
-                Path(BRANDING_OFFICIAL_SEAL_ANIM_BRAND),
-                Path(BRANDING_OFFICIAL_SEAL_JPG),
-                Path(BRANDING_OFFICIAL_SEAL_BRAND_JPG),
-            ),
-        ),
-    ]
-    seal_any = False
-    for col_i, (seal_label, paths) in enumerate(_seal_candidates):
-        with seal_cols[col_i % 2]:
-            shown = False
-            for p in paths:
-                if p.is_file():
-                    st.image(str(p), use_container_width=True, caption=seal_label)
-                    mime = {
-                        ".gif": "image/gif",
-                        ".png": "image/png",
-                        ".jpg": "image/jpeg",
-                        ".jpeg": "image/jpeg",
-                    }.get(p.suffix.lower(), "application/octet-stream")
-                    st.download_button(
-                        label=f"📁 Download {p.name}",
-                        data=p.read_bytes(),
-                        file_name=p.name,
-                        mime=mime,
-                        key=f"dl_seal_{col_i}_{p.name}",
-                        use_container_width=True,
-                    )
-                    shown = True
-                    seal_any = True
-                    break
-            if not shown:
-                st.caption(f"{seal_label} not found.")
-    if not seal_any:
-        st.warning("Official Seal not found — run branding sync.")
+    seal_cols = st.columns([1, 1.4, 1])
+    with seal_cols[1]:
+        seal_shown = False
+        for p in (
+            Path(BRANDING_OFFICIAL_SEAL),
+            Path(BRANDING_OFFICIAL_SEAL_JPG),
+            Path(BRANDING_OFFICIAL_SEAL_BRAND),
+            Path(BRANDING_OFFICIAL_SEAL_BRAND_JPG),
+            Path(getattr(_cprp_cfg, "BRANDING_OFFICIAL_SEAL_FULL", Path(BRANDING_DIR).parent / "cprp_official_seal_full.jpg")),
+            Path(getattr(_cprp_cfg, "BRANDING_OFFICIAL_SEAL_FULL_BRAND", BRANDING_DIR / "cprp_official_seal_full.jpg")),
+            Path(getattr(_cprp_cfg, "BRANDING_OFFICIAL_SEAL_PNG", Path(BRANDING_DIR).parent / "cprp_official_seal.png")),
+        ):
+            if p.is_file():
+                st.image(str(p), use_container_width=True, caption="CPRP Official Seal")
+                mime = {
+                    ".gif": "image/gif",
+                    ".png": "image/png",
+                    ".jpg": "image/jpeg",
+                    ".jpeg": "image/jpeg",
+                }.get(p.suffix.lower(), "application/octet-stream")
+                st.download_button(
+                    label=f"📁 Download {p.name}",
+                    data=p.read_bytes(),
+                    file_name="CPRP_Official_Seal" + p.suffix.lower(),
+                    mime=mime,
+                    key=f"dl_seal_{p.name}",
+                    use_container_width=True,
+                )
+                seal_shown = True
+                break
+        if not seal_shown:
+            st.warning("Official Seal not found — run branding sync.")
 
     # Official numbered suite stills
     desk_section("Official brand suite (stills)", side="bull")
@@ -735,8 +717,8 @@ if page == PAGE_BRANDING:
             "cprp_brand_logo_support_resistance": "Support / Resistance brand logo",
             "cprp_icon_minimal": "Minimal icon",
             "cprp_banner_horizontal": "Horizontal banner",
-            "cprp_official_seal": "Official Seal (suite)",
-            "cprp_official_seal_full": "CPRP Official Seal (full)",
+            "cprp_official_seal": "CPRP Official Seal",
+            "cprp_official_seal_full": "CPRP Official Seal",
             "cprp_logo_square_monogram": "Square monogram",
             "cprp_logo_primary_chart": "Primary chart logo",
             "cprp_logo_minimal_dark": "Minimal dark",

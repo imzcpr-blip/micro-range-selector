@@ -25,12 +25,16 @@ from config import (
     ADMIN_EMAILS,
     ADMIN_ROLE_LABEL,
     APP_NAME,
-    BRANDING_COMPANY_SEAL,
-    BRANDING_COMPANY_SEAL_BRAND,
     BRANDING_LOGO_ICON,
     BRANDING_LOGO_IMAGE,
     BRANDING_LOGO_VIDEO,
     BRANDING_LOGO_VIDEO_ALT,
+    BRANDING_OFFICIAL_SEAL,
+    BRANDING_OFFICIAL_SEAL_BRAND,
+    BRANDING_OFFICIAL_SEAL_BRAND_JPG,
+    BRANDING_OFFICIAL_SEAL_FULL,
+    BRANDING_OFFICIAL_SEAL_FULL_BRAND,
+    BRANDING_OFFICIAL_SEAL_JPG,
     CREATOR,
     PROTOCOL_SHORT,
 )
@@ -390,11 +394,14 @@ def logout() -> None:
 
 
 def _render_landing_branding() -> None:
-    """CPRP Strategies Company Seal on the public welcome landing page."""
+    """CPRP Official Seal on the public welcome landing page."""
     seal_candidates = [
-        Path(BRANDING_COMPANY_SEAL),
-        Path(BRANDING_COMPANY_SEAL_BRAND),
-        Path(BRANDING_COMPANY_SEAL).parent / "branding" / "cprp_strategies_company_seal.jpg",
+        Path(BRANDING_OFFICIAL_SEAL),
+        Path(BRANDING_OFFICIAL_SEAL_JPG),
+        Path(BRANDING_OFFICIAL_SEAL_BRAND),
+        Path(BRANDING_OFFICIAL_SEAL_BRAND_JPG),
+        Path(BRANDING_OFFICIAL_SEAL_FULL),
+        Path(BRANDING_OFFICIAL_SEAL_FULL_BRAND),
     ]
     for p in seal_candidates:
         if p.is_file():
@@ -403,10 +410,10 @@ def _render_landing_branding() -> None:
                 st.image(
                     str(p),
                     use_container_width=True,
-                    caption="CPRP Strategies Company Seal",
+                    caption="CPRP Official Seal",
                 )
             return
-    st.caption("CPRP Strategies Company Seal not found.")
+    st.caption("CPRP Official Seal not found.")
 
 
 def require_login() -> bool:
