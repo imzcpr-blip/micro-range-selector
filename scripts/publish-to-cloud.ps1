@@ -83,12 +83,13 @@ function Show-PushAuthHelp {
 
 function Invoke-GitPush {
     <#
-    Push main to origin. Fails fast with clear auth help if credentials are missing
-    (instead of hanging forever on a Credential Manager prompt).
+    Push main to origin in-process (NOT Start-Job).
+    Background jobs cannot use gh/keyring credentials, so they hang forever at "Pushing...".
     #>
     Write-Host "[publish] Pushing to GitHub (origin main)..."
+    Write-Host "[publish] (Large branding GIFs/videos can take several minutes — progress below.)"
 
-    # Prefer gh if already logged in — wires git credentials automatically
+    # Wire gh credentials into git so HTTPS push works without a GUI popup
     $gh = Get-Command gh -ErrorAction SilentlyContinue
     if ($gh) {
         $prev = $ErrorActionPreference
@@ -97,43 +98,35 @@ function Invoke-GitPush {
         $ghOk = ($LASTEXITCODE -eq 0)
         $ErrorActionPreference = $prev
         if ($ghOk) {
+            Write-Host "[publish] Using GitHub CLI credentials (gh auth setup-git)..."
             & gh auth setup-git 2>$null | Out-Null
+        } else {
+            Write-Host "[publish] gh is installed but not logged in."
+            Show-PushAuthHelp
+            exit 1
         }
     }
 
     $prev = $ErrorActionPreference
     $ErrorActionPreference = "Continue"
-    # Give Credential Manager a window to finish; fail if still stuck
-    $job = Start-Job -ScriptBlock {
-        param($gitPath, $repoRoot)
-        Set-Location $repoRoot
-        & $gitPath push origin main 2>&1
-        "___EXIT___$LASTEXITCODE"
-    } -ArgumentList $git, $root
-
-    $finished = Wait-Job $job -Timeout 90
-    if (-not $finished) {
-        Stop-Job $job -ErrorAction SilentlyContinue
-        Remove-Job $job -Force -ErrorAction SilentlyContinue
-        Write-Host "[publish] Push timed out after 90s (usually stuck on GitHub login)."
-        Show-PushAuthHelp
-        exit 1
+    # Stream progress live (do not capture into a job — that breaks auth + hides progress)
+    & $git -c credential.helper= -c "credential.helper=!gh auth git-credential" push -u origin main 2>&1 | ForEach-Object {
+        Write-Host ("{0}" -f $_)
     }
-
-    $lines = @(Receive-Job $job)
-    Remove-Job $job -Force -ErrorAction SilentlyContinue
+    $code = $LASTEXITCODE
     $ErrorActionPreference = $prev
 
-    $code = 1
-    foreach ($line in $lines) {
-        $text = "{0}" -f $line
-        if ($text -match '^___EXIT___(\d+)$') {
-            $code = [int]$Matches[1]
-            continue
-        }
-        if ($text.Trim().Length -gt 0) { Write-Host $text }
+    if ($null -eq $code) { $code = 0 }
+    if ($code -ne 0) {
+        # Fallback: plain push (uses whatever credential.helper is configured)
+        Write-Host "[publish] Retrying with default git credentials..."
+        $ErrorActionPreference = "Continue"
+        & $git push -u origin main 2>&1 | ForEach-Object { Write-Host ("{0}" -f $_) }
+        $code = $LASTEXITCODE
+        $ErrorActionPreference = $prev
     }
 
+    if ($null -eq $code) { $code = 0 }
     if ($code -ne 0) {
         Write-Host "[publish] git push origin main  → exit $code"
         Show-PushAuthHelp
