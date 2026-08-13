@@ -10,8 +10,6 @@ param(
     [switch]$DryRun
 )
 
-# Continue on native stderr (git writes progress to stderr even on success).
-# We check $LASTEXITCODE ourselves after each git call.
 $ErrorActionPreference = "Continue"
 
 $git = $null
@@ -74,28 +72,21 @@ function Invoke-Git {
 }
 
 function Show-PushAuthHelp {
-    Write-Host ""
-    Write-Host "[publish] GitHub would not accept the push (sign-in missing or expired)."
-    Write-Host "[publish] Fix once, then re-run:  RUNCPRP push"
-    Write-Host ""
-    Write-Host "  1) gh auth login"
-    Write-Host "     (GitHub.com -> HTTPS -> Login with a web browser)"
-    Write-Host "  2) gh auth setup-git"
-    Write-Host "  3) RUNCPRP push"
-    Write-Host ""
+    # Use single-quoted strings only (no special dash characters).
+    Write-Host ''
+    Write-Host '[publish] GitHub would not accept the push (sign-in missing or expired).'
+    Write-Host '[publish] Fix once, then re-run:  RUNCPRP push'
+    Write-Host ''
+    Write-Host '  1) gh auth login'
+    Write-Host '     (GitHub.com -> HTTPS -> Login with a web browser)'
+    Write-Host '  2) gh auth setup-git'
+    Write-Host '  3) RUNCPRP push'
+    Write-Host ''
 }
 
 function Invoke-GitPush {
-    <#
-    Push main to GitHub without hanging on Git Credential Manager.
-
-    On Windows, plain "git push origin main" often hangs forever waiting for a
-    GCM GUI that never shows (especially when launched from RUNCPRP.cmd).
-
-    Fix: one-shot push URL using `gh auth token`. Token is not saved to config.
-    #>
-    Write-Host "[publish] Pushing to GitHub (origin main)..."
-    Write-Host "[publish] (Large branding files can take a minute - please wait.)"
+    Write-Host '[publish] Pushing to GitHub (origin main)...'
+    Write-Host '[publish] (Large branding files can take a minute - please wait.)'
 
     $prev = $ErrorActionPreference
     $ErrorActionPreference = "Continue"
@@ -111,15 +102,13 @@ function Invoke-GitPush {
     }
 
     if ($token -and $token.Length -ge 20) {
-        Write-Host "[publish] Auth: GitHub CLI token (no popup)..."
+        Write-Host '[publish] Auth: GitHub CLI token (no popup)...'
         $pushUrl = "https://x-access-token:${token}@github.com/${GitHubOwnerRepo}.git"
-        # Do not pipe - piping drops $LASTEXITCODE on Windows PowerShell.
-        # Disable credential helpers so nothing prompts or hangs.
         $out = & $git -c credential.helper= -c http.version=HTTP/1.1 push $pushUrl "HEAD:main" 2>&1
         $code = $LASTEXITCODE
         Write-GitLines $out
     } else {
-        Write-Host "[publish] gh token unavailable - trying plain git push..."
+        Write-Host '[publish] gh token unavailable - trying plain git push...'
         $out = & $git -c http.version=HTTP/1.1 push origin main 2>&1
         $code = $LASTEXITCODE
         Write-GitLines $out
@@ -135,21 +124,21 @@ function Invoke-GitPush {
     }
 
     & $git fetch origin main 2>$null | Out-Null
-    Write-Host "[publish] Push complete."
+    Write-Host '[publish] Push complete.'
 }
 
 function Sync-WithOrigin {
-    Write-Host "[publish] Fetching origin..."
+    Write-Host '[publish] Fetching origin...'
     Invoke-Git -Args @("fetch", "origin") -FailMessage "git fetch failed. Check network / GitHub credentials."
 
     $rebaseMerge = Join-Path $root ".git\rebase-merge"
     $rebaseApply = Join-Path $root ".git\rebase-apply"
     if ((Test-Path $rebaseMerge) -or (Test-Path $rebaseApply)) {
-        Write-Host "[publish] Clearing interrupted rebase state..."
+        Write-Host '[publish] Clearing interrupted rebase state...'
         & $git rebase --abort 2>$null | Out-Null
     }
 
-    Write-Host "[publish] Rebasing local main onto origin/main..."
+    Write-Host '[publish] Rebasing local main onto origin/main...'
     $prev = $ErrorActionPreference
     $ErrorActionPreference = "Continue"
     $out = & $git rebase origin/main 2>&1
@@ -158,10 +147,10 @@ function Sync-WithOrigin {
     Write-GitLines $out
 
     if ($code -ne 0) {
-        Write-Host ""
+        Write-Host ''
         Write-Host "[publish] Rebase failed (exit $code). Common fixes:"
-        Write-Host "  1) Resolve conflicts, then: git add -A ; git rebase --continue ; git push origin main"
-        Write-Host "  2) Cancel: git rebase --abort"
+        Write-Host '  1) Resolve conflicts, then: git add -A ; git rebase --continue ; git push origin main'
+        Write-Host '  2) Cancel: git rebase --abort'
         Write-Error "git rebase onto origin/main failed."
         exit 1
     }
@@ -177,29 +166,29 @@ if ($branch -ne "main") {
 }
 
 if ($SyncAssets) {
-    Write-Host "[publish] Syncing CPRP Trading docs/branding into assets..."
+    Write-Host '[publish] Syncing CPRP Trading docs/branding into assets...'
     python (Join-Path $root "sync_cprp_assets.py")
 }
 
 & $git add -A 2>&1 | Out-Null
 $status = & $git status --porcelain
 if (-not $status) {
-    Write-Host "[publish] Nothing to commit - local tree matches last commit."
+    Write-Host '[publish] Nothing to commit - local tree matches last commit.'
     if (-not $DryRun) {
         Sync-WithOrigin
         $ahead = & $git rev-list --count "origin/main..HEAD" 2>$null
         if ($ahead -and [int]$ahead -gt 0) {
             Write-Host "[publish] Local is $ahead commit(s) ahead of GitHub (not uploaded yet)."
             Invoke-GitPush
-            Write-Host "[publish] Done. Streamlit Cloud will redeploy from main shortly."
+            Write-Host '[publish] Done. Streamlit Cloud will redeploy from main shortly.'
             exit 0
         }
     }
-    Write-Host "[publish] Already in sync with origin. Public app needs no update."
+    Write-Host '[publish] Already in sync with origin. Public app needs no update.'
     exit 0
 }
 
-Write-Host "[publish] Changes to publish:"
+Write-Host '[publish] Changes to publish:'
 & $git status --short
 
 if (-not $Message) {
@@ -208,7 +197,7 @@ if (-not $Message) {
 }
 
 if ($DryRun) {
-    Write-Host "[publish] Dry run - not committing or pushing."
+    Write-Host '[publish] Dry run - not committing or pushing.'
     Write-Host "[publish] Would commit: $Message"
     exit 0
 }
@@ -219,9 +208,9 @@ Sync-WithOrigin
 
 Invoke-GitPush
 
-Write-Host ""
-Write-Host "[publish] SUCCESS - code is on GitHub."
-Write-Host "[publish] Streamlit Community Cloud auto-redeploys from branch main"
-Write-Host "[publish]   (usually 1-3 minutes). Refresh your public .streamlit.app URL."
+Write-Host ''
+Write-Host '[publish] SUCCESS - code is on GitHub.'
+Write-Host '[publish] Streamlit Community Cloud auto-redeploys from branch main'
+Write-Host '[publish]   (usually 1-3 minutes). Refresh your public .streamlit.app URL.'
 Write-Host "[publish] Repo: https://github.com/$GitHubOwnerRepo"
 exit 0
