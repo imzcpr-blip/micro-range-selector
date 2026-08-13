@@ -621,7 +621,8 @@ if page == PAGE_BRANDING:
         "cprp_icon_minimal_anim": "Minimal icon (animated)",
         "cprp_banner_horizontal_anim": "Horizontal banner (animated)",
         "cprp_official_seal_anim": "Official Seal (animated)",
-        "cprp_session_selector_video": "Session Selector media",
+        "cprp_session_selector_video": "Session Selector · Brand Logo Video",
+        "cprp_brand_logo_video": "CPRP Brand Logo Video",
         "cprp_sidebar_video": "Sidebar media",
         "cprp_scalping_video": "CPRP Scalping logo motion",
     }
@@ -1149,21 +1150,23 @@ st.sidebar.caption(f"Pages: Selector · Branding · About · © {CREATOR}")
 # ══════════════════════════════════════════════════════════════════════════
 # MAIN — Session Selector header video + description + analysis
 # ══════════════════════════════════════════════════════════════════════════
-# Session Selector banner: CPRP Strategies Brand Logo first, then motion fallbacks
+# Session Selector banner: Brand Logo Video (looping GIF/MP4), then stills / other fallbacks
 if not render_loop_media(
+    Path(SESSION_SELECTOR_VIDEO_GIF),
+    Path(SESSION_SELECTOR_VIDEO_BRAND_GIF),
+    Path(SESSION_SELECTOR_VIDEO),
+    Path(SESSION_SELECTOR_VIDEO_BRAND),
+    Path(BRANDING_DIR) / "cprp_brand_logo_video.gif",
+    Path(BRANDING_DIR) / "cprp_brand_logo_video.mp4",
     Path(SESSION_SELECTOR_BRAND_LOGO),
     Path(SESSION_SELECTOR_BRAND_LOGO_BRAND),
     Path(SESSION_SELECTOR_IMAGE),
     Path(SESSION_SELECTOR_IMAGE_BRAND),
-    Path(SESSION_SELECTOR_VIDEO_GIF),
-    Path(SESSION_SELECTOR_VIDEO_BRAND_GIF),
     Path(SESSION_SELECTOR_VARIANT_GIF),
-    Path(SESSION_SELECTOR_VIDEO),
-    Path(SESSION_SELECTOR_VIDEO_BRAND),
     Path(BRANDING_DIR) / "cprp_logo_video_variant_2.mp4",
     Path(BRANDING_LOGO_IMAGE),
     Path(BRANDING_LOGO_ICON),
-    caption="CPRP Strategies Brand Logo · Session Selector",
+    caption="CPRP Brand Logo Video · Session Selector",
     height=380,
 ):
     st.warning("CPRP Session Selector media not found in assets/.")

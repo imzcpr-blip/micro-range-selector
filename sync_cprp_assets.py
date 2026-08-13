@@ -111,7 +111,6 @@ BRANDING_MAP: dict[str, str] = {
     # Session Selector / brand logo motion video
     "CPRP Brand Logo Video.mp4": "cprp_session_selector_video.mp4",
     "CPRP_Brand_Logo_Video.mp4": "cprp_session_selector_video.mp4",
-    "CPRP Brand Logo Video.mp4": "cprp_brand_logo_video.mp4",
     # CPRP Scalping brand motion + newer stills
     "CPRP Scalping Vid 1.mp4": "cprp_scalping_video.mp4",
     "CPRP_Scalping_Vid_1.mp4": "cprp_scalping_video.mp4",
@@ -163,6 +162,11 @@ PRIMARY_BRANDING_LINKS: list[tuple[str, str]] = [
     ("cprp_strategies_brand_logo.jpg", "cprp_strategies_brand_logo.jpg"),
     ("cprp_strategies_brand_logo.jpg", "cprp_session_selector_image.jpg"),
     ("cprp_session_selector_image.jpg", "cprp_session_selector_image.jpg"),
+    # Brand logo video → session selector motion + brand alias
+    ("cprp_session_selector_video.mp4", "cprp_session_selector_video.mp4"),
+    ("cprp_session_selector_video.gif", "cprp_session_selector_video.gif"),
+    ("cprp_session_selector_video.mp4", "cprp_brand_logo_video.mp4"),
+    ("cprp_session_selector_video.gif", "cprp_brand_logo_video.gif"),
 ]
 
 
@@ -470,6 +474,8 @@ def list_official_brand_animated() -> list[tuple[str, Path]]:
         ("Horizontal banner (animated)", "cprp_banner_horizontal_anim"),
         ("Official Seal (animated)", "cprp_official_seal_anim"),
         ("CPRP Scalping logo motion", "cprp_scalping_video"),
+        ("CPRP Brand Logo / Session Selector video", "cprp_session_selector_video"),
+        ("CPRP Brand Logo video", "cprp_brand_logo_video"),
     ]
     out: list[tuple[str, Path]] = []
     for label, stem in pairs:
