@@ -816,7 +816,9 @@ def analyze_all(hard_stop_usd: float = HARD_STOP_DEFAULT_USD) -> SessionRecommen
             as_of=as_of,
             alert_message="DATA ERROR — cannot recommend a micro. Check connection.",
             primary_active=False,
-            scalping=ScalpingOption(False, None, 0.0),
+            scalping=ScalpingOption(
+                False, None, 0.0, status_label="Option Inconclusive", micro_scores=[]
+            ),
             strategy_options=["SIT OUT — data error"],
         )
 
