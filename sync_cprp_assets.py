@@ -78,6 +78,9 @@ BRANDING_MAP: dict[str, str] = {
     "02_CPRP_Brand_Logo_Support_Resistance.jpg": "cprp_brand_logo_support_resistance.jpg",
     "03_CPRP_Icon_Minimal.jpg": "cprp_icon_minimal.jpg",
     "04_CPRP_Banner_Horizontal.jpg": "cprp_banner_horizontal.jpg",
+    # Canonical Official Seal (Downloads / branding CPRP Official Seal.jpg preferred over suite 05_)
+    "CPRP Official Seal.jpg": "cprp_official_seal.jpg",
+    "CPRP_Official_Seal.jpg": "cprp_official_seal.jpg",
     "05_CPRP_Official_Seal.jpg": "cprp_official_seal.jpg",
     # Animated suite (from CPRP_Branding/Animated/)
     "01_CPRP_Brand_Logo_Candlestick_anim.gif": "cprp_brand_logo_candlestick_anim.gif",
@@ -108,6 +111,9 @@ BRANDING_MAP: dict[str, str] = {
     # Official CPRP Strategies brand logo (Session Selector + branding suite)
     "CPRP Strategies Brand Logo.jpg": "cprp_strategies_brand_logo.jpg",
     "CPRP_Strategies_Brand_Logo.jpg": "cprp_strategies_brand_logo.jpg",
+    # CPRP Strategies Company Seal (full company identity seal)
+    "CPRP Strategies Company Seal.jpg": "cprp_strategies_company_seal.jpg",
+    "CPRP_Strategies_Company_Seal.jpg": "cprp_strategies_company_seal.jpg",
     # Session Selector / brand logo motion video
     "CPRP Brand Logo Video.mp4": "cprp_session_selector_video.mp4",
     "CPRP_Brand_Logo_Video.mp4": "cprp_session_selector_video.mp4",
@@ -130,9 +136,11 @@ BRANDING_MAP: dict[str, str] = {
 # Primary app files kept at assets/ root (synced from branding when newer)
 PRIMARY_BRANDING_LINKS: list[tuple[str, str]] = [
     # Prefer new official suite for app chrome when available
-    ("cprp_official_seal.png", "cprp_official_seal.png"),
     ("cprp_official_seal.jpg", "cprp_official_seal.jpg"),
+    ("cprp_official_seal.png", "cprp_official_seal.png"),
     ("cprp_official_seal_anim.gif", "cprp_official_seal_anim.gif"),
+    # Alias full-res name to same Official Seal art
+    ("cprp_official_seal.jpg", "cprp_official_seal_full.jpg"),
     ("cprp_icon_minimal.jpg", "cprp_logo_icon.jpg"),
     ("cprp_brand_logo_candlestick.jpg", "cprp_logo_primary.jpg"),
     ("cprp_banner_horizontal.jpg", "cprp_banner_horizontal.jpg"),
@@ -142,10 +150,10 @@ PRIMARY_BRANDING_LINKS: list[tuple[str, str]] = [
     ("cprp_logo_video_main.mp4", "cprp_logo_video.mp4"),
     ("cprp_logo_video_alt.mp4", "cprp_logo_video_alt.mp4"),
     ("cprp_logo_video_variant_1.mp4", "cprp_member_chat_hero.mp4"),
-    # Session Selector header video (source: grok_video_2026-08-09-09-51-29.mp4)
-    ("cprp_logo_video_variant_2.mp4", "cprp_session_selector_video.mp4"),
+    # Session Selector header — Brand Logo Video first; variant_2 only if missing
     ("cprp_session_selector_video.mp4", "cprp_session_selector_video.mp4"),
     ("cprp_session_selector_video.gif", "cprp_session_selector_video.gif"),
+    ("cprp_logo_video_variant_2.mp4", "cprp_session_selector_video.mp4"),
     ("cprp_logo_video_variant_2.gif", "cprp_session_selector_video.gif"),
     # Sidebar panel video
     ("cprp_sidebar_video.mp4", "cprp_sidebar_video.mp4"),
@@ -162,6 +170,8 @@ PRIMARY_BRANDING_LINKS: list[tuple[str, str]] = [
     ("cprp_strategies_brand_logo.jpg", "cprp_strategies_brand_logo.jpg"),
     ("cprp_strategies_brand_logo.jpg", "cprp_session_selector_image.jpg"),
     ("cprp_session_selector_image.jpg", "cprp_session_selector_image.jpg"),
+    # Strategies Company Seal
+    ("cprp_strategies_company_seal.jpg", "cprp_strategies_company_seal.jpg"),
     # Brand logo video → session selector motion + brand alias
     ("cprp_session_selector_video.mp4", "cprp_session_selector_video.mp4"),
     ("cprp_session_selector_video.gif", "cprp_session_selector_video.gif"),
@@ -268,9 +278,15 @@ def sync_branding(search_roots: list[Path] | None = None, report: SyncReport | N
     roots = [r for r in (search_roots or DEFAULT_SEARCH_ROOTS) if r.is_dir()]
     BRANDING_DIR.mkdir(parents=True, exist_ok=True)
 
-    # Prefer dedicated branding folder (+ Animated subfolder) when present
+    # Prefer dedicated branding folder (+ Animated subfolder) when present.
+    # Downloads first so a freshly downloaded Official Seal wins over Desktop copies.
     candidate_dirs: list[Path] = []
+    downloads = Path(r"C:\Users\imzcp\Downloads")
+    if downloads.is_dir():
+        candidate_dirs.append(downloads)
     for r in roots:
+        if r.resolve() == downloads.resolve():
+            continue
         b = r / "CPRP_Branding"
         if b.is_dir():
             candidate_dirs.append(b)
@@ -449,11 +465,13 @@ def list_official_brand_suite() -> list[tuple[str, Path]]:
     seal_path = seal_png if seal_png.is_file() else seal_jpg
     suite = [
         ("CPRP Strategies Brand Logo", BRANDING_DIR / "cprp_strategies_brand_logo.jpg"),
+        ("CPRP Strategies Company Seal", BRANDING_DIR / "cprp_strategies_company_seal.jpg"),
         ("Candlestick brand logo", BRANDING_DIR / "cprp_brand_logo_candlestick.jpg"),
         ("Support / Resistance brand logo", BRANDING_DIR / "cprp_brand_logo_support_resistance.jpg"),
         ("Minimal icon", BRANDING_DIR / "cprp_icon_minimal.jpg"),
         ("Horizontal banner", BRANDING_DIR / "cprp_banner_horizontal.jpg"),
-        ("Official Seal", seal_path),
+        ("Official Seal (suite)", seal_path),
+        ("Official Seal (full)", BRANDING_DIR / "cprp_official_seal_full.jpg"),
         ("Dark Support / Resistance theme", BRANDING_DIR / "cprp_dark_support_resistance_theme.jpg"),
         ("Lock-in theme", BRANDING_DIR / "cprp_lock_in_theme.jpg"),
         ("Primary chart logo", BRANDING_DIR / "cprp_logo_primary_chart.jpg"),
@@ -461,6 +479,14 @@ def list_official_brand_suite() -> list[tuple[str, Path]]:
         ("Minimal dark logo", BRANDING_DIR / "cprp_logo_minimal_dark.jpg"),
         ("Light logo", BRANDING_DIR / "cprp_logo_light.jpg"),
         ("Classic logo", BRANDING_DIR / "cprp_logo_classic.jpg"),
+        ("Brand extra · OBz0K", BRANDING_DIR / "cprp_brand_extra_obz0k.jpg"),
+        ("Brand extra · PFCk2", BRANDING_DIR / "cprp_brand_extra_pfck2.jpg"),
+        ("Brand extra · pHVXN", BRANDING_DIR / "cprp_brand_extra_phvxn.jpg"),
+        ("Brand extra · 8BF5X", BRANDING_DIR / "cprp_brand_extra_8bf5x.jpg"),
+        ("Brand extra · Ji6TN", BRANDING_DIR / "cprp_brand_extra_ji6tn.jpg"),
+        ("Brand extra · Nx3am", BRANDING_DIR / "cprp_brand_extra_nx3am.jpg"),
+        ("Brand extra · urwdT", BRANDING_DIR / "cprp_brand_extra_urwdt.jpg"),
+        ("Brand extra · VPPsG", BRANDING_DIR / "cprp_brand_extra_vppsg.jpg"),
     ]
     return [(label, p) for label, p in suite if p.is_file()]
 

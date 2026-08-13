@@ -423,39 +423,89 @@ if page == PAGE_BRANDING:
         if not _bl_shown:
             st.warning("CPRP Strategies Brand Logo not found — run branding sync.")
 
-    # Official Seal hero (transparent PNG preferred)
-    desk_section("Official Seal", side="bull")
-    seal_cols = st.columns([1, 1.4, 1])
-    with seal_cols[1]:
-        seal_shown = False
-        for p in (
-            Path(BRANDING_OFFICIAL_SEAL),           # transparent PNG
-            Path(BRANDING_OFFICIAL_SEAL_BRAND),
-            Path(BRANDING_OFFICIAL_SEAL_ANIM),
-            Path(BRANDING_OFFICIAL_SEAL_ANIM_BRAND),
-            Path(BRANDING_OFFICIAL_SEAL_JPG),
-            Path(BRANDING_OFFICIAL_SEAL_BRAND_JPG),
-        ):
-            if p.is_file():
-                st.image(str(p), use_container_width=True, caption="CPRP Official Seal")
-                mime = {
-                    ".gif": "image/gif",
-                    ".png": "image/png",
-                    ".jpg": "image/jpeg",
-                    ".jpeg": "image/jpeg",
-                }.get(p.suffix.lower(), "application/octet-stream")
+    # CPRP Strategies Company Seal (full company identity)
+    desk_section("CPRP Strategies Company Seal", side="bull")
+    _company_seal_paths = [
+        Path(getattr(_cprp_cfg, "BRANDING_COMPANY_SEAL_BRAND", BRANDING_DIR / "cprp_strategies_company_seal.jpg")),
+        Path(getattr(_cprp_cfg, "BRANDING_COMPANY_SEAL", Path(BRANDING_DIR).parent / "cprp_strategies_company_seal.jpg")),
+        Path(BRANDING_DIR) / "cprp_strategies_company_seal.jpg",
+        Path(BRANDING_DIR).parent / "cprp_strategies_company_seal.jpg",
+    ]
+    _cs_cols = st.columns([1, 1.6, 1])
+    with _cs_cols[1]:
+        _cs_shown = False
+        for _cp in _company_seal_paths:
+            if _cp.is_file():
+                st.image(
+                    str(_cp),
+                    use_container_width=True,
+                    caption="CPRP Strategies Company Seal",
+                )
                 st.download_button(
-                    label=f"📁 Download {p.name}",
-                    data=p.read_bytes(),
-                    file_name=p.name,
-                    mime=mime,
-                    key=f"dl_seal_{p.name}",
+                    label="📁 Download Company Seal",
+                    data=_cp.read_bytes(),
+                    file_name="CPRP_Strategies_Company_Seal.jpg",
+                    mime="image/jpeg",
+                    key=f"dl_company_seal_{_cp.name}",
                     use_container_width=True,
                 )
-                seal_shown = True
+                _cs_shown = True
                 break
-        if not seal_shown:
-            st.warning("Official Seal not found — run branding sync.")
+        if not _cs_shown:
+            st.warning("CPRP Strategies Company Seal not found — run branding sync.")
+
+    # Official Seal hero — prefer full-res desktop seal, then transparent PNG / suite still
+    desk_section("Official Seal", side="bull")
+    seal_cols = st.columns(2)
+    _seal_candidates = [
+        (
+            "CPRP Official Seal (full)",
+            (
+                Path(getattr(_cprp_cfg, "BRANDING_OFFICIAL_SEAL_FULL", Path(BRANDING_DIR).parent / "cprp_official_seal_full.jpg")),
+                Path(getattr(_cprp_cfg, "BRANDING_OFFICIAL_SEAL_FULL_BRAND", BRANDING_DIR / "cprp_official_seal_full.jpg")),
+                Path(BRANDING_DIR) / "cprp_official_seal_full.jpg",
+            ),
+        ),
+        (
+            "Official Seal (PNG / suite)",
+            (
+                Path(BRANDING_OFFICIAL_SEAL),
+                Path(BRANDING_OFFICIAL_SEAL_BRAND),
+                Path(BRANDING_OFFICIAL_SEAL_ANIM),
+                Path(BRANDING_OFFICIAL_SEAL_ANIM_BRAND),
+                Path(BRANDING_OFFICIAL_SEAL_JPG),
+                Path(BRANDING_OFFICIAL_SEAL_BRAND_JPG),
+            ),
+        ),
+    ]
+    seal_any = False
+    for col_i, (seal_label, paths) in enumerate(_seal_candidates):
+        with seal_cols[col_i % 2]:
+            shown = False
+            for p in paths:
+                if p.is_file():
+                    st.image(str(p), use_container_width=True, caption=seal_label)
+                    mime = {
+                        ".gif": "image/gif",
+                        ".png": "image/png",
+                        ".jpg": "image/jpeg",
+                        ".jpeg": "image/jpeg",
+                    }.get(p.suffix.lower(), "application/octet-stream")
+                    st.download_button(
+                        label=f"📁 Download {p.name}",
+                        data=p.read_bytes(),
+                        file_name=p.name,
+                        mime=mime,
+                        key=f"dl_seal_{col_i}_{p.name}",
+                        use_container_width=True,
+                    )
+                    shown = True
+                    seal_any = True
+                    break
+            if not shown:
+                st.caption(f"{seal_label} not found.")
+    if not seal_any:
+        st.warning("Official Seal not found — run branding sync.")
 
     # Official numbered suite stills
     desk_section("Official brand suite (stills)", side="bull")
@@ -685,7 +735,8 @@ if page == PAGE_BRANDING:
             "cprp_brand_logo_support_resistance": "Support / Resistance brand logo",
             "cprp_icon_minimal": "Minimal icon",
             "cprp_banner_horizontal": "Horizontal banner",
-            "cprp_official_seal": "Official Seal",
+            "cprp_official_seal": "Official Seal (suite)",
+            "cprp_official_seal_full": "CPRP Official Seal (full)",
             "cprp_logo_square_monogram": "Square monogram",
             "cprp_logo_primary_chart": "Primary chart logo",
             "cprp_logo_minimal_dark": "Minimal dark",
@@ -697,7 +748,16 @@ if page == PAGE_BRANDING:
             "cprp_logo_primary": "Primary logo",
             "cprp_member_chat_poster": "Member Chat poster",
             "cprp_strategies_brand_logo": "CPRP Strategies Brand Logo",
+            "cprp_strategies_company_seal": "CPRP Strategies Company Seal",
             "cprp_session_selector_image": "Session Selector brand image",
+            "cprp_brand_extra_obz0k": "Brand extra · OBz0K",
+            "cprp_brand_extra_pfck2": "Brand extra · PFCk2",
+            "cprp_brand_extra_phvxn": "Brand extra · pHVXN",
+            "cprp_brand_extra_8bf5x": "Brand extra · 8BF5X",
+            "cprp_brand_extra_ji6tn": "Brand extra · Ji6TN",
+            "cprp_brand_extra_nx3am": "Brand extra · Nx3am",
+            "cprp_brand_extra_urwdt": "Brand extra · urwdT",
+            "cprp_brand_extra_vppsg": "Brand extra · VPPsG",
         }
         cols = st.columns(3)
         for i, img in enumerate(stills):

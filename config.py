@@ -138,13 +138,18 @@ SESSION_SELECTOR_VIDEO_BRAND = BRANDING_DIR / "cprp_session_selector_video.mp4"
 SESSION_SELECTOR_VIDEO_BRAND_GIF = BRANDING_DIR / "cprp_session_selector_video.gif"
 # Also reuse existing variant GIF when session gif missing
 SESSION_SELECTOR_VARIANT_GIF = BRANDING_DIR / "cprp_logo_video_variant_2.gif"
-# Official CPRP seal (landing page + branding suite) — PNG has transparent background
+# Official CPRP seal (branding suite; landing uses Company Seal below) — PNG has transparent background
 BRANDING_OFFICIAL_SEAL = _ASSETS / "cprp_official_seal.png"
 BRANDING_OFFICIAL_SEAL_JPG = _ASSETS / "cprp_official_seal.jpg"  # original fallback
+BRANDING_OFFICIAL_SEAL_FULL = _ASSETS / "cprp_official_seal_full.jpg"  # desktop CPRP Official Seal.jpg
 BRANDING_OFFICIAL_SEAL_ANIM = _ASSETS / "cprp_official_seal_anim.gif"
 BRANDING_OFFICIAL_SEAL_BRAND = BRANDING_DIR / "cprp_official_seal.png"
 BRANDING_OFFICIAL_SEAL_BRAND_JPG = BRANDING_DIR / "cprp_official_seal.jpg"
+BRANDING_OFFICIAL_SEAL_FULL_BRAND = BRANDING_DIR / "cprp_official_seal_full.jpg"
 BRANDING_OFFICIAL_SEAL_ANIM_BRAND = BRANDING_DIR / "cprp_official_seal_anim.gif"
+# CPRP Strategies Company Seal (landing page + full company identity)
+BRANDING_COMPANY_SEAL = _ASSETS / "cprp_strategies_company_seal.jpg"
+BRANDING_COMPANY_SEAL_BRAND = BRANDING_DIR / "cprp_strategies_company_seal.jpg"
 BRANDING_BANNER = _ASSETS / "cprp_banner_horizontal.jpg"
 MEMBER_CHAT_HERO_VIDEO = _ASSETS / "cprp_member_chat_hero.gif"
 MEMBER_CHAT_HERO_IMAGE = _ASSETS / "cprp_member_chat_poster.jpg"
