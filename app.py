@@ -1551,9 +1551,12 @@ Risk **$30–$50** · SMA(14) midline · RSI 80/20 · never during strong 15m/60
 
 st.markdown("---")
 
-# ── Per-instrument cards ─────────────────────────────────────────────────
-desk_section("Micro comparison cards", side="bull")
-st.caption("⭐ marks the current pick. Expand the candle **Score breakdown** on any card for reasons and warnings.")
+# ── Per-instrument cards — CPRP Reversion ────────────────────────────────
+desk_section("Micro comparison cards · CPRP Reversion", side="bull")
+st.caption(
+    "Primary protocol scorecards. ⭐ = reversion pick. "
+    "Expand **Score breakdown** for reasons and warnings."
+)
 
 if not rec.scores:
     st.warning("No scores available. Check internet / Yahoo Finance availability.")
@@ -1600,6 +1603,103 @@ else:
                     st.markdown("**Watch**")
                     for w in s.warnings:
                         st.markdown(f"- ⚠️ {w}")
+
+# ── Per-instrument cards — CPRP Scalping (always shown) ──────────────────
+desk_section("Micro comparison cards · CPRP Scalping", side="bear")
+_scalp_obj = getattr(rec, "scalping", None)
+_scalp_status = (
+    getattr(_scalp_obj, "status_label", None)
+    or ("Option Available" if _scalp_on else "Option Inconclusive")
+)
+_scalp_env = float(getattr(_scalp_obj, "score", 0.0) or 0.0)
+_scalp_cards = list(getattr(_scalp_obj, "micro_scores", None) or [])
+
+if _scalp_status == "Option Available":
+    st.success(
+        f"**CPRP Scalping · {_scalp_status}** · best env **{_scalp_env:.1f}**/100 "
+        f"(need {_cprp_cfg.SCALPING_MIN_SCORE:.0f}+) · "
+        f"focus **{getattr(_scalp_obj, 'micro', '—') or '—'}**"
+    )
+else:
+    st.warning(
+        f"**CPRP Scalping · {_scalp_status}** · best env **{_scalp_env:.1f}**/100 "
+        f"(need {_cprp_cfg.SCALPING_MIN_SCORE:.0f}+, or primary structure may hard-block). "
+        "Do not force 1m Keltner scalps — wait for quieter tape or run primary reversion."
+    )
+if _scalp_obj and getattr(_scalp_obj, "warnings", None):
+    for _w in _scalp_obj.warnings[:2]:
+        st.caption(f"⚠️ {_w}")
+
+st.caption(
+    "Secondary protocol scorecards for **MES · MNQ · MYM**. "
+    "⚡ = best scalping focus when **Option Available**. "
+    "Each card shows **Option Available** or **Option Inconclusive** for that micro."
+)
+
+if not _scalp_cards and rec.scores:
+    # Fallback if older session object lacks micro_scores
+    _scalp_cards = []
+    for s in sorted(rec.scores, key=lambda x: x.priority):
+        _avail = bool(_scalp_on and _scalp_obj and _scalp_obj.micro == s.short)
+        _scalp_cards.append(
+            type("SC", (), {
+                "short": s.short,
+                "name": s.name,
+                "priority": s.priority,
+                "score": _scalp_env if _avail else max(0.0, _scalp_env - 10),
+                "status": "Option Available" if _avail else "Option Inconclusive",
+                "available": _avail,
+                "htf_bias": s.htf_bias,
+                "htf_label": s.htf_label,
+                "volume_score": s.volume_score,
+                "volatility_score": s.volatility_score,
+                "structure_score": s.structure_score,
+                "notes": [],
+            })()
+        )
+
+if _scalp_cards:
+    scols = st.columns(len(_scalp_cards))
+    for col, sm in zip(scols, sorted(_scalp_cards, key=lambda x: x.priority)):
+        is_focus = bool(
+            _scalp_on
+            and _scalp_obj
+            and getattr(_scalp_obj, "micro", None) == sm.short
+            and sm.available
+        )
+        with col:
+            mark = "⚡ " if is_focus else ""
+            st.subheader(f"{mark}{sm.short}")
+            st.caption(sm.name)
+            st.metric(
+                "Scalp env score",
+                f"{sm.score:.1f}",
+                help=f"Need {_cprp_cfg.SCALPING_MIN_SCORE:.0f}+ for Option Available",
+            )
+            if sm.available:
+                st.success(f"**{sm.status}**")
+            else:
+                st.warning(f"**{sm.status}**")
+            st.write(f"1H context: **{sm.htf_label}**")
+            st.write(f"Volume env: **{sm.volume_score:.0f}** · Volatility: **{sm.volatility_score:.0f}**")
+            st.write(f"Primary map structure: **{sm.structure_score:.0f}**")
+            st.progress(min(float(sm.score) / 100.0, 1.0))
+            with candle_expander(
+                "Scalping breakdown",
+                side="bull" if sm.available else "bear",
+            ):
+                st.write(f"Status: **{sm.status}**")
+                st.write(f"Environment score: {sm.score:.1f} / 100")
+                st.write(f"Threshold: {_cprp_cfg.SCALPING_MIN_SCORE:.0f}+")
+                st.write("Setup: 1m Keltner · SMA(14) · RSI 80/20 · risk $30–$50")
+                if sm.notes:
+                    st.markdown("**Notes**")
+                    for n in sm.notes:
+                        st.markdown(f"- {n}")
+                if is_focus:
+                    st.markdown("**Focus micro** for CPRP Scalping this scan.")
+else:
+    st.caption("Scalping comparison cards unavailable (no micro scores this run).")
 
 st.markdown("---")
 
