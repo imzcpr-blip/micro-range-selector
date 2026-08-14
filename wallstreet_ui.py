@@ -838,6 +838,7 @@ NAV_PAGE_ICONS: dict[str, str] = {
     "Bloomberg Live": ICON_TV,
     "Micro Futures News": "📃",
     "Market Deep Dive": "📊",
+    "What's Moving the Market": "⚡",
     "Platforms & Brokers": ICON_LINK,
     "Micro E-mini Futures": ICON_UP,
     "Company Branding": "📁",
@@ -862,6 +863,7 @@ _EMOJI_PREFIXES = (
     "📃 ",
     "📄 ",
     "📊 ",
+    "⚡ ",
     "💬 ",
     "📅 ",
 )

@@ -1,7 +1,8 @@
 """Cooper Precision Reversion Protocol (CPRP) — instrument & risk config.
 
-Aligned to Official Rulebook v1.6 + Quick Reference v1.6
-(Multi-Timeframe Hierarchy & Order Flow Clarified — Aug 12, 2026).
+Aligned to Official Rulebook v1.7 (Adaptive 1m/5m RSI-Respect Selection)
+sourced from CPRP Trading desk docs Aug 14, 2026 (published as v1.4 on disk;
+app edition promoted to v1.7 so it supersedes v1.6 multi-TF hierarchy).
 """
 
 from __future__ import annotations
@@ -11,9 +12,9 @@ from pathlib import Path
 
 PROTOCOL_NAME = "Cooper Precision Reversion Protocol"
 PROTOCOL_SHORT = "CPRP"
-RULEBOOK_VERSION = "1.6"
-RULEBOOK_BASE_VERSION = "1.6"  # Official full rulebook edition
-RULEBOOK_EDITION_DATE = "2026-08-12"
+RULEBOOK_VERSION = "1.7"
+RULEBOOK_BASE_VERSION = "1.7"  # Official full rulebook edition
+RULEBOOK_EDITION_DATE = "2026-08-14"
 CREATOR = "Raymon Michael Cooper"
 
 # ONLY this account may see/use the Admin / Founder panel (case-insensitive).
@@ -83,24 +84,27 @@ STATIC_HTF_INTERVAL = "1h"
 STATIC_HTF_PERIOD = "10d"
 STATIC_HTF_ALT_LABEL = "4-Hour (acceptable alternative)"
 
-# Chart pair hierarchy (Rulebook v1.6 — multi-timeframe hierarchy)
-# 60m = bias · 15m/30m = structure · 5m/15m = timing. Only two working pairs.
-# No chart lower than 5-minute for structure or execution. 5m+1m fully retired.
-CHART_PAIR_DEFAULT = "15m + 5m (default / normal volume · active session)"
-CHART_PAIR_SLOW = "30m + 15m (pre-market · low volume · lunch · wide/choppy)"
+# Chart hierarchy (Rulebook v1.7 — Adaptive 1m/5m RSI-Respect Selection)
+# 60m/1H = context only (never entries)
+# 15m/30m = define confirmed S/R range or channel
+# Execution = adaptive 1m OR 5m — whichever is respecting RSI OB/OS bounces
+CHART_PAIR_DEFAULT = "15m structure + adaptive 1m/5m execution (RSI-respect)"
+CHART_PAIR_SLOW = "30m structure + adaptive 1m/5m execution (pre-market · slow · choppy)"
+CHART_EXECUTION_ADAPTIVE = "1m or 5m — choose the TF respecting RSI (≥70 fade / ≤30 bounce)"
+RSI_OVERBOUGHT = 70.0
+RSI_OVERSOLD = 30.0
 
 # Range/channel-reversion scoring thresholds
 MIN_SCORE_TO_TRADE = 55.0  # below this → primary CPRP quiet (sit-out or scalping option)
 TIE_BREAK_MARGIN = 5.0  # if scores within this, prefer lower priority number (MES → MNQ → MYM)
 
-# CPRP Scalping (secondary · v1.1) — offered only when primary CPRP is quiet
-# and market is sideways / accumulation (see Official Scalping Rulebook)
-SCALPING_VERSION = "1.1"
+# CPRP Scalping / execution desk (v1.4 Aug 14 — adaptive 1m/5m RSI-respect)
+SCALPING_VERSION = "1.4"
 SCALPING_MIN_SCORE = 58.0  # minimum environment score to offer scalping option
 SCALPING_HARD_STOP_MIN_USD = 30.0
 SCALPING_HARD_STOP_MAX_USD = 50.0
-SCALPING_TIMEFRAME = "1-minute only"
-SCALPING_STYLE = "1-Minute Keltner Mean-Reversion (secondary)"
+SCALPING_TIMEFRAME = "Adaptive 1-minute or 5-minute (RSI-respect)"
+SCALPING_STYLE = "Mean-Reversion at S/R · Adaptive 1m/5m RSI-Respect"
 
 # Polling / alerts
 DEFAULT_REFRESH_SECONDS = 60
@@ -158,10 +162,29 @@ MEMBER_CHAT_HERO_IMAGE = _ASSETS / "cprp_member_chat_poster.jpg"
 
 # Legacy static session charts folder (optional seed images)
 SESSIONS_DIR = _ASSETS / "sessions"
-QUICK_REFERENCE_IMAGE = _ASSETS / f"CPRP_Quick_Reference_v{RULEBOOK_VERSION}.jpg"
-QUICK_REFERENCE_PDF = _ASSETS / f"CPRP_Quick_Reference_v{RULEBOOK_VERSION}.pdf"
-QUICK_REFERENCE_DOWNLOAD_NAME = f"CPRP_Quick_Reference_v{RULEBOOK_VERSION}.jpg"
-# v1.6 ships as a full Official Rulebook (no separate Update PDF). Fall back to base.
+# Quick Reference: prefer edition matching RULEBOOK_VERSION; fall back to v1.6 card if needed
+_qr_pdf_primary = _ASSETS / f"CPRP_Quick_Reference_v{RULEBOOK_VERSION}.pdf"
+_qr_pdf_fallback = _ASSETS / "CPRP_Quick_Reference_v1.6.pdf"
+_qr_img_primary = _ASSETS / f"CPRP_Quick_Reference_v{RULEBOOK_VERSION}.jpg"
+_qr_img_fallback = _ASSETS / "CPRP_Quick_Reference_v1.6.jpg"
+# Adaptive execution desk card doubles as QR when dedicated reversion QR not yet rendered
+_qr_adaptive = _ASSETS / f"CPRP_Scalping_Quick_Reference_v{SCALPING_VERSION}.jpg"
+QUICK_REFERENCE_PDF = (
+    _qr_pdf_primary
+    if _qr_pdf_primary.is_file()
+    else _qr_pdf_fallback
+    if _qr_pdf_fallback.is_file()
+    else _ASSETS / f"CPRP_Official_Rulebook_v{RULEBOOK_BASE_VERSION}.pdf"
+)
+QUICK_REFERENCE_IMAGE = (
+    _qr_img_primary
+    if _qr_img_primary.is_file()
+    else _qr_img_fallback
+    if _qr_img_fallback.is_file()
+    else _qr_adaptive
+)
+QUICK_REFERENCE_DOWNLOAD_NAME = QUICK_REFERENCE_IMAGE.name if QUICK_REFERENCE_IMAGE.is_file() else f"CPRP_Quick_Reference_v{RULEBOOK_VERSION}.jpg"
+# Full Official Rulebook (v1.7 adaptive edition)
 _update_candidate = _ASSETS / f"CPRP_Rulebook_Update_v{RULEBOOK_VERSION}.pdf"
 RULEBOOK_UPDATE_PDF = (
     _update_candidate
@@ -177,11 +200,16 @@ RULEBOOK_BASE_PDF = _ASSETS / f"CPRP_Official_Rulebook_v{RULEBOOK_BASE_VERSION}.
 RULEBOOK_BASE_DOWNLOAD_NAME = f"CPRP_Official_Rulebook_v{RULEBOOK_BASE_VERSION}.pdf"
 
 # CPRP Scalping documents (secondary strategy)
-SCALPING_RULEBOOK_PDF = _ASSETS / f"CPRP_Scalping_Official_Rulebook_v{SCALPING_VERSION}.pdf"
-SCALPING_RULEBOOK_DOWNLOAD_NAME = f"CPRP_Scalping_Official_Rulebook_v{SCALPING_VERSION}.pdf"
+SCALPING_RULEBOOK_PDF = _ASSETS / f"CPRP_Scalping_Official_Rulebook_v1.1.pdf"  # legacy long-form if present
+SCALPING_RULEBOOK_DOWNLOAD_NAME = "CPRP_Scalping_Official_Rulebook_v1.1.pdf"
+# Prefer Strategy Quick Reference v1.4 (adaptive RSI) — also mirrored as CPRP_Scalping_Quick_Reference_v1.4
 SCALPING_QUICK_REFERENCE_PDF = _ASSETS / f"CPRP_Scalping_Quick_Reference_v{SCALPING_VERSION}.pdf"
 SCALPING_QUICK_REFERENCE_IMAGE = _ASSETS / f"CPRP_Scalping_Quick_Reference_v{SCALPING_VERSION}.jpg"
-SCALPING_QUICK_REFERENCE_DOWNLOAD_NAME = f"CPRP_Scalping_Quick_Reference_v{SCALPING_VERSION}.pdf"
+SCALPING_QUICK_REFERENCE_DOWNLOAD_NAME = f"CPRP_Scalping_Strategy_Quick_Reference_v{SCALPING_VERSION}.pdf"
+SCALPING_STRATEGY_QUICK_REFERENCE_PDF = _ASSETS / f"CPRP_Scalping_Strategy_Quick_Reference_v{SCALPING_VERSION}.pdf"
+
+# Platform desk reference (Ironbeam + NinjaTrader structure window)
+PLATFORM_IRONBEAM_STRUCTURE_IMAGE = _ASSETS / "platforms" / "ironbeam_structure_desk_mes.png"
 # Scalping brand motion (looping GIF preferred; MP4 fallback)
 SCALPING_VIDEO_GIF = _ASSETS / "cprp_scalping_video.gif"
 SCALPING_VIDEO_GIF_BRAND = BRANDING_DIR / "cprp_scalping_video.gif"

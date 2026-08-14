@@ -9,6 +9,9 @@ from __future__ import annotations
 
 import streamlit as st
 
+from pathlib import Path
+
+from config import PLATFORM_IRONBEAM_STRUCTURE_IMAGE, RULEBOOK_VERSION
 from disclosure import render_disclosure, render_third_party_disclosure
 from wallstreet_ui import candle_expander, desk_section, link_label, page_hero
 
@@ -43,13 +46,32 @@ Serious Micro traders usually need three rooms: a place to **see** structure, a 
 
     with candle_expander("How CPRP expects you to use them", side="bear", expanded=False, kind="down"):
         st.markdown(
-            """
-- Mark **confirmed S/R** on your platform; run **15m+5m** (or **30m+15m**) and keep a static **60-minute** bias chart.  
-- Use **TradingView** when you want clean multi-timeframe study away from the ticket.  
+            f"""
+**Stack (Official Rulebook v{RULEBOOK_VERSION}):** **Ironbeam + NinjaTrader (Web preferred)** for live tickets and structure.
+
+- Keep a **static 1H (or 4H)** context chart open — trend & major S/R only; **never entries**.  
+- Define the active **S/R range/channel** on higher TFs (15m / 30m).  
+- **Execution is adaptive:** use **1m or 5m** — whichever is **respecting RSI** (fade ≥70 / bounce ≤30).  
+- If **neither** 1m nor 5m respects RSI extremes → **stand aside**.  
 - Send live risk only through **your** broker under **your** hard stop (−$50 to −$100 under CPRP).  
 - This app **never** places or cancels orders and is not wired into any of these firms.
 """
         )
+
+    desk_section("Ironbeam + NinjaTrader structure desk", side="bull")
+    st.caption(
+        "Reference layout from the founder desk: MES structure window, bid/ask, RSI + EMAs, "
+        "account panel, and notifications. Educational screenshot — not a signal."
+    )
+    _ib_img = Path(PLATFORM_IRONBEAM_STRUCTURE_IMAGE)
+    if _ib_img.is_file():
+        st.image(
+            str(_ib_img),
+            use_container_width=True,
+            caption="Ironbeam · Structure desk · MES · 1m execution TF with RSI (CPRP adaptive selection)",
+        )
+    else:
+        st.info("Ironbeam structure desk image not found in assets/platforms/.")
 
     desk_section("Open the sites", side="bull")
     c1, c2, c3 = st.columns(3)
@@ -57,7 +79,9 @@ Serious Micro traders usually need three rooms: a place to **see** structure, a 
         st.markdown("#### NinjaTrader")
         st.markdown(
             "Charting and trading platform often used for futures and micros — "
-            "structure charts, execution, and order tools in one workspace.  \n"
+            "structure charts, execution, and order tools in one workspace. "
+            "**Web preferred** for clear High/Low display (Rulebook v"
+            f"{RULEBOOK_VERSION}).  \n"
             f"🔗 [https://ninjatrader.com]({NINJATRADER_URL})"
         )
         st.link_button(
@@ -84,8 +108,8 @@ Serious Micro traders usually need three rooms: a place to **see** structure, a 
     with c3:
         st.markdown("#### Ironbeam")
         st.markdown(
-            "Futures broker used by many micro futures traders for account setup, "
-            "margin, and order routing to the exchange.  \n"
+            "Futures broker used for account setup, margin, and order routing "
+            "(MES / MNQ / MYM). Often paired with NinjaTrader for the structure + ticket stack.  \n"
             f"🔗 [https://www.ironbeam.com]({IRONBEAM_URL})"
         )
         st.link_button(

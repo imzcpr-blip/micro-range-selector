@@ -60,12 +60,22 @@ DOC_RULES: list[tuple[str, str, str]] = [
         "scalping_rulebook",
     ),
     (
+        r"(?i)CPRP_Scalping_Strategy_Quick_Reference_v?(\d+\.\d+)\.pdf$",
+        "CPRP_Scalping_Quick_Reference",
+        "scalping_quick_ref_pdf",
+    ),
+    (
         r"(?i)CPRP_Scalping_Quick_Reference_v?(\d+\.\d+)\.pdf$",
         "CPRP_Scalping_Quick_Reference",
         "scalping_quick_ref_pdf",
     ),
     (
         r"(?i)CPRP_Scalping_Quick_Reference_v?(\d+\.\d+)\.jpe?g$",
+        "CPRP_Scalping_Quick_Reference",
+        "scalping_quick_ref_img",
+    ),
+    (
+        r"(?i)CPRP_Scalping_Strategy_Quick_Reference_v?(\d+\.\d+)\.jpe?g$",
         "CPRP_Scalping_Quick_Reference",
         "scalping_quick_ref_img",
     ),

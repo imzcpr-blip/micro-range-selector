@@ -602,6 +602,361 @@ def score_instrument(
     )
 
 
+@dataclass
+class StructureDirectionScenario:
+    """One potential path on the 5m structure chart."""
+
+    direction: str  # "LONG" | "SHORT" | "RANGE" | "BREAK_UP" | "BREAK_DOWN" | "STAND_ASIDE"
+    label: str
+    confidence: str  # "High" | "Medium" | "Low"
+    probability_hint: float  # 0-100 relative weight among listed scenarios
+    triggers: list[str] = field(default_factory=list)
+    invalidation: str = ""
+
+
+@dataclass
+class StructureDirectionAnalysis:
+    """Technical read of the same 5m bars shown on Session Selector."""
+
+    short: str
+    primary: str  # dominant lean: LONG | SHORT | TWO-WAY | STAND_ASIDE
+    primary_label: str
+    confidence: str
+    last: float
+    session_high: float
+    session_low: float
+    position_in_range: float
+    path_efficiency: float
+    rsi: float
+    ema_fast: float
+    ema_slow: float
+    scenarios: list[StructureDirectionScenario] = field(default_factory=list)
+    tech_notes: list[str] = field(default_factory=list)
+    chart_levels: dict[str, float] = field(default_factory=dict)
+
+
+def analyze_5m_structure_directions(
+    bars: pd.DataFrame,
+    *,
+    short: str = "",
+    htf_bias: str = "unknown",
+    htf_label: str = "",
+) -> StructureDirectionAnalysis:
+    """
+    Potential directions from technical analysis of the **current 5m structure chart**.
+
+    Uses the same OHLC window the Session Selector plots (session high/low, wicks,
+    RSI, short EMAs, path efficiency, swing structure). CPRP framing:
+      • Prefer boundary reactions (support long / resistance short)
+      • Mid-structure → two-way or stand-aside, not forced direction
+      • Static 1H bias soft-filters which side is higher quality
+    Educational desk context — not an order signal.
+    """
+    if bars is None or bars.empty or len(bars) < 8:
+        return StructureDirectionAnalysis(
+            short=short or "—",
+            primary="STAND_ASIDE",
+            primary_label="Insufficient 5m bars for structure TA",
+            confidence="Low",
+            last=0.0,
+            session_high=0.0,
+            session_low=0.0,
+            position_in_range=0.5,
+            path_efficiency=0.0,
+            rsi=50.0,
+            ema_fast=0.0,
+            ema_slow=0.0,
+            tech_notes=["Need more 5m history before reading direction."],
+        )
+
+    look = bars.copy()
+    last = float(look["Close"].iloc[-1])
+    session_high = float(look["High"].max())
+    session_low = float(look["Low"].min())
+    range_pts = max(session_high - session_low, 1e-9)
+    pos = float(np.clip((last - session_low) / range_pts, 0, 1))
+    er = _efficiency_ratio(look["Close"], window=min(24, len(look) - 1))
+
+    rsi_series = _rsi(look["Close"], period=14)
+    rsi_val = float(rsi_series.iloc[-1]) if not np.isnan(rsi_series.iloc[-1]) else 50.0
+
+    ema_fast = float(look["Close"].ewm(span=9, adjust=False).mean().iloc[-1])
+    ema_slow = float(look["Close"].ewm(span=21, adjust=False).mean().iloc[-1])
+
+    # Recent swing structure (last ~20 bars)
+    tail = look.tail(min(24, len(look)))
+    swing_high = float(tail["High"].max())
+    swing_low = float(tail["Low"].min())
+    mid = (session_high + session_low) / 2.0
+
+    # Last bar rejection
+    lb = look.iloc[-1]
+    bar_range = max(float(lb["High"] - lb["Low"]), 1e-9)
+    upper_wick = float(lb["High"] - max(lb["Open"], lb["Close"]))
+    lower_wick = float(min(lb["Open"], lb["Close"]) - lb["Low"])
+    body = abs(float(lb["Close"] - lb["Open"]))
+    bullish_bar = float(lb["Close"]) >= float(lb["Open"])
+
+    # Momentum: close vs EMAs + short slope
+    above_fast = last >= ema_fast
+    above_slow = last >= ema_slow
+    ema_bull = ema_fast >= ema_slow
+    slope = float(look["Close"].iloc[-1] - look["Close"].iloc[-min(6, len(look))])
+
+    notes: list[str] = []
+    notes.append(
+        f"5m window high/low (proxy S/R): **{session_high:,.2f}** / **{session_low:,.2f}** · "
+        f"last **{last:,.2f}** ({pos:.0%} of structure)"
+    )
+    notes.append(
+        f"Path efficiency **{er:.2f}** "
+        f"({'sideways / rotational' if er <= 0.42 else 'moderately directional' if er < 0.60 else 'strongly directional'})"
+    )
+    notes.append(
+        f"RSI(14) **{rsi_val:.1f}** · EMA9 **{ema_fast:,.2f}** · EMA21 **{ema_slow:,.2f}** "
+        f"({'bullish stack' if ema_bull and above_fast else 'bearish stack' if (not ema_bull) and (not above_fast) else 'mixed EMAs'})"
+    )
+    if htf_label:
+        notes.append(f"Static 1H context: {htf_label} (`{htf_bias}`)")
+
+    scenarios: list[StructureDirectionScenario] = []
+    long_weight = 0.0
+    short_weight = 0.0
+    range_weight = 0.0
+
+    # --- Boundary LONG (support reaction) ---
+    if pos <= 0.28:
+        w = 38.0
+        trig = [
+            f"Price in lower structure zone ({pos:.0%} of 5m range) — CPRP long zone at support proxy",
+            f"Defend **{session_low:,.2f}** with rejection / higher low on 5m",
+        ]
+        if lower_wick / bar_range >= 0.35:
+            w += 12
+            trig.append("Lower wick rejection on latest 5m bar")
+        if rsi_val <= 40:
+            w += 8
+            trig.append(f"RSI {rsi_val:.0f} supports mean-reversion bounce from support")
+        if htf_bias == "down":
+            w -= 10
+            trig.append("1H bias is down — longs need sharper rejection + order flow (selective)")
+        elif htf_bias == "up":
+            w += 8
+            trig.append("1H bias up — support longs better aligned with HTF")
+        if er > 0.62 and slope < 0:
+            w -= 8
+            trig.append("Strong downside efficiency — wait for structure hold, do not catch a knife")
+        scenarios.append(
+            StructureDirectionScenario(
+                direction="LONG",
+                label="Long from support (reversion)",
+                confidence="High" if w >= 48 else "Medium" if w >= 32 else "Low",
+                probability_hint=max(w, 5.0),
+                triggers=trig,
+                invalidation=f"Decisive 5m close below **{session_low:,.2f}** (structure break down)",
+            )
+        )
+        long_weight += max(w, 0)
+
+    # --- Boundary SHORT (resistance reaction) ---
+    if pos >= 0.72:
+        w = 38.0
+        trig = [
+            f"Price in upper structure zone ({pos:.0%} of 5m range) — CPRP short zone at resistance proxy",
+            f"Reject **{session_high:,.2f}** with lower high / upper wick on 5m",
+        ]
+        if upper_wick / bar_range >= 0.35:
+            w += 12
+            trig.append("Upper wick rejection on latest 5m bar")
+        if rsi_val >= 60:
+            w += 8
+            trig.append(f"RSI {rsi_val:.0f} supports fade from resistance (prefer divergence live)")
+        if htf_bias == "up":
+            w -= 10
+            trig.append("1H bias is up — shorts need clear rejection + OF shift (selective)")
+        elif htf_bias == "down":
+            w += 8
+            trig.append("1H bias down — resistance shorts better aligned with HTF")
+        if er > 0.62 and slope > 0:
+            w -= 8
+            trig.append("Strong upside efficiency — do not auto-fade strength without structure fail")
+        scenarios.append(
+            StructureDirectionScenario(
+                direction="SHORT",
+                label="Short from resistance (reversion)",
+                confidence="High" if w >= 48 else "Medium" if w >= 32 else "Low",
+                probability_hint=max(w, 5.0),
+                triggers=trig,
+                invalidation=f"Decisive 5m close above **{session_high:,.2f}** (structure break up)",
+            )
+        )
+        short_weight += max(w, 0)
+
+    # --- Mid-structure / range two-way ---
+    if 0.28 < pos < 0.72:
+        w = 42.0 if er <= 0.45 else 28.0
+        trig = [
+            f"Price mid-structure ({pos:.0%}) — CPRP: no edge for forced one-way entries",
+            f"Two-way between **{session_low:,.2f}** and **{session_high:,.2f}** until a boundary is tested",
+        ]
+        if er <= 0.42:
+            w += 10
+            trig.append("Low path efficiency — rotational tape favors fade extremes, not mid-range chase")
+        scenarios.append(
+            StructureDirectionScenario(
+                direction="RANGE",
+                label="Two-way / wait for boundary",
+                confidence="High" if er <= 0.45 else "Medium",
+                probability_hint=w,
+                triggers=trig,
+                invalidation="Acceptable only while price remains inside 5m high/low band",
+            )
+        )
+        range_weight += w
+        # Soft continuation lean if directional mid-range
+        if er >= 0.55 and above_fast and above_slow and ema_bull:
+            scenarios.append(
+                StructureDirectionScenario(
+                    direction="LONG",
+                    label="Bullish continuation (only after pullback to structure)",
+                    confidence="Low",
+                    probability_hint=18.0,
+                    triggers=[
+                        "5m EMAs stacked bullish while mid-range",
+                        "CPRP still prefers wait for pullback to support / rising channel base — not chasing",
+                    ],
+                    invalidation=f"Loss of EMA9 **{ema_fast:,.2f}** or break of recent swing low **{swing_low:,.2f}**",
+                )
+            )
+            long_weight += 12
+        elif er >= 0.55 and (not above_fast) and (not above_slow) and (not ema_bull):
+            scenarios.append(
+                StructureDirectionScenario(
+                    direction="SHORT",
+                    label="Bearish continuation (only after pullback to structure)",
+                    confidence="Low",
+                    probability_hint=18.0,
+                    triggers=[
+                        "5m EMAs stacked bearish while mid-range",
+                        "CPRP still prefers wait for pullback to resistance / falling channel top — not chasing",
+                    ],
+                    invalidation=f"Reclaim of EMA9 **{ema_fast:,.2f}** or break of recent swing high **{swing_high:,.2f}**",
+                )
+            )
+            short_weight += 12
+
+    # --- Break scenarios (always available as risk paths) ---
+    break_up_w = 12.0 + (8.0 if er > 0.55 and slope > 0 else 0.0) + (5.0 if htf_bias == "up" else 0.0)
+    break_dn_w = 12.0 + (8.0 if er > 0.55 and slope < 0 else 0.0) + (5.0 if htf_bias == "down" else 0.0)
+    scenarios.append(
+        StructureDirectionScenario(
+            direction="BREAK_UP",
+            label="Upside structure break",
+            confidence="Medium" if break_up_w >= 18 else "Low",
+            probability_hint=break_up_w,
+            triggers=[
+                f"5m close through **{session_high:,.2f}** with volume / follow-through",
+                "Then: pause reversion; re-map new structure (CPRP structure-break pause)",
+            ],
+            invalidation="Failed break → snap back inside range (bull trap)",
+        )
+    )
+    scenarios.append(
+        StructureDirectionScenario(
+            direction="BREAK_DOWN",
+            label="Downside structure break",
+            confidence="Medium" if break_dn_w >= 18 else "Low",
+            probability_hint=break_dn_w,
+            triggers=[
+                f"5m close through **{session_low:,.2f}** with volume / follow-through",
+                "Then: pause reversion; re-map new structure (CPRP structure-break pause)",
+            ],
+            invalidation="Failed break → snap back inside range (bear trap)",
+        )
+    )
+
+    # Micro PA note
+    if bullish_bar and body / bar_range >= 0.55:
+        notes.append("Latest 5m bar is a strong bullish body")
+    elif (not bullish_bar) and body / bar_range >= 0.55:
+        notes.append("Latest 5m bar is a strong bearish body")
+
+    # Primary lean
+    # Prefer boundary scenarios when they exist; else range; else stand aside
+    total = long_weight + short_weight + range_weight + 1e-9
+    if pos <= 0.28 and long_weight >= short_weight and long_weight >= 28:
+        primary = "LONG"
+        primary_label = "Primary lean: **LONG** reaction from 5m support zone"
+        conf = "High" if long_weight >= 48 else "Medium"
+    elif pos >= 0.72 and short_weight >= long_weight and short_weight >= 28:
+        primary = "SHORT"
+        primary_label = "Primary lean: **SHORT** reaction from 5m resistance zone"
+        conf = "High" if short_weight >= 48 else "Medium"
+    elif range_weight >= max(long_weight, short_weight) and 0.28 < pos < 0.72:
+        primary = "TWO-WAY"
+        primary_label = "Primary lean: **TWO-WAY** — wait for 5m boundary (mid-structure)"
+        conf = "High" if er <= 0.45 else "Medium"
+    elif long_weight > short_weight * 1.25 and long_weight >= 22:
+        primary = "LONG"
+        primary_label = "Primary lean: **LONG-biased** structure (confirm at support)"
+        conf = "Medium" if long_weight >= 30 else "Low"
+    elif short_weight > long_weight * 1.25 and short_weight >= 22:
+        primary = "SHORT"
+        primary_label = "Primary lean: **SHORT-biased** structure (confirm at resistance)"
+        conf = "Medium" if short_weight >= 30 else "Low"
+    else:
+        primary = "STAND_ASIDE"
+        primary_label = "Primary lean: **STAND ASIDE** — structure TA not conclusive"
+        conf = "Low"
+        scenarios.insert(
+            0,
+            StructureDirectionScenario(
+                direction="STAND_ASIDE",
+                label="Stand aside until cleaner 5m map",
+                confidence="Medium",
+                probability_hint=30.0,
+                triggers=[
+                    "No clear boundary edge or conflicting momentum vs location",
+                    "Wait for retest of high/low with rejection + volume + order flow",
+                ],
+                invalidation="New confirmed structure with ≥2 touches each side",
+            ),
+        )
+
+    # Normalize probability hints to ~100
+    ssum = sum(max(s.probability_hint, 0) for s in scenarios) or 1.0
+    for s in scenarios:
+        s.probability_hint = round(100.0 * max(s.probability_hint, 0) / ssum, 1)
+    scenarios.sort(key=lambda s: -s.probability_hint)
+
+    return StructureDirectionAnalysis(
+        short=short or "—",
+        primary=primary,
+        primary_label=primary_label,
+        confidence=conf,
+        last=round(last, 2),
+        session_high=round(session_high, 2),
+        session_low=round(session_low, 2),
+        position_in_range=round(pos, 3),
+        path_efficiency=round(float(er), 3),
+        rsi=round(rsi_val, 1),
+        ema_fast=round(ema_fast, 2),
+        ema_slow=round(ema_slow, 2),
+        scenarios=scenarios[:6],
+        tech_notes=notes,
+        chart_levels={
+            "last": round(last, 2),
+            "session_high": round(session_high, 2),
+            "session_low": round(session_low, 2),
+            "ema9": round(ema_fast, 2),
+            "ema21": round(ema_slow, 2),
+            "mid": round(mid, 2),
+            "swing_high": round(swing_high, 2),
+            "swing_low": round(swing_low, 2),
+        },
+    )
+
+
 def score_scalping_environment(
     scores: list[InstrumentScore],
     *,

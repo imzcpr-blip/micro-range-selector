@@ -100,7 +100,7 @@ RULEBOOK_VERSION = _cprp_cfg.RULEBOOK_VERSION
 STRUCTURE_BREAK_PAUSE_MINUTES = _cprp_cfg.STRUCTURE_BREAK_PAUSE_MINUTES
 
 from alerts import RecommendationTracker
-from analyzer import analyze_all, fetch_bars
+from analyzer import analyze_5m_structure_directions, analyze_all, fetch_bars
 from admin import is_current_user_admin, render_admin_panel
 from auth import (
     current_display_name,
@@ -115,6 +115,7 @@ from community import render_community_panel
 from economic_calendar import render_economic_calendar_panel
 from live_news import render_bloomberg_audio_option, render_bloomberg_panel
 from market_deep_dive import render_market_deep_dive_panel
+from market_movers import render_whats_moving_panel, render_whats_moving_section
 from micro_futures_news import render_micro_futures_news_panel
 from micros_guide import render_micros_guide_panel
 from platforms_brokers import render_platforms_brokers_panel
@@ -278,6 +279,7 @@ PAGE_CALENDAR = "Economic Calendar"
 PAGE_NEWS = "Bloomberg Live"
 PAGE_MICRO_NEWS = "Micro Futures News"
 PAGE_DEEP_DIVE = "Market Deep Dive"
+PAGE_MARKET_MOVERS = "What's Moving the Market"
 PAGE_PLATFORMS = "Platforms & Brokers"
 PAGE_MICROS = "Micro E-mini Futures"
 PAGE_BRANDING = "Company Branding"
@@ -294,12 +296,13 @@ _nav_pages_clean = [
     PAGE_SELECTOR,       # 5. Main session tool
     PAGE_CALENDAR,       # 6. Event risk filter
     PAGE_DEEP_DIVE,      # 7. CPRP Strategies portfolio deep dive
-    PAGE_MICRO_NEWS,     # 8. TradingView micro futures news
-    PAGE_NEWS,           # 9. Live news desk
-    PAGE_JOURNAL,        # 10. Private session notes
-    PAGE_SESSION_WL,     # 11. Shared session stats
-    PAGE_COMMUNITY,      # 12. Ideas board
-    PAGE_CHAT,           # 13. Live member chat
+    PAGE_MARKET_MOVERS,  # 8. High-impact topics moving the tape
+    PAGE_MICRO_NEWS,     # 9. TradingView micro futures news
+    PAGE_NEWS,           # 10. Live news desk
+    PAGE_JOURNAL,        # 11. Private session notes
+    PAGE_SESSION_WL,     # 12. Shared session stats
+    PAGE_COMMUNITY,      # 13. Ideas board
+    PAGE_CHAT,           # 14. Live member chat
 ]
 _is_founder = is_current_user_admin()
 if _is_founder:
@@ -346,6 +349,11 @@ if page == PAGE_MICRO_NEWS:
 # ── Market Deep Dive (CPRP Strategies Portfolio · 60s auto deep dive) ─────
 if page == PAGE_DEEP_DIVE:
     render_market_deep_dive_panel()
+    st.stop()
+
+# ── What's Moving the Market (high-impact Business/Politics/Macro/Micro) ──
+if page == PAGE_MARKET_MOVERS:
+    render_whats_moving_panel()
     st.stop()
 
 # ── Economic Calendar (Forex Factory — free third-party) ──────────────────
@@ -1277,6 +1285,19 @@ st.info(
     "app instructions, and the 📈 / 📉 / 📂 panels for full CPRP operating steps."
 )
 
+# ── What's moving the Market? (compact board on Session Selector) ────────
+with candle_expander(
+    "What's moving the Market? · high-impact topics · Bull/Bear · influence",
+    side="bear",
+    expanded=False,
+    kind="tv",
+):
+    st.caption(
+        "Full board also lives under sidebar → **What's Moving the Market**. "
+        "Auto-scans every 60s for Business · Politics · Macro · Micro headlines."
+    )
+    render_whats_moving_section(compact=True, max_topics=8)
+
 # ── Strategy operating instructions (Official Quick Reference v1.6) ──────
 with candle_expander(
     "How to properly operate the strategy (CPRP Official Quick Reference v1.6)",
@@ -1890,6 +1911,14 @@ if rec.scores:
         try:
             inst = INSTRUMENTS[chart_choice]
             bars = fetch_bars(inst.symbol).tail(120)
+            picked = next((x for x in rec.scores if x.short == chart_choice), None)
+            direction_ta = analyze_5m_structure_directions(
+                bars,
+                short=chart_choice,
+                htf_bias=getattr(picked, "htf_bias", "unknown") if picked else "unknown",
+                htf_label=getattr(picked, "htf_label", "") if picked else "",
+            )
+
             fig = go.Figure(
                 data=[
                     go.Candlestick(
@@ -1901,6 +1930,27 @@ if rec.scores:
                         name=chart_choice,
                     )
                 ]
+            )
+            # EMA stack used in structure direction TA
+            ema9 = bars["Close"].ewm(span=9, adjust=False).mean()
+            ema21 = bars["Close"].ewm(span=21, adjust=False).mean()
+            fig.add_trace(
+                go.Scatter(
+                    x=bars.index,
+                    y=ema9,
+                    mode="lines",
+                    name="EMA 9",
+                    line=dict(color="#E8D5A3", width=1.3),
+                )
+            )
+            fig.add_trace(
+                go.Scatter(
+                    x=bars.index,
+                    y=ema21,
+                    mode="lines",
+                    name="EMA 21",
+                    line=dict(color="#8B9BB4", width=1.2, dash="dot"),
+                )
             )
             sh = float(bars["High"].max())
             sl = float(bars["Low"].min())
@@ -1916,20 +1966,120 @@ if rec.scores:
                 line_dash="dot",
                 annotation_text="Session low / support zone",
             )
+            # Primary lean annotation on chart
+            lean_color = {
+                "LONG": "#7dcea0",
+                "SHORT": "#e07a7a",
+                "TWO-WAY": "#C9A84C",
+                "STAND_ASIDE": "#8a8478",
+            }.get(direction_ta.primary, "#C9A84C")
             fig.update_layout(
-                title=f"{chart_choice} — structure extremes",
+                title=(
+                    f"{chart_choice} — 5m structure · "
+                    f"TA lean: {direction_ta.primary} ({direction_ta.confidence})"
+                ),
                 xaxis_rangeslider_visible=False,
-                height=420,
-                margin=dict(t=40, b=20),
+                height=460,
+                margin=dict(t=48, b=20),
                 paper_bgcolor="rgba(6,11,22,0)",
                 plot_bgcolor="rgba(15,27,45,0.6)",
                 font=dict(color="#e8edf5"),
+                legend=dict(orientation="h", yanchor="bottom", y=1.02, x=0),
+                annotations=[
+                    dict(
+                        text=f"Direction TA · {direction_ta.primary}",
+                        xref="paper",
+                        yref="paper",
+                        x=0.01,
+                        y=0.98,
+                        showarrow=False,
+                        font=dict(size=12, color=lean_color, family="IBM Plex Mono, monospace"),
+                        bgcolor="rgba(6,10,14,0.75)",
+                    )
+                ],
             )
             st.plotly_chart(fig, use_container_width=True)
-            # Show HTF bias for selected micro
-            picked = next((x for x in rec.scores if x.short == chart_choice), None)
+
             if picked:
                 st.caption(f"**Static 1H context:** {picked.htf_label} — {picked.static_htf}")
+
+            # ── Potential directions from 5m chart TA ─────────────────────
+            desk_section("Potential directions (5m structure TA)", side="bull")
+            st.caption(
+                "Read from **this chart’s candles** (window high/low, EMAs, RSI, path efficiency, "
+                "rejection wicks) plus static 1H bias. CPRP still requires full confluence on your platform — "
+                "these are map scenarios, not orders."
+            )
+            lean_side = (
+                "bull"
+                if direction_ta.primary == "LONG"
+                else "bear"
+                if direction_ta.primary == "SHORT"
+                else "bull"
+            )
+            if direction_ta.primary == "LONG":
+                st.success(
+                    f"{direction_ta.primary_label}  \n"
+                    f"Confidence: **{direction_ta.confidence}** · "
+                    f"RSI {direction_ta.rsi:.1f} · efficiency {direction_ta.path_efficiency:.2f}"
+                )
+            elif direction_ta.primary == "SHORT":
+                st.error(
+                    f"{direction_ta.primary_label}  \n"
+                    f"Confidence: **{direction_ta.confidence}** · "
+                    f"RSI {direction_ta.rsi:.1f} · efficiency {direction_ta.path_efficiency:.2f}"
+                )
+            elif direction_ta.primary == "TWO-WAY":
+                st.warning(
+                    f"{direction_ta.primary_label}  \n"
+                    f"Confidence: **{direction_ta.confidence}** · "
+                    f"RSI {direction_ta.rsi:.1f} · efficiency {direction_ta.path_efficiency:.2f}"
+                )
+            else:
+                st.info(
+                    f"{direction_ta.primary_label}  \n"
+                    f"Confidence: **{direction_ta.confidence}** · "
+                    f"RSI {direction_ta.rsi:.1f} · efficiency {direction_ta.path_efficiency:.2f}"
+                )
+
+            m1, m2, m3, m4 = st.columns(4)
+            m1.metric("Last", f"{direction_ta.last:,.2f}")
+            m2.metric("Range pos", f"{direction_ta.position_in_range:.0%}")
+            m3.metric("Support", f"{direction_ta.session_low:,.2f}")
+            m4.metric("Resistance", f"{direction_ta.session_high:,.2f}")
+
+            with candle_expander("Chart technical notes", side=lean_side, expanded=True, kind="page"):
+                for note in direction_ta.tech_notes:
+                    st.markdown(f"- {note}")
+
+            st.markdown("**Scenario map** (relative weight from this 5m window)")
+            for i, sc in enumerate(direction_ta.scenarios):
+                badge = {
+                    "LONG": "🟢 LONG",
+                    "SHORT": "🔴 SHORT",
+                    "RANGE": "🟡 RANGE",
+                    "BREAK_UP": "⬆ BREAK UP",
+                    "BREAK_DOWN": "⬇ BREAK DOWN",
+                    "STAND_ASIDE": "⏸ STAND ASIDE",
+                }.get(sc.direction, sc.direction)
+                sc_side = (
+                    "bull"
+                    if sc.direction in {"LONG", "BREAK_UP"}
+                    else "bear"
+                    if sc.direction in {"SHORT", "BREAK_DOWN"}
+                    else "bull"
+                )
+                with candle_expander(
+                    f"{badge} · {sc.label} · {sc.probability_hint:.0f}% · {sc.confidence}",
+                    side=sc_side,
+                    expanded=(i == 0),
+                    kind="up" if sc_side == "bull" else "down",
+                ):
+                    st.markdown("**Triggers / conditions**")
+                    for t in sc.triggers:
+                        st.markdown(f"- {t}")
+                    if sc.invalidation:
+                        st.markdown(f"**Invalidation:** {sc.invalidation}")
         except Exception as exc:
             st.warning(f"Chart unavailable: {exc}")
 
