@@ -1169,7 +1169,7 @@ if _rb_base.is_file():
 # CPRP Scalping documents (secondary strategy)
 st.sidebar.markdown("##### CPRP Scalping docs")
 st.sidebar.caption(
-    f"Secondary 1m Keltner protocol · v{_cprp_cfg.SCALPING_VERSION}"
+    f"Secondary 5m Keltner protocol (1m if tight) · v{_cprp_cfg.SCALPING_VERSION}"
 )
 _scalp_qr_pdf = Path(_cprp_cfg.SCALPING_QUICK_REFERENCE_PDF)
 _scalp_qr_img = Path(_cprp_cfg.SCALPING_QUICK_REFERENCE_IMAGE)
@@ -1256,7 +1256,7 @@ with candle_expander("What this desk is for — and how to use it well", side="b
         f"""
 **What the Selector actually does**
 - Ranks **MES · MNQ · MYM** for **primary CPRP reversion** — who deserves the session.  
-- When conditions allow, offers **CPRP Scalping** (1-minute Keltner) as a **preference option**, not a command.  
+- When conditions allow, offers **CPRP Scalping** (**5-minute** Keltner; **1-minute** only if tight & confirmed feasible) as a **preference option**, not a command.  
 - Flags **boundary vs mid-structure** so you don’t invent trades in the middle of the range.  
 - Checks whether structure width respects your **hard stop** (${HARD_STOP_MIN_USD:.0f}–${HARD_STOP_MAX_USD:.0f}).  
 - Applies **60-minute bias** so you don’t casually fade sustained higher-timeframe power.  
@@ -1491,7 +1491,7 @@ if _primary_on and _scalp_on:
 | Protocol | Lean this way when… | Focus |
 |----------|---------------------|--------|
 | **CPRP Reversion** | You can map clean range/channel S/R on 15+5 or 30+15 | Primary micro pick |
-| **CPRP Scalping** | **Sideways** movement on the **1-minute** chart (Keltner / SMA) — no 1H for scalping | Scalping micro pick |
+| **CPRP Scalping** | **Sideways** movement on the **5-minute** chart (Keltner / SMA); **1m** only if tight & confirmed feasible — no 1H for scalping | Scalping micro pick |
 
 One trade, one rulebook. Preference is yours; standards are not optional.
 """
@@ -1575,7 +1575,7 @@ if _scalp_on:
 | Focus micro | **{_scalp.micro}** |
 | Status | **{getattr(_scalp, 'status_label', 'Option Conclusive')}** |
 | Environment score | **{_scalp.score:.1f}** / 100 |
-| **Chart** | **1-minute only** — scalping does **not** use a 1-Hour chart for entries |
+| **Chart** | **5-minute default** · **1-minute** only if conditions are **tight and confirmed feasible** — never 1H for scalping entries |
 | Indicators | Keltner (NT default) · **SMA(14)** midline · RSI 14 (80 / 20) |
 | Risk | **$30 – $50** max per scalp · no averaging |
 | Target | SMA(14) · Stop = SMA or opposite Keltner band |
@@ -1651,8 +1651,9 @@ with candle_expander(
     with _docs:
         st.markdown(
             f"""
-**CPRP Scalping v{_cprp_cfg.SCALPING_VERSION}** — secondary **1-minute Keltner** mean-reversion.  
-**Chart: 1-minute only** (not 1H). **Option Conclusive** when movement is **sideways**.  
+**CPRP Scalping v{_cprp_cfg.SCALPING_VERSION}** — secondary **5-minute Keltner** mean-reversion.  
+**Chart: 5-minute default** · **1-minute** only if conditions are **tight and confirmed feasible** (not 1H).  
+**Option Conclusive** when movement is **sideways**.  
 Risk **$30–$50** · SMA(14) · RSI 80/20 · stand aside on directional tape or when primary CPRP structure is strong.
 """
         )
@@ -1759,7 +1760,9 @@ if _scalp_obj and getattr(_scalp_obj, "warnings", None):
         st.caption(f"⚠️ {_w}")
 
 st.caption(
-    "Scalping uses the **1-minute chart only** (Keltner · SMA 14 · RSI) — **no 1-Hour chart** for scalping entries. "
+    "Scalping uses the **5-minute chart** by default (Keltner · SMA 14 · RSI). "
+    "**1-minute** only when conditions are **tight and confirmed feasible**. "
+    "**No 1-Hour chart** for scalping entries. "
     "If movement is **sideways** → **Option Conclusive**. If directional → **Option Inconclusive**. "
     "⚡ = best scalping focus when conclusive."
 )
@@ -1783,7 +1786,7 @@ if not _scalp_cards and rec.scores:
                 "volume_score": s.volume_score,
                 "volatility_score": s.volatility_score,
                 "structure_score": s.structure_score,
-                "chart": "1-minute only",
+                "chart": "5-minute (1m if tight & confirmed feasible)",
                 "notes": [],
             })()
         )
@@ -1804,13 +1807,15 @@ if _scalp_cards:
             st.metric(
                 "Scalp env score",
                 f"{sm.score:.1f}",
-                help="Sideways 1m movement → Option Conclusive",
+                help="Sideways 5m movement → Option Conclusive (1m if tight & confirmed feasible)",
             )
             if sm.available:
                 st.success(f"**{sm.status}**")
             else:
                 st.warning(f"**{sm.status}**")
-            st.write(f"**Chart:** {getattr(sm, 'chart', '1-minute only')}")
+            st.write(
+                f"**Chart:** {getattr(sm, 'chart', '5-minute (1m if tight & confirmed feasible)')}"
+            )
             st.write(
                 f"**Movement:** **{getattr(sm, 'movement', '—')}** "
                 f"(efficiency {getattr(sm, 'path_efficiency', 0):.2f})"
@@ -1823,10 +1828,13 @@ if _scalp_cards:
                 side="bull" if sm.available else "bear",
             ):
                 st.write(f"Status: **{sm.status}**")
-                st.write(f"Chart: **adaptive 1m or 5m (RSI-respect)** — no 1H entries")
+                st.write(
+                    "Chart: **5-minute default** · **1-minute** only if tight & confirmed feasible "
+                    "(no 1H entries)"
+                )
                 st.write(f"Movement: **{getattr(sm, 'movement', '—')}**")
                 st.write(f"Environment score: {sm.score:.1f} / 100")
-                st.write("Setup: 1m Keltner · SMA(14) · RSI 80/20 · risk $30–$50")
+                st.write("Setup: 5m Keltner (1m if tight) · SMA(14) · RSI 80/20 · risk $30–$50")
                 if sm.notes:
                     st.markdown("**Notes**")
                     for n in sm.notes:

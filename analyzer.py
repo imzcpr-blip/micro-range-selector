@@ -97,9 +97,11 @@ class InstrumentScore:
     as_of: str = ""
 
 
-# Scalping uses **1-minute** charts only (not 1H). Sideways path efficiency → Conclusive.
+# Scalping: **5-minute** chart default; **1-minute** only if tight & confirmed feasible.
+# Sideways path efficiency → Conclusive. No 1H for scalping entries.
 SCALPING_SIDEWAYS_MAX_ER = 0.42  # efficiency at/below this = sideways movement
 SCALPING_DIRECTIONAL_MIN_ER = 0.55  # clearly one-way → inconclusive
+SCALPING_CHART_LABEL = "5-minute (1m if tight & confirmed feasible)"
 
 
 @dataclass
@@ -117,13 +119,13 @@ class ScalpingMicroScore:
     volume_score: float
     volatility_score: float
     structure_score: float
-    chart: str = "1-minute only"
+    chart: str = "5-minute (1m if tight & confirmed feasible)"
     notes: list[str] = field(default_factory=list)
 
 
 @dataclass
 class ScalpingOption:
-    """Secondary CPRP Scalping offer when environment clears (1m chart · sideways tape)."""
+    """Secondary CPRP Scalping offer when environment clears (5m primary · sideways tape)."""
 
     eligible: bool
     micro: Optional[str]
@@ -1196,9 +1198,10 @@ def score_scalping_environment(
     primary_best: InstrumentScore,
 ) -> ScalpingOption:
     """
-    CPRP Scalping v1.1 — secondary tool only.
+    CPRP Scalping — secondary tool only.
 
-    Chart for scalping: **1-minute only** (Keltner + SMA 14 + RSI). No 1H chart for scalping entries.
+    Chart for scalping: **5-minute default**. Use **1-minute only** when conditions are
+    **tight and confirmed feasible**. No 1H chart for scalping entries.
     Movement rule: **sideways** path efficiency → **Option Conclusive**; directional → **Option Inconclusive**.
 
     Always scores every micro for Session Selector comparison cards.
@@ -1223,13 +1226,13 @@ def score_scalping_environment(
         quiet_score = 90.0
         reasons.append(
             f"Primary CPRP is quiet (best {primary_best.short} {primary_best.score:.1f}) — "
-            "if **sideways 1m movement**, scalping can be **Option Conclusive**."
+            "if **sideways 5m movement**, scalping can be **Option Conclusive**."
         )
     elif primary_quiet:
         quiet_score = 78.0
         reasons.append(
             f"Primary structure soft ({primary_best.short}) — "
-            "sideways 1m tape can make scalping **Option Conclusive** by preference."
+            "sideways 5m tape can make scalping **Option Conclusive** by preference."
         )
     else:
         quiet_score = 62.0
@@ -1239,7 +1242,8 @@ def score_scalping_environment(
         )
 
     reasons.append(
-        "CPRP Scalping chart: **1-minute only** (Keltner · SMA 14 · RSI 80/20). "
+        "CPRP Scalping chart: **5-minute default** (Keltner · SMA 14 · RSI 80/20). "
+        "**1-minute only** when conditions are **tight and confirmed feasible**. "
         "No 1-Hour chart for scalping entries."
     )
 
@@ -1250,7 +1254,7 @@ def score_scalping_environment(
 
     for s in scores:
         notes: list[str] = [
-            "Chart for this protocol: **1-minute only** (not 1H / 60m for entries)",
+            "Chart: **5-minute default** · **1-minute** only if tight & confirmed feasible (not 1H)",
         ]
         er = float(getattr(s, "path_efficiency", 0.5) or 0.5)
 
@@ -1294,7 +1298,7 @@ def score_scalping_environment(
 
         if s.structure_score < 50:
             struct_pts = 80.0
-            notes.append("Primary map weak — room for 1m Keltner")
+            notes.append("Primary map weak — room for 5m Keltner (1m if tight & confirmed feasible)")
         elif s.structure_score < 62:
             struct_pts = 65.0
         else:
@@ -1321,7 +1325,7 @@ def score_scalping_environment(
         )
         env = float(np.clip(env, 0, 100))
 
-        # User / rulebook: **sideways movement → Option Conclusive** on 1m protocol
+        # User / rulebook: **sideways movement → Option Conclusive** on 5m protocol
         # Directional movement → Option Inconclusive (scalping not appropriate)
         sideways = movement == "Sideways"
         if sideways:
@@ -1330,7 +1334,7 @@ def score_scalping_environment(
             if hard_block:
                 notes.append(
                     "Primary CPRP structure is also strong — both may show; "
-                    "prefer reversion unless you choose quiet 1m scalps by preference"
+                    "prefer reversion unless you choose quiet 5m scalps by preference"
                 )
         else:
             micro_available = False
@@ -1349,7 +1353,7 @@ def score_scalping_environment(
                 volume_score=s.volume_score,
                 volatility_score=s.volatility_score,
                 structure_score=s.structure_score,
-                chart="1-minute only",
+                chart=SCALPING_CHART_LABEL,
                 notes=notes,
             )
         )
@@ -1387,12 +1391,14 @@ def score_scalping_environment(
         best_card = next((m for m in micro_scores if m.short == best_short), micro_scores[0])
         reasons.append(
             f"CPRP Scalping v{SCALPING_VERSION}: **Option Conclusive** · focus **{best_short}** · "
-            f"movement **{best_card.movement}** · chart **1-minute only** · "
+            f"movement **{best_card.movement}** · chart **5-minute default** "
+            "(**1m** only if tight & confirmed feasible) · "
             "Keltner · SMA(14) · RSI 80/20 · risk $30–$50."
         )
         reasons.append(
-            "Confirm on the **1-minute** chart only (not 1H): "
-            "price accepted one side of SMA · repeated Keltner touches · RSI stretch."
+            "Confirm on the **5-minute** chart (or **1-minute** when conditions are tight and "
+            "confirmed feasible — not 1H): price accepted one side of SMA · "
+            "repeated Keltner touches · RSI stretch."
         )
         if primary_active:
             reasons.append(
@@ -1402,12 +1408,13 @@ def score_scalping_environment(
         if hard_block:
             warnings.append(
                 "Primary CPRP structure is also high quality — "
-                "reversion remains preferred, but sideways 1m still marks scalping **Option Conclusive**."
+                "reversion remains preferred, but sideways 5m still marks scalping **Option Conclusive**."
             )
     else:
         warnings.append(
             f"CPRP Scalping: **Option Inconclusive** — need **sideways** chart movement "
-            f"(path efficiency ≤ {SCALPING_SIDEWAYS_MAX_ER:.2f}) on the **1-minute** protocol. "
+            f"(path efficiency ≤ {SCALPING_SIDEWAYS_MAX_ER:.2f}) on the **5-minute** protocol "
+            f"(1m only when tight & confirmed feasible). "
             f"Best env {best_env:.1f}."
         )
 
@@ -1508,17 +1515,17 @@ def analyze_all(hard_stop_usd: float = HARD_STOP_DEFAULT_USD) -> SessionRecommen
     if scalping.eligible and scalping.micro:
         strategy_options.append(
             f"OPTION · CPRP Scalping v{SCALPING_VERSION} · {scalping.micro} "
-            f"(env {scalping.score:.1f}) · 1m Keltner · $30–$50 risk"
+            f"(env {scalping.score:.1f}) · 5m Keltner (1m if tight) · $30–$50 risk"
         )
         summary += (
             f" **Scalping option available:** {scalping.micro} "
-            f"(environment {scalping.score:.1f}/100) — secondary 1m Keltner mean-reversion "
-            "when primary is quiet / sideways."
+            f"(environment {scalping.score:.1f}/100) — secondary 5m Keltner mean-reversion "
+            "(1m only if tight & confirmed feasible) when primary is quiet / sideways."
         )
         if sit_out:
             alert = (
                 f"OPTION: CPRP SCALPING · {scalping.micro} (env {scalping.score:.1f}) | "
-                f"Primary quiet | 1m Keltner | risk $30–$50 | confirm SMA side + bands"
+                f"Primary quiet | 5m Keltner (1m if tight) | risk $30–$50 | confirm SMA side + bands"
             )
             # Not a full sit-out when scalping is offered — desk has an option
             sit_out = False

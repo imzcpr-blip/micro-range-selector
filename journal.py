@@ -639,7 +639,7 @@ def render_journal_composer(
                 key=f"{key_prefix}_strategy",
                 help=(
                     "CPRP Reversion = primary range/channel protocol (v1.6). "
-                    "CPRP Scalping = secondary 1m Keltner protocol (v1.1)."
+                    "CPRP Scalping = secondary 5m Keltner protocol (1m if tight & confirmed feasible)."
                 ),
             )
             result = st.selectbox("Result", RESULTS, key=f"{key_prefix}_result")
@@ -884,7 +884,7 @@ def render_quick_reference_panel() -> None:
 
     with col_scalp:
         st.markdown(f"**CPRP Scalping · v{SCALPING_VERSION}**")
-        st.caption("Secondary 1m Keltner mean-reversion")
+        st.caption("Secondary 5m Keltner (1m if tight & confirmed feasible)")
         sq = Path(SCALPING_QUICK_REFERENCE_IMAGE)
         if sq.is_file():
             st.image(

@@ -98,13 +98,16 @@ RSI_OVERSOLD = 30.0
 MIN_SCORE_TO_TRADE = 55.0  # below this → primary CPRP quiet (sit-out or scalping option)
 TIE_BREAK_MARGIN = 5.0  # if scores within this, prefer lower priority number (MES → MNQ → MYM)
 
-# CPRP Scalping / execution desk (v1.4 Aug 14 — adaptive 1m/5m RSI-respect)
+# CPRP Scalping / execution desk (v1.4+)
+# Default chart: **5-minute**. Use **1-minute only** when conditions are tight and confirmed feasible.
 SCALPING_VERSION = "1.4"
 SCALPING_MIN_SCORE = 58.0  # minimum environment score to offer scalping option
 SCALPING_HARD_STOP_MIN_USD = 30.0
 SCALPING_HARD_STOP_MAX_USD = 50.0
-SCALPING_TIMEFRAME = "Adaptive 1-minute or 5-minute (RSI-respect)"
-SCALPING_STYLE = "Mean-Reversion at S/R · Adaptive 1m/5m RSI-Respect"
+SCALPING_TIMEFRAME = "5-minute chart (1-minute if tight conditions confirmed feasible)"
+SCALPING_STYLE = "Mean-Reversion at S/R · 5m primary · 1m when tight & confirmed"
+SCALPING_CHART_DEFAULT = "5-minute"
+SCALPING_CHART_TIGHT = "1-minute (tight conditions · confirmed feasible only)"
 
 # Polling / alerts
 DEFAULT_REFRESH_SECONDS = 60
