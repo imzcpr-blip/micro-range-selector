@@ -176,13 +176,13 @@ def _session_phase(now: Optional[datetime] = None) -> str:
 
 
 def suggest_chart_pair(phase: str, range_width_usd: float, volume_ratio: float) -> str:
-    """Rulebook §2 + v1.6 chart-pair hierarchy (two pairs only · multi-TF).
+    """Rulebook v1.7 chart hierarchy: higher-TF structure + adaptive 1m/5m execution.
 
-    PRIMARY / DEFAULT:  15m structure + 5m execution
-    LARGER / SLOWER:    30m structure + 15m execution
-    No chart lower than 5-minute for structure or execution.
+    PRIMARY / DEFAULT:  15m structure + adaptive 1m/5m execution (RSI-respect)
+    LARGER / SLOWER:    30m structure + adaptive 1m/5m execution
+    Execution TF: choose 1m or 5m based on which respects RSI OB/OS bounces.
     """
-    # Larger / slower / lighter volume → secondary pair
+    # Larger / slower / lighter volume → secondary structure pair
     if (
         phase in ("overnight_globex", "after_hours")
         or range_width_usd >= HARD_STOP_MAX_USD * 3.5

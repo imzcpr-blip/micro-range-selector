@@ -1,6 +1,6 @@
 """
 Cooper Precision Reversion Protocol (CPRP) — Session Micro Selector
-Official Rulebook v1.6 (Multi-Timeframe Hierarchy & Order Flow)
+Official Rulebook v1.7 (Adaptive 1m/5m RSI-Respect Selection)
 
 Run:
   streamlit run app.py
@@ -1298,9 +1298,9 @@ with candle_expander(
     )
     render_whats_moving_section(compact=True, max_topics=8)
 
-# ── Strategy operating instructions (Official Quick Reference v1.6) ──────
+# ── Strategy operating instructions (Official Rulebook v1.7) ─────────────
 with candle_expander(
-    "How to properly operate the strategy (CPRP Official Quick Reference v1.6)",
+    f"How to properly operate the strategy (CPRP Official Rulebook v{RULEBOOK_VERSION})",
     side="bear",
     expanded=False,
     kind="doc",
@@ -1308,8 +1308,8 @@ with candle_expander(
     st.markdown(
         f"""
 Official operating instructions for the **{PROTOCOL_NAME}**, distilled from the
-**Official Quick Reference v{RULEBOOK_VERSION}** and **Official Rulebook v{RULEBOOK_VERSION}**
-(Multi-Timeframe Hierarchy & Order Flow Clarified — authoritative).  
+**Official Rulebook v{RULEBOOK_VERSION}** (Adaptive **1m/5m RSI-Respect** Selection — Aug 14, 2026).  
+Platforms: **Ironbeam + NinjaTrader (Web preferred)**.  
 This selector chooses *which micro* to focus on; **you** still operate the Protocol on the charts.
 
 > *Trade the boundaries. Respect the structure. Control the risk.*
@@ -1319,19 +1319,20 @@ This selector chooses *which micro* to focus on; **you** still operate the Proto
 ### Step A — Session setup
 1. Open this selector and note the **recommended micro** (or **SIT OUT**).
 2. Trade **only** approved micros: **MES** (primary), **MNQ**, **MYM**. No other contracts.
-3. Open the suggested **working pair** on **NinjaTrader** (v1.6 hierarchy):
+3. Open charts on **Ironbeam / NinjaTrader** (v{RULEBOOK_VERSION} hierarchy):
 
-| Pair | When | Roles |
-|------|------|-------|
-| **15m + 5m (default)** | Normal volume, clean ranges, active session | 15m = structure · 5m = timing + pressure |
-| **30m + 15m** | Pre-market, low volume, lunch, wide/choppy | 30m = structure · 15m = timing · 5m fine-tune only |
+| Layer | When | Role |
+|------|------|------|
+| **Static 1H (or 4H)** | Always | Context only — major S/R & bias · **never entries** |
+| **15m structure (default)** | Normal volume, clean ranges | Define confirmed S/R range or channel |
+| **30m structure** | Pre-market, low volume, lunch, wide/choppy | Same role when ranges are larger / slower |
+| **Execution: adaptive 1m *or* 5m** | Always for entries | Use the TF that is **respecting RSI** right now |
 
-4. Keep a **static 60-minute** chart in a separate window (4-Hour acceptable).  
-   *Overall bias / sentiment only — never generates entries.*
-5. Prefer **MES** unless MNQ or MYM is **clearly** superior. Prefer **quality over frequency**.  
-   Protocol is **not scalping** — do not force ultra-short holds in slow markets.
-
-**Multi-TF roles (v1.6):** 60m = bias · structure TF = map · timing TF = trigger + order flow.
+4. **RSI-respect rule (NEW v1.7 / desk v1.4):**  
+   - Fade when RSI is **overbought** (typically ≥70) and price **bounces down**  
+   - Buy when RSI is **oversold** (typically ≤30) and price **bounces up**  
+   - Observe **both** 1m and 5m — pick the cleaner respect. If **neither** respects RSI → **stand aside**.  
+5. Prefer **MES** unless MNQ or MYM is **clearly** superior. Prefer **quality over frequency**.
 
 ---
 
@@ -1741,7 +1742,7 @@ if _scalp_status == "Option Conclusive":
     st.success(
         f"**CPRP Scalping · {_scalp_status}** · best env **{_scalp_env:.1f}**/100 · "
         f"focus **{getattr(_scalp_obj, 'micro', '—') or '—'}** · "
-        f"chart **1-minute only** (sideways movement)"
+        f"chart **adaptive 1m/5m RSI-respect** (sideways movement preferred)"
     )
 else:
     st.warning(
@@ -1818,7 +1819,7 @@ if _scalp_cards:
                 side="bull" if sm.available else "bear",
             ):
                 st.write(f"Status: **{sm.status}**")
-                st.write(f"Chart: **1-minute only** (no 1H for scalping entries)")
+                st.write(f"Chart: **adaptive 1m or 5m (RSI-respect)** — no 1H entries")
                 st.write(f"Movement: **{getattr(sm, 'movement', '—')}**")
                 st.write(f"Environment score: {sm.score:.1f} / 100")
                 st.write("Setup: 1m Keltner · SMA(14) · RSI 80/20 · risk $30–$50")
@@ -2083,26 +2084,28 @@ if rec.scores:
         except Exception as exc:
             st.warning(f"Chart unavailable: {exc}")
 
-# ── Pre-trade checklist (Official Quick Reference v1.6) ──────────────────
+# ── Pre-trade checklist (Official Rulebook v1.7 / adaptive RSI) ──────────
 st.markdown("---")
-desk_section("Pre-trade confirmation checklist (Quick Reference v1.6)", side="bear")
+desk_section(f"Pre-trade confirmation checklist (Rulebook v{RULEBOOK_VERSION})", side="bear")
 st.caption(
-    "All 9 items required — CPRP Quick Reference v1.6. If any fails, stand aside. "
+    f"All items required — CPRP Official Rulebook v{RULEBOOK_VERSION} (adaptive 1m/5m RSI-respect). "
+    "If any fails, stand aside. "
     f"After a structure break, pause at least {STRUCTURE_BREAK_PAUSE_MINUTES} minutes "
     "(or until a new clear structure forms). "
     "Hard risk: max loss −$50 to −$100 · exit immediately at limit · no averaging down. "
-    "Order flow is confirmed on your platform (Bid/Ask power)."
+    "Platforms: Ironbeam + NinjaTrader (Web preferred)."
 )
 checks = [
-    "1. Confirmed S/R on higher TF of working pair (structure chart)",
-    "2. Price at/near boundary — Support = long | Resistance = short (not mid-range)",
-    "3. Price-action rejection on lower TF of working pair",
-    "4. Volume supports rejection / absorption",
-    "5. Order flow confirms (bids defend for longs / asks aggressive for shorts)",
-    "6. RSI favorable (divergence preferred at level; elevated RSI ≠ auto-fade)",
-    f"7. Hard stop fits inside −${hard_stop} risk limit (−$50 to −$100 max)",
-    f"8. No recent structure break (or {STRUCTURE_BREAK_PAUSE_MINUTES}-min pause / new clear structure)",
-    "9. 60m bias not strongly opposing the intended trade (or highly selective)",
+    "1. Static 1H (or 4H) context chart open — bias/major S/R only (no entries from it)",
+    "2. Confirmed S/R range or channel defined on higher TF (15m / 30m)",
+    "3. Price at/near boundary — Support = long | Resistance = short (not mid-range)",
+    "4. Chosen execution TF is 1m or 5m — and it is currently respecting RSI OB/OS bounces",
+    "5. On that TF: RSI oversold (long) or overbought (short) near the boundary",
+    "6. Price-action rejection / bounce on the selected execution TF",
+    "7. Volume supports rejection / absorption (preferred)",
+    f"8. Hard stop set before entry inside −${hard_stop} (−$50 to −$100 max) · no averaging",
+    f"9. No recent structure break (or {STRUCTURE_BREAK_PAUSE_MINUTES}-min pause / new clear structure)",
+    "10. If neither 1m nor 5m respects RSI extremes → stand aside",
 ]
 for i, item in enumerate(checks):
     st.checkbox(item, key=f"chk_v16_{i}")
