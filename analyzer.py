@@ -31,6 +31,9 @@ from config import (
     INSTRUMENTS,
     INTRADAY_INTERVAL,
     INTRADAY_PERIOD,
+    STRUCTURE_BARS,
+    STRUCTURE_INTERVAL,
+    STRUCTURE_PERIOD,
     MIN_SCORE_TO_TRADE,
     PROTOCOL_SHORT,
     RULEBOOK_VERSION,
@@ -604,7 +607,7 @@ def score_instrument(
 
 @dataclass
 class StructureDirectionScenario:
-    """One potential path on the 5m structure chart."""
+    """One potential path on the structure chart (15m default)."""
 
     direction: str  # "LONG" | "SHORT" | "RANGE" | "BREAK_UP" | "BREAK_DOWN" | "STAND_ASIDE"
     label: str
@@ -616,7 +619,7 @@ class StructureDirectionScenario:
 
 @dataclass
 class StructureDirectionAnalysis:
-    """Technical read of the same 5m bars shown on Session Selector."""
+    """Technical read of the same structure bars shown on Session Selector (15m)."""
 
     short: str
     primary: str  # dominant lean: LONG | SHORT | TWO-WAY | STAND_ASIDE
@@ -630,33 +633,53 @@ class StructureDirectionAnalysis:
     rsi: float
     ema_fast: float
     ema_slow: float
+    timeframe: str = "15m"
+    break_resistance_state: str = "held"  # held | testing | broken
+    break_support_state: str = "held"  # held | testing | broken
     scenarios: list[StructureDirectionScenario] = field(default_factory=list)
     tech_notes: list[str] = field(default_factory=list)
     chart_levels: dict[str, float] = field(default_factory=dict)
 
 
-def analyze_5m_structure_directions(
+def fetch_structure_bars(
+    symbol: str,
+    *,
+    period: str = STRUCTURE_PERIOD,
+    interval: str = STRUCTURE_INTERVAL,
+    bars: int = STRUCTURE_BARS,
+) -> pd.DataFrame:
+    """Fetch structure-map bars (default 15m) for Session Selector chart + break TA."""
+    df = fetch_bars(symbol, period=period, interval=interval)
+    if bars and len(df) > bars:
+        return df.tail(bars)
+    return df
+
+
+def analyze_structure_directions(
     bars: pd.DataFrame,
     *,
     short: str = "",
     htf_bias: str = "unknown",
     htf_label: str = "",
+    timeframe: str = STRUCTURE_INTERVAL,
 ) -> StructureDirectionAnalysis:
     """
-    Potential directions from technical analysis of the **current 5m structure chart**.
+    Potential directions from technical analysis of the **structure chart** (default **15m**).
 
-    Uses the same OHLC window the Session Selector plots (session high/low, wicks,
-    RSI, short EMAs, path efficiency, swing structure). CPRP framing:
+    Uses the same OHLC window the Session Selector plots (window high/low = proxy S/R,
+    wicks, RSI, EMAs, path efficiency, swing structure, break state). CPRP framing:
       • Prefer boundary reactions (support long / resistance short)
       • Mid-structure → two-way or stand-aside, not forced direction
+      • Break resistance / break support assessed on structure TF closes
       • Static 1H bias soft-filters which side is higher quality
     Educational desk context — not an order signal.
     """
+    tf = (timeframe or STRUCTURE_INTERVAL or "15m").strip()
     if bars is None or bars.empty or len(bars) < 8:
         return StructureDirectionAnalysis(
             short=short or "—",
             primary="STAND_ASIDE",
-            primary_label="Insufficient 5m bars for structure TA",
+            primary_label=f"Insufficient {tf} bars for structure TA",
             confidence="Low",
             last=0.0,
             session_high=0.0,
@@ -666,13 +689,24 @@ def analyze_5m_structure_directions(
             rsi=50.0,
             ema_fast=0.0,
             ema_slow=0.0,
-            tech_notes=["Need more 5m history before reading direction."],
+            timeframe=tf,
+            tech_notes=[f"Need more {tf} history before reading direction."],
         )
 
     look = bars.copy()
     last = float(look["Close"].iloc[-1])
-    session_high = float(look["High"].max())
-    session_low = float(look["Low"].min())
+    # Structure S/R: prefer today's structure window if enough bars, else full display window
+    now = datetime.now(ET)
+    day_df = look[look.index.date == now.date()]
+    struct = day_df if len(day_df) >= 8 else look
+    session_high = float(struct["High"].max())
+    session_low = float(struct["Low"].min())
+    # If today's range is degenerate, fall back to full lookback window
+    if session_high - session_low < 1e-6:
+        session_high = float(look["High"].max())
+        session_low = float(look["Low"].min())
+        struct = look
+
     range_pts = max(session_high - session_low, 1e-9)
     pos = float(np.clip((last - session_low) / range_pts, 0, 1))
     er = _efficiency_ratio(look["Close"], window=min(24, len(look) - 1))
@@ -683,7 +717,7 @@ def analyze_5m_structure_directions(
     ema_fast = float(look["Close"].ewm(span=9, adjust=False).mean().iloc[-1])
     ema_slow = float(look["Close"].ewm(span=21, adjust=False).mean().iloc[-1])
 
-    # Recent swing structure (last ~20 bars)
+    # Recent swing structure (last ~20 bars on structure TF)
     tail = look.tail(min(24, len(look)))
     swing_high = float(tail["High"].max())
     swing_low = float(tail["Low"].min())
@@ -696,6 +730,50 @@ def analyze_5m_structure_directions(
     lower_wick = float(min(lb["Open"], lb["Close"]) - lb["Low"])
     body = abs(float(lb["Close"] - lb["Open"]))
     bullish_bar = float(lb["Close"]) >= float(lb["Open"])
+    close_last = float(lb["Close"])
+
+    # Volume context for break confirmation
+    vol = look["Volume"].astype(float)
+    vol_ma = float(vol.tail(20).mean()) if len(vol) >= 5 else float(vol.mean() or 1.0)
+    vol_last = float(vol.iloc[-1]) if len(vol) else 0.0
+    vol_ratio = (vol_last / vol_ma) if vol_ma > 0 else 1.0
+
+    # ── Break resistance / break support state (structure TF closes) ─────
+    # Prior structure: high/low of window excluding last 1–2 bars (so we can detect a fresh break)
+    prior = look.iloc[:-1] if len(look) > 12 else look
+    prior_high = float(prior["High"].max())
+    prior_low = float(prior["Low"].min())
+    # Use full structure high/low as the map; detect break vs those levels
+    res_level = session_high
+    sup_level = session_low
+    # If last close is still the extreme printer, use prior interior for break status
+    if abs(close_last - res_level) < 1e-9 and len(prior) >= 4:
+        res_level = float(prior["High"].max())
+    if abs(close_last - sup_level) < 1e-9 and len(prior) >= 4:
+        sup_level = float(prior["Low"].min())
+
+    # Recompute map levels as window extremes (display lines); break uses close vs those
+    res_level = session_high
+    sup_level = session_low
+
+    # Testing band = within 8% of structure range from boundary
+    test_band = max(range_pts * 0.08, 1e-9)
+    # Decisive break: close beyond level by at least a small buffer (tick-ish 0.1% of price or 15% of band)
+    break_buf = max(range_pts * 0.02, abs(last) * 0.00015, 0.25)
+
+    if close_last > res_level + break_buf:
+        break_res_state = "broken"
+    elif last >= res_level - test_band or float(lb["High"]) >= res_level - test_band * 0.5:
+        break_res_state = "testing"
+    else:
+        break_res_state = "held"
+
+    if close_last < sup_level - break_buf:
+        break_sup_state = "broken"
+    elif last <= sup_level + test_band or float(lb["Low"]) <= sup_level + test_band * 0.5:
+        break_sup_state = "testing"
+    else:
+        break_sup_state = "held"
 
     # Momentum: close vs EMAs + short slope
     above_fast = last >= ema_fast
@@ -705,7 +783,7 @@ def analyze_5m_structure_directions(
 
     notes: list[str] = []
     notes.append(
-        f"5m window high/low (proxy S/R): **{session_high:,.2f}** / **{session_low:,.2f}** · "
+        f"**{tf}** structure high/low (proxy S/R): **{session_high:,.2f}** / **{session_low:,.2f}** · "
         f"last **{last:,.2f}** ({pos:.0%} of structure)"
     )
     notes.append(
@@ -716,6 +794,11 @@ def analyze_5m_structure_directions(
         f"RSI(14) **{rsi_val:.1f}** · EMA9 **{ema_fast:,.2f}** · EMA21 **{ema_slow:,.2f}** "
         f"({'bullish stack' if ema_bull and above_fast else 'bearish stack' if (not ema_bull) and (not above_fast) else 'mixed EMAs'})"
     )
+    notes.append(
+        f"**Break resistance:** `{break_res_state}` at **{session_high:,.2f}** · "
+        f"**Break support:** `{break_sup_state}` at **{session_low:,.2f}** "
+        f"(decisive = {tf} close beyond level + buffer)"
+    )
     if htf_label:
         notes.append(f"Static 1H context: {htf_label} (`{htf_bias}`)")
 
@@ -725,18 +808,21 @@ def analyze_5m_structure_directions(
     range_weight = 0.0
 
     # --- Boundary LONG (support reaction) ---
-    if pos <= 0.28:
+    if pos <= 0.28 and break_sup_state != "broken":
         w = 38.0
         trig = [
-            f"Price in lower structure zone ({pos:.0%} of 5m range) — CPRP long zone at support proxy",
-            f"Defend **{session_low:,.2f}** with rejection / higher low on 5m",
+            f"Price in lower **{tf}** structure zone ({pos:.0%}) — CPRP long zone at support proxy",
+            f"Defend **{session_low:,.2f}** with rejection / higher low on {tf}",
         ]
         if lower_wick / bar_range >= 0.35:
             w += 12
-            trig.append("Lower wick rejection on latest 5m bar")
+            trig.append(f"Lower wick rejection on latest {tf} bar")
         if rsi_val <= 40:
             w += 8
             trig.append(f"RSI {rsi_val:.0f} supports mean-reversion bounce from support")
+        if break_sup_state == "testing":
+            w += 6
+            trig.append(f"Support **testing** on {tf} — need hold + bounce, not close through")
         if htf_bias == "down":
             w -= 10
             trig.append("1H bias is down — longs need sharper rejection + order flow (selective)")
@@ -753,24 +839,30 @@ def analyze_5m_structure_directions(
                 confidence="High" if w >= 48 else "Medium" if w >= 32 else "Low",
                 probability_hint=max(w, 5.0),
                 triggers=trig,
-                invalidation=f"Decisive 5m close below **{session_low:,.2f}** (structure break down)",
+                invalidation=(
+                    f"Decisive **{tf} close below {session_low:,.2f}** "
+                    f"(structure **break support** → pause reversion)"
+                ),
             )
         )
         long_weight += max(w, 0)
 
     # --- Boundary SHORT (resistance reaction) ---
-    if pos >= 0.72:
+    if pos >= 0.72 and break_res_state != "broken":
         w = 38.0
         trig = [
-            f"Price in upper structure zone ({pos:.0%} of 5m range) — CPRP short zone at resistance proxy",
-            f"Reject **{session_high:,.2f}** with lower high / upper wick on 5m",
+            f"Price in upper **{tf}** structure zone ({pos:.0%}) — CPRP short zone at resistance proxy",
+            f"Reject **{session_high:,.2f}** with lower high / upper wick on {tf}",
         ]
         if upper_wick / bar_range >= 0.35:
             w += 12
-            trig.append("Upper wick rejection on latest 5m bar")
+            trig.append(f"Upper wick rejection on latest {tf} bar")
         if rsi_val >= 60:
             w += 8
             trig.append(f"RSI {rsi_val:.0f} supports fade from resistance (prefer divergence live)")
+        if break_res_state == "testing":
+            w += 6
+            trig.append(f"Resistance **testing** on {tf} — need reject, not close through")
         if htf_bias == "up":
             w -= 10
             trig.append("1H bias is up — shorts need clear rejection + OF shift (selective)")
@@ -787,16 +879,19 @@ def analyze_5m_structure_directions(
                 confidence="High" if w >= 48 else "Medium" if w >= 32 else "Low",
                 probability_hint=max(w, 5.0),
                 triggers=trig,
-                invalidation=f"Decisive 5m close above **{session_high:,.2f}** (structure break up)",
+                invalidation=(
+                    f"Decisive **{tf} close above {session_high:,.2f}** "
+                    f"(structure **break resistance** → pause reversion)"
+                ),
             )
         )
         short_weight += max(w, 0)
 
     # --- Mid-structure / range two-way ---
-    if 0.28 < pos < 0.72:
+    if 0.28 < pos < 0.72 and break_res_state != "broken" and break_sup_state != "broken":
         w = 42.0 if er <= 0.45 else 28.0
         trig = [
-            f"Price mid-structure ({pos:.0%}) — CPRP: no edge for forced one-way entries",
+            f"Price mid-structure ({pos:.0%}) on {tf} — CPRP: no edge for forced one-way entries",
             f"Two-way between **{session_low:,.2f}** and **{session_high:,.2f}** until a boundary is tested",
         ]
         if er <= 0.42:
@@ -809,11 +904,10 @@ def analyze_5m_structure_directions(
                 confidence="High" if er <= 0.45 else "Medium",
                 probability_hint=w,
                 triggers=trig,
-                invalidation="Acceptable only while price remains inside 5m high/low band",
+                invalidation=f"Acceptable only while price remains inside {tf} high/low band",
             )
         )
         range_weight += w
-        # Soft continuation lean if directional mid-range
         if er >= 0.55 and above_fast and above_slow and ema_bull:
             scenarios.append(
                 StructureDirectionScenario(
@@ -822,7 +916,7 @@ def analyze_5m_structure_directions(
                     confidence="Low",
                     probability_hint=18.0,
                     triggers=[
-                        "5m EMAs stacked bullish while mid-range",
+                        f"{tf} EMAs stacked bullish while mid-range",
                         "CPRP still prefers wait for pullback to support / rising channel base — not chasing",
                     ],
                     invalidation=f"Loss of EMA9 **{ema_fast:,.2f}** or break of recent swing low **{swing_low:,.2f}**",
@@ -837,7 +931,7 @@ def analyze_5m_structure_directions(
                     confidence="Low",
                     probability_hint=18.0,
                     triggers=[
-                        "5m EMAs stacked bearish while mid-range",
+                        f"{tf} EMAs stacked bearish while mid-range",
                         "CPRP still prefers wait for pullback to resistance / falling channel top — not chasing",
                     ],
                     invalidation=f"Reclaim of EMA9 **{ema_fast:,.2f}** or break of recent swing high **{swing_high:,.2f}**",
@@ -845,79 +939,193 @@ def analyze_5m_structure_directions(
             )
             short_weight += 12
 
-    # --- Break scenarios (always available as risk paths) ---
-    break_up_w = 12.0 + (8.0 if er > 0.55 and slope > 0 else 0.0) + (5.0 if htf_bias == "up" else 0.0)
-    break_dn_w = 12.0 + (8.0 if er > 0.55 and slope < 0 else 0.0) + (5.0 if htf_bias == "down" else 0.0)
+    # --- Break resistance (BREAK_UP) — updated structure-TF logic ---
+    break_up_w = 10.0
+    break_up_trig = [
+        f"**Break resistance** level: **{session_high:,.2f}** on {tf}",
+        f"State now: **{break_res_state}**",
+    ]
+    if break_res_state == "broken":
+        break_up_w += 28.0
+        break_up_trig.append(
+            f"Decisive **{tf} close above resistance** (last close {close_last:,.2f} > {session_high:,.2f})"
+        )
+        if vol_ratio >= 1.15:
+            break_up_w += 10.0
+            break_up_trig.append(f"Volume elevated on break bar ({vol_ratio:.2f}× avg) — stronger break")
+        elif vol_ratio < 0.75:
+            break_up_w -= 6.0
+            break_up_trig.append("Light volume on break — treat as suspect until follow-through")
+        if bullish_bar and body / bar_range >= 0.45:
+            break_up_w += 6.0
+            break_up_trig.append(f"Strong bullish {tf} body through resistance")
+        if htf_bias == "up":
+            break_up_w += 8.0
+            break_up_trig.append("1H bias up — break-resistance continuation more plausible")
+        elif htf_bias == "down":
+            break_up_w -= 6.0
+            break_up_trig.append("1H bias down — upside break may fail (bull trap risk)")
+        break_up_trig.append(
+            "CPRP: **pause reversion fades** — re-map new structure after break (structure-break pause)"
+        )
+    elif break_res_state == "testing":
+        break_up_w += 14.0
+        break_up_trig.append(f"Price **testing** resistance on {tf} — watch for reject vs close-through")
+        break_up_trig.append(
+            f"Confirm break only on **{tf} close above {session_high:,.2f}** with follow-through"
+        )
+        if upper_wick / bar_range >= 0.4:
+            break_up_w -= 8.0
+            break_up_trig.append("Upper wick at resistance — favors **reject** over break for now")
+    else:
+        break_up_w += 6.0 + (5.0 if er > 0.55 and slope > 0 else 0.0)
+        break_up_trig.append(
+            f"Resistance **held** so far — break path only if {tf} closes above **{session_high:,.2f}**"
+        )
+
     scenarios.append(
         StructureDirectionScenario(
             direction="BREAK_UP",
-            label="Upside structure break",
-            confidence="Medium" if break_up_w >= 18 else "Low",
-            probability_hint=break_up_w,
-            triggers=[
-                f"5m close through **{session_high:,.2f}** with volume / follow-through",
-                "Then: pause reversion; re-map new structure (CPRP structure-break pause)",
-            ],
-            invalidation="Failed break → snap back inside range (bull trap)",
+            label=f"Break resistance ({break_res_state})",
+            confidence=(
+                "High" if break_res_state == "broken" and break_up_w >= 40
+                else "Medium" if break_up_w >= 22
+                else "Low"
+            ),
+            probability_hint=max(break_up_w, 5.0),
+            triggers=break_up_trig,
+            invalidation=(
+                f"Failed break / bull trap: {tf} closes back **below {session_high:,.2f}** "
+                f"and loses breakout structure"
+            ),
         )
     )
+
+    # --- Break support (BREAK_DOWN) ---
+    break_dn_w = 10.0
+    break_dn_trig = [
+        f"**Break support** level: **{session_low:,.2f}** on {tf}",
+        f"State now: **{break_sup_state}**",
+    ]
+    if break_sup_state == "broken":
+        break_dn_w += 28.0
+        break_dn_trig.append(
+            f"Decisive **{tf} close below support** (last close {close_last:,.2f} < {session_low:,.2f})"
+        )
+        if vol_ratio >= 1.15:
+            break_dn_w += 10.0
+            break_dn_trig.append(f"Volume elevated on break bar ({vol_ratio:.2f}× avg) — stronger break")
+        elif vol_ratio < 0.75:
+            break_dn_w -= 6.0
+            break_dn_trig.append("Light volume on break — treat as suspect until follow-through")
+        if (not bullish_bar) and body / bar_range >= 0.45:
+            break_dn_w += 6.0
+            break_dn_trig.append(f"Strong bearish {tf} body through support")
+        if htf_bias == "down":
+            break_dn_w += 8.0
+            break_dn_trig.append("1H bias down — break-support continuation more plausible")
+        elif htf_bias == "up":
+            break_dn_w -= 6.0
+            break_dn_trig.append("1H bias up — downside break may fail (bear trap risk)")
+        break_dn_trig.append(
+            "CPRP: **pause reversion fades** — re-map new structure after break (structure-break pause)"
+        )
+    elif break_sup_state == "testing":
+        break_dn_w += 14.0
+        break_dn_trig.append(f"Price **testing** support on {tf} — watch for bounce vs close-through")
+        break_dn_trig.append(
+            f"Confirm break only on **{tf} close below {session_low:,.2f}** with follow-through"
+        )
+        if lower_wick / bar_range >= 0.4:
+            break_dn_w -= 8.0
+            break_dn_trig.append("Lower wick at support — favors **hold/bounce** over break for now")
+    else:
+        break_dn_w += 6.0 + (5.0 if er > 0.55 and slope < 0 else 0.0)
+        break_dn_trig.append(
+            f"Support **held** so far — break path only if {tf} closes below **{session_low:,.2f}**"
+        )
+
     scenarios.append(
         StructureDirectionScenario(
             direction="BREAK_DOWN",
-            label="Downside structure break",
-            confidence="Medium" if break_dn_w >= 18 else "Low",
-            probability_hint=break_dn_w,
-            triggers=[
-                f"5m close through **{session_low:,.2f}** with volume / follow-through",
-                "Then: pause reversion; re-map new structure (CPRP structure-break pause)",
-            ],
-            invalidation="Failed break → snap back inside range (bear trap)",
+            label=f"Break support ({break_sup_state})",
+            confidence=(
+                "High" if break_sup_state == "broken" and break_dn_w >= 40
+                else "Medium" if break_dn_w >= 22
+                else "Low"
+            ),
+            probability_hint=max(break_dn_w, 5.0),
+            triggers=break_dn_trig,
+            invalidation=(
+                f"Failed break / bear trap: {tf} closes back **above {session_low:,.2f}** "
+                f"and reclaims support structure"
+            ),
         )
     )
 
+    # If structure already broken, elevate primary lean toward break path
+    if break_res_state == "broken":
+        short_weight *= 0.35  # reversion shorts invalidated
+        range_weight *= 0.4
+    if break_sup_state == "broken":
+        long_weight *= 0.35
+        range_weight *= 0.4
+
     # Micro PA note
     if bullish_bar and body / bar_range >= 0.55:
-        notes.append("Latest 5m bar is a strong bullish body")
+        notes.append(f"Latest {tf} bar is a strong bullish body")
     elif (not bullish_bar) and body / bar_range >= 0.55:
-        notes.append("Latest 5m bar is a strong bearish body")
+        notes.append(f"Latest {tf} bar is a strong bearish body")
 
-    # Primary lean
-    # Prefer boundary scenarios when they exist; else range; else stand aside
-    total = long_weight + short_weight + range_weight + 1e-9
-    if pos <= 0.28 and long_weight >= short_weight and long_weight >= 28:
+    # Primary lean — prefer confirmed structure breaks, then boundary reversion, then range
+    if break_res_state == "broken" and break_up_w >= 35:
         primary = "LONG"
-        primary_label = "Primary lean: **LONG** reaction from 5m support zone"
+        primary_label = (
+            f"Primary lean: **BREAK RESISTANCE** on {tf} "
+            f"(close through **{session_high:,.2f}**) — pause reversion shorts; re-map structure"
+        )
+        conf = "High" if break_up_w >= 45 else "Medium"
+    elif break_sup_state == "broken" and break_dn_w >= 35:
+        primary = "SHORT"
+        primary_label = (
+            f"Primary lean: **BREAK SUPPORT** on {tf} "
+            f"(close through **{session_low:,.2f}**) — pause reversion longs; re-map structure"
+        )
+        conf = "High" if break_dn_w >= 45 else "Medium"
+    elif pos <= 0.28 and long_weight >= short_weight and long_weight >= 28:
+        primary = "LONG"
+        primary_label = f"Primary lean: **LONG** reaction from {tf} support zone"
         conf = "High" if long_weight >= 48 else "Medium"
     elif pos >= 0.72 and short_weight >= long_weight and short_weight >= 28:
         primary = "SHORT"
-        primary_label = "Primary lean: **SHORT** reaction from 5m resistance zone"
+        primary_label = f"Primary lean: **SHORT** reaction from {tf} resistance zone"
         conf = "High" if short_weight >= 48 else "Medium"
     elif range_weight >= max(long_weight, short_weight) and 0.28 < pos < 0.72:
         primary = "TWO-WAY"
-        primary_label = "Primary lean: **TWO-WAY** — wait for 5m boundary (mid-structure)"
+        primary_label = f"Primary lean: **TWO-WAY** — wait for {tf} boundary (mid-structure)"
         conf = "High" if er <= 0.45 else "Medium"
     elif long_weight > short_weight * 1.25 and long_weight >= 22:
         primary = "LONG"
-        primary_label = "Primary lean: **LONG-biased** structure (confirm at support)"
+        primary_label = f"Primary lean: **LONG-biased** {tf} structure (confirm at support)"
         conf = "Medium" if long_weight >= 30 else "Low"
     elif short_weight > long_weight * 1.25 and short_weight >= 22:
         primary = "SHORT"
-        primary_label = "Primary lean: **SHORT-biased** structure (confirm at resistance)"
+        primary_label = f"Primary lean: **SHORT-biased** {tf} structure (confirm at resistance)"
         conf = "Medium" if short_weight >= 30 else "Low"
     else:
         primary = "STAND_ASIDE"
-        primary_label = "Primary lean: **STAND ASIDE** — structure TA not conclusive"
+        primary_label = f"Primary lean: **STAND ASIDE** — {tf} structure TA not conclusive"
         conf = "Low"
         scenarios.insert(
             0,
             StructureDirectionScenario(
                 direction="STAND_ASIDE",
-                label="Stand aside until cleaner 5m map",
+                label=f"Stand aside until cleaner {tf} map",
                 confidence="Medium",
                 probability_hint=30.0,
                 triggers=[
                     "No clear boundary edge or conflicting momentum vs location",
-                    "Wait for retest of high/low with rejection + volume + order flow",
+                    f"Wait for retest of {tf} high/low with rejection + volume + order flow",
                 ],
                 invalidation="New confirmed structure with ≥2 touches each side",
             ),
@@ -942,18 +1150,41 @@ def analyze_5m_structure_directions(
         rsi=round(rsi_val, 1),
         ema_fast=round(ema_fast, 2),
         ema_slow=round(ema_slow, 2),
+        timeframe=tf,
+        break_resistance_state=break_res_state,
+        break_support_state=break_sup_state,
         scenarios=scenarios[:6],
         tech_notes=notes,
         chart_levels={
             "last": round(last, 2),
             "session_high": round(session_high, 2),
             "session_low": round(session_low, 2),
+            "resistance": round(session_high, 2),
+            "support": round(session_low, 2),
             "ema9": round(ema_fast, 2),
             "ema21": round(ema_slow, 2),
             "mid": round(mid, 2),
             "swing_high": round(swing_high, 2),
             "swing_low": round(swing_low, 2),
+            "break_buffer": round(break_buf, 4),
         },
+    )
+
+
+def analyze_5m_structure_directions(
+    bars: pd.DataFrame,
+    *,
+    short: str = "",
+    htf_bias: str = "unknown",
+    htf_label: str = "",
+) -> StructureDirectionAnalysis:
+    """Backward-compatible alias — structure map is **15m** (use analyze_structure_directions)."""
+    return analyze_structure_directions(
+        bars,
+        short=short,
+        htf_bias=htf_bias,
+        htf_label=htf_label,
+        timeframe=STRUCTURE_INTERVAL,
     )
 
 

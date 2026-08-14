@@ -100,7 +100,11 @@ RULEBOOK_VERSION = _cprp_cfg.RULEBOOK_VERSION
 STRUCTURE_BREAK_PAUSE_MINUTES = _cprp_cfg.STRUCTURE_BREAK_PAUSE_MINUTES
 
 from alerts import RecommendationTracker
-from analyzer import analyze_5m_structure_directions, analyze_all, fetch_bars
+from analyzer import (
+    analyze_all,
+    analyze_structure_directions,
+    fetch_structure_bars,
+)
 from admin import is_current_user_admin, render_admin_panel
 from auth import (
     current_display_name,
@@ -879,7 +883,7 @@ Which micro deserves your attention right now — **MES, MNQ, or MYM** — under
 2. Read the **top banner** — reversion pick, scalping option, both, or stand aside.  
 3. Walk the **three micro cards** — scores, structure width, boundary vs mid, 60m bias.  
 4. Open **Score breakdown** when you want the “why,” not just the grade.  
-5. Confirm structure on **Head-to-head** and the **5m structure chart**.  
+5. Confirm structure on **Head-to-head** and the **15m structure chart**.  
 6. Keep a **static 60-minute** window open for bias (context only — never entries).  
 7. Run the **official operating steps** and the **full pre-trade checklist** before you click buy or sell on NinjaTrader / Ironbeam.  
 8. Leave **auto-refresh** on so the desk updates as the session evolves.
@@ -1893,10 +1897,12 @@ if rec.scores:
         st.plotly_chart(fig_bar, use_container_width=True)
 
     with right:
-        desk_section("Price structure (5m)", side="bear")
+        desk_section("Price structure (15m)", side="bear")
         st.caption(
-            "Green/red dotted lines mark the analyzed window high/low (proxy support/resistance). "
-            "Confirm real levels on NinjaTrader. Keep a separate **1-Hour** chart for long-term context (§2)."
+            "**15-minute structure map** (Rulebook structure TF). "
+            "Dotted lines = analyzed window high/low (proxy resistance / support). "
+            "Break resistance / break support use **15m closes**. "
+            "Confirm live on Ironbeam / NinjaTrader. Keep a separate **1-Hour** for context only."
         )
         pick_symbol = (
             rec.recommended
@@ -1911,13 +1917,14 @@ if rec.scores:
         )
         try:
             inst = INSTRUMENTS[chart_choice]
-            bars = fetch_bars(inst.symbol).tail(120)
+            bars = fetch_structure_bars(inst.symbol)  # 15m structure window
             picked = next((x for x in rec.scores if x.short == chart_choice), None)
-            direction_ta = analyze_5m_structure_directions(
+            direction_ta = analyze_structure_directions(
                 bars,
                 short=chart_choice,
                 htf_bias=getattr(picked, "htf_bias", "unknown") if picked else "unknown",
                 htf_label=getattr(picked, "htf_label", "") if picked else "",
+                timeframe="15m",
             )
 
             fig = go.Figure(
@@ -1928,7 +1935,7 @@ if rec.scores:
                         high=bars["High"],
                         low=bars["Low"],
                         close=bars["Close"],
-                        name=chart_choice,
+                        name=f"{chart_choice} 15m",
                     )
                 ]
             )
@@ -1953,19 +1960,37 @@ if rec.scores:
                     line=dict(color="#8B9BB4", width=1.2, dash="dot"),
                 )
             )
-            sh = float(bars["High"].max())
-            sl = float(bars["Low"].min())
+            sh = float(direction_ta.session_high)
+            sl = float(direction_ta.session_low)
+            res_color = (
+                "#e07a7a"
+                if direction_ta.break_resistance_state == "broken"
+                else "#C9A84C"
+                if direction_ta.break_resistance_state == "testing"
+                else "#8B9BB4"
+            )
+            sup_color = (
+                "#e07a7a"
+                if direction_ta.break_support_state == "broken"
+                else "#C9A84C"
+                if direction_ta.break_support_state == "testing"
+                else "#7dcea0"
+            )
             fig.add_hline(
                 y=sh,
-                line_color="#8B9BB4",
+                line_color=res_color,
                 line_dash="dot",
-                annotation_text="Session high / resistance zone",
+                annotation_text=(
+                    f"Resistance · {direction_ta.break_resistance_state.upper()}"
+                ),
             )
             fig.add_hline(
                 y=sl,
-                line_color="#C9A84C",
+                line_color=sup_color,
                 line_dash="dot",
-                annotation_text="Session low / support zone",
+                annotation_text=(
+                    f"Support · {direction_ta.break_support_state.upper()}"
+                ),
             )
             # Primary lean annotation on chart
             lean_color = {
@@ -1976,19 +2001,20 @@ if rec.scores:
             }.get(direction_ta.primary, "#C9A84C")
             fig.update_layout(
                 title=(
-                    f"{chart_choice} — 5m structure · "
-                    f"TA lean: {direction_ta.primary} ({direction_ta.confidence})"
+                    f"{chart_choice} — 15m structure · "
+                    f"TA lean: {direction_ta.primary} ({direction_ta.confidence}) · "
+                    f"R {direction_ta.break_resistance_state} / S {direction_ta.break_support_state}"
                 ),
                 xaxis_rangeslider_visible=False,
-                height=460,
-                margin=dict(t=48, b=20),
+                height=480,
+                margin=dict(t=52, b=20),
                 paper_bgcolor="rgba(6,11,22,0)",
                 plot_bgcolor="rgba(15,27,45,0.6)",
                 font=dict(color="#e8edf5"),
                 legend=dict(orientation="h", yanchor="bottom", y=1.02, x=0),
                 annotations=[
                     dict(
-                        text=f"Direction TA · {direction_ta.primary}",
+                        text=f"15m Direction TA · {direction_ta.primary}",
                         xref="paper",
                         yref="paper",
                         x=0.01,
@@ -2004,12 +2030,12 @@ if rec.scores:
             if picked:
                 st.caption(f"**Static 1H context:** {picked.htf_label} — {picked.static_htf}")
 
-            # ── Potential directions from 5m chart TA ─────────────────────
-            desk_section("Potential directions (5m structure TA)", side="bull")
+            # ── Potential directions from 15m structure TA ────────────────
+            desk_section("Potential directions (15m structure TA)", side="bull")
             st.caption(
-                "Read from **this chart’s candles** (window high/low, EMAs, RSI, path efficiency, "
-                "rejection wicks) plus static 1H bias. CPRP still requires full confluence on your platform — "
-                "these are map scenarios, not orders."
+                "Read from **this 15m chart** (structure high/low, EMAs, RSI, path efficiency, "
+                "rejection wicks, **break resistance / break support** on 15m closes) plus static 1H bias. "
+                "CPRP still requires full confluence on your platform — map scenarios, not orders."
             )
             lean_side = (
                 "bull"
@@ -2044,23 +2070,45 @@ if rec.scores:
                 )
 
             m1, m2, m3, m4 = st.columns(4)
-            m1.metric("Last", f"{direction_ta.last:,.2f}")
+            m1.metric("Last (15m)", f"{direction_ta.last:,.2f}")
             m2.metric("Range pos", f"{direction_ta.position_in_range:.0%}")
-            m3.metric("Support", f"{direction_ta.session_low:,.2f}")
-            m4.metric("Resistance", f"{direction_ta.session_high:,.2f}")
+            m3.metric(
+                "Support",
+                f"{direction_ta.session_low:,.2f}",
+                delta=direction_ta.break_support_state,
+            )
+            m4.metric(
+                "Resistance",
+                f"{direction_ta.session_high:,.2f}",
+                delta=direction_ta.break_resistance_state,
+            )
+
+            br1, br2 = st.columns(2)
+            with br1:
+                st.markdown(
+                    f"**Break resistance:** `{direction_ta.break_resistance_state.upper()}`  \n"
+                    f"Level **{direction_ta.session_high:,.2f}** · "
+                    f"needs **15m close above** for confirmed break"
+                )
+            with br2:
+                st.markdown(
+                    f"**Break support:** `{direction_ta.break_support_state.upper()}`  \n"
+                    f"Level **{direction_ta.session_low:,.2f}** · "
+                    f"needs **15m close below** for confirmed break"
+                )
 
             with candle_expander("Chart technical notes", side=lean_side, expanded=True, kind="page"):
                 for note in direction_ta.tech_notes:
                     st.markdown(f"- {note}")
 
-            st.markdown("**Scenario map** (relative weight from this 5m window)")
+            st.markdown("**Scenario map** (relative weight from this **15m** structure window)")
             for i, sc in enumerate(direction_ta.scenarios):
                 badge = {
                     "LONG": "🟢 LONG",
                     "SHORT": "🔴 SHORT",
                     "RANGE": "🟡 RANGE",
-                    "BREAK_UP": "⬆ BREAK UP",
-                    "BREAK_DOWN": "⬇ BREAK DOWN",
+                    "BREAK_UP": "⬆ BREAK RESISTANCE",
+                    "BREAK_DOWN": "⬇ BREAK SUPPORT",
                     "STAND_ASIDE": "⏸ STAND ASIDE",
                 }.get(sc.direction, sc.direction)
                 sc_side = (

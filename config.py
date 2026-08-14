@@ -110,9 +110,13 @@ SCALPING_STYLE = "Mean-Reversion at S/R · Adaptive 1m/5m RSI-Respect"
 DEFAULT_REFRESH_SECONDS = 60
 ALERT_ON_RECOMMENDATION_CHANGE = True
 
-# Yahoo intraday bars for active structure analysis (max free lookback ~7 days)
-INTRADAY_INTERVAL = "5m"
+# Yahoo intraday bars for active structure analysis (max free lookback ~60d for 15m)
+# Session Selector Price Structure chart + break S/R TA use STRUCTURE_* (15m).
+INTRADAY_INTERVAL = "5m"  # still used by some scoring helpers / execution proxies
 INTRADAY_PERIOD = "5d"
+STRUCTURE_INTERVAL = "15m"  # Session Selector structure map (Rulebook: 15m structure TF)
+STRUCTURE_PERIOD = "30d"  # enough 15m history for multi-session structure
+STRUCTURE_BARS = 96  # ~4 trading days of 15m bars (display + TA window)
 
 # App branding
 APP_NAME = "CPRP Session Micro Selector"
