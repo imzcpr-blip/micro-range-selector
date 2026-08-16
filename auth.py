@@ -235,10 +235,17 @@ def verify_login(email: str, password: str) -> tuple[bool, str]:
                 "No accounts found. "
                 + (
                     "Sign up to create the first member account, or set auth.bootstrap_password "
-                    "in Secrets to auto-create the founder (ImzCpr@gmail.com)."
+                    "in Secrets so ImzCpr@gmail.com is created as Founder on first boot."
                     if using_postgres()
-                    else "Streamlit Cloud wiped the temporary local database — "
-                    "add a permanent [database] url in Secrets, then Sign up again."
+                    else "Streamlit Cloud uses a temporary disk — member accounts are wiped on redeploy "
+                    "unless you add a permanent Postgres URL. "
+                    "Fix: free Neon DB (neon.tech) → copy connection string → "
+                    "Streamlit Cloud → Manage app → Settings → Secrets → add:\n\n"
+                    "[database]\n"
+                    'url = "postgresql://USER:PASSWORD@HOST/DBNAME?sslmode=require"\n\n'
+                    "Keep your [auth] block (bootstrap_password, pepper, admin_email). "
+                    "Save, reboot the app, then log in as imzcpr@gmail.com "
+                    "(Founder is auto-created when bootstrap_password is set)."
                 ),
             )
         return (
@@ -508,10 +515,27 @@ Then the full desk is yours.
             else:
                 st.warning(
                     f"Account storage: **{backend}**. "
-                    "On Streamlit Cloud this is wiped on redeploy. "
-                    "Add a free **Neon/Supabase PostgreSQL** URL under `[database] url` in Secrets "
-                    "for permanent accounts."
+                    "On **Streamlit Cloud** this is wiped on every redeploy.\n\n"
+                    "**Permanent fix (about 3 minutes):**\n"
+                    "1. Create a free Postgres DB at [neon.tech](https://neon.tech) (or Supabase).\n"
+                    "2. Copy the connection string (`postgresql://…?sslmode=require`).\n"
+                    "3. Streamlit Cloud → your app → **Manage app** → **Settings** → **Secrets**.\n"
+                    "4. Add a `[database]` section with `url = \"…\"` (see example below), "
+                    "keep your existing `[auth]` block, **Save**, then **Reboot**.\n"
+                    "5. Log in as the Founder email — `bootstrap_password` recreates the account "
+                    "if the DB is empty."
                 )
+                with st.expander("Paste this shape into Streamlit Cloud Secrets", expanded=False):
+                    st.code(
+                        '[database]\n'
+                        'url = "postgresql://USER:PASSWORD@ep-xxxx.us-east-2.aws.neon.tech/neondb?sslmode=require"\n\n'
+                        "[auth]\n"
+                        'notify_email = "ImzCpr@gmail.com"\n'
+                        'admin_email = "imzcpr@gmail.com"\n'
+                        'pepper = "your-stable-pepper-never-change-after-users-exist"\n'
+                        'bootstrap_password = "Liam09062018"\n',
+                        language="toml",
+                    )
             if count_users() == 0:
                 st.info(
                     "No members yet. Use **Sign up**, or set `auth.bootstrap_password` so "
