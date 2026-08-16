@@ -26,17 +26,43 @@ _LOCAL_DB = _LOCAL_DIR / "users.db"
 FOUNDER_EMAIL = "imzcpr@gmail.com"
 
 
+def _is_placeholder_database_url(url: str) -> bool:
+    """True for example/template URLs that are not a real database."""
+    u = (url or "").lower()
+    if not u:
+        return True
+    # Common template fragments from secrets.toml.example
+    bad = (
+        "user:password@",
+        "username:password@",
+        "@host/",
+        "@hostname",
+        "ep-xxxx",
+        "dbname?sslmode",
+        "/dbname?",
+        "://user:",
+        "your-password",
+        "changeme",
+    )
+    if any(b in u for b in bad):
+        return True
+    # Explicit placeholder used in our docs
+    if "USER:PASSWORD@HOST" in url or "USER:PASSWORD@HOST".lower() in u:
+        return True
+    return False
+
+
 def _secret_database_url() -> str:
     try:
         # Nested TOML: [database] url = "..."
         db = st.secrets.get("database", {})
         if isinstance(db, dict):
             url = str(db.get("url") or db.get("connection_string") or "").strip()
-            if url:
+            if url and not _is_placeholder_database_url(url):
                 return url
         # Flat / env-style
         url = str(st.secrets.get("DATABASE_URL", "") or "").strip()
-        if url:
+        if url and not _is_placeholder_database_url(url):
             return url
     except Exception:
         pass
