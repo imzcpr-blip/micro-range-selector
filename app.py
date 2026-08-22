@@ -34,11 +34,23 @@ from selector.config import (
     WEIGHT_HELP,
     WEIGHT_LABELS,
 )
+from selector.desk_theme import (
+    book_cards,
+    chip,
+    footer,
+    inject,
+    masthead,
+    pick_board,
+    risk_ticket,
+    section,
+    sidebar_brand,
+    tape,
+)
 from selector.history import historical_picks, log_recommendation, rec_to_markdown
 from selector.models import UserOverlays
 from selector.providers import SCENARIOS, load_market_bundle, session_clock
 from selector.providers.base import apply_overlays
-from selector.risk_calc import plan, sizing_notes, suggested_stop_pts, usd_for_stop_pts
+from selector.risk_calc import plan, suggested_stop_pts
 from selector.scoring import analyze_session
 
 ET = ZoneInfo(ET_TZ)
@@ -49,124 +61,7 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded",
 )
-
-CSS = """
-<style>
-@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
-
-html, body, [data-testid="stAppViewContainer"], .stApp {
-  background: #0A0C10 !important;
-  color: #E8E0CC !important;
-  font-family: 'IBM Plex Sans', system-ui, sans-serif !important;
-}
-[data-testid="stHeader"] { background: #0A0C10 !important; }
-[data-testid="stSidebar"] {
-  background: #0d1117 !important;
-  border-right: 1px solid #2a2418 !important;
-}
-[data-testid="stSidebar"] * { font-size: 0.92rem; }
-
-.hero {
-  border: 1px solid #3a3120;
-  background: linear-gradient(180deg, #16120c 0%, #0e1014 100%);
-  padding: 1.25rem 1.4rem 1.1rem;
-  margin-bottom: 0.85rem;
-}
-.kicker {
-  font-family: 'IBM Plex Mono', monospace;
-  letter-spacing: 0.18em;
-  font-size: 0.72rem;
-  color: #C9A84C;
-  text-transform: uppercase;
-}
-h1.app-title {
-  font-size: 1.65rem;
-  font-weight: 600;
-  margin: 0.15rem 0 0.2rem;
-  color: #F3EBD4;
-}
-.tagline { color: #9aa3b2; font-size: 0.95rem; margin: 0; }
-
-.pick-card {
-  border: 1px solid #C9A84C;
-  background: linear-gradient(165deg, #1a160e 0%, #0c0e12 55%, #10140f 100%);
-  padding: 1.4rem 1.5rem 1.2rem;
-  box-shadow: 0 0 0 1px rgba(201,168,76,0.18), 0 12px 40px rgba(0,0,0,0.45);
-}
-.pick-card.warn { border-color: #c47a3a; }
-.pick-card.demo { border-color: #5b6b88; }
-.pick-symbol {
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 3.1rem;
-  font-weight: 600;
-  line-height: 1;
-  color: #F3EBD4;
-  letter-spacing: 0.04em;
-}
-.pick-name { color: #C9A84C; font-size: 1rem; margin-top: 0.2rem; }
-.pick-why { color: #d5d0c4; font-size: 1.02rem; margin-top: 0.85rem; line-height: 1.45; }
-.conf-wrap { margin-top: 0.85rem; }
-.conf-label {
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 0.72rem;
-  letter-spacing: 0.14em;
-  color: #8b93a7;
-}
-.conf-num { font-family: 'IBM Plex Mono', monospace; font-size: 1.8rem; color: #7dcea0; }
-.conf-num.low { color: #e06c75; }
-.conf-bar { height: 6px; background: #1c2230; margin-top: 0.35rem; }
-.conf-bar > div { height: 6px; background: #C9A84C; }
-
-.meta-row {
-  display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 0.6rem 0 0.9rem;
-}
-.chip {
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 0.72rem;
-  letter-spacing: 0.06em;
-  border: 1px solid #2e3544;
-  padding: 0.22rem 0.55rem;
-  color: #c5cdd8;
-  background: #12161c;
-}
-.chip.gold { border-color: #C9A84C; color: #C9A84C; }
-.chip.red { border-color: #e06c75; color: #e06c75; }
-.chip.green { border-color: #7dcea0; color: #7dcea0; }
-
-.risk-box {
-  border: 1px solid #2a2418;
-  background: #12161c;
-  padding: 0.9rem 1rem;
-  font-size: 0.92rem;
-  line-height: 1.5;
-}
-.risk-box b { color: #C9A84C; }
-
-div[data-testid="stMetric"] {
-  background: #12161c;
-  border: 1px solid #2a2418;
-  padding: 0.6rem 0.75rem;
-}
-[data-testid="stExpander"] {
-  background: #10141a;
-  border: 1px solid #242a36;
-}
-.stDataFrame { font-family: 'IBM Plex Mono', monospace; }
-
-.footer {
-  color: #6b7382;
-  font-size: 0.8rem;
-  margin-top: 1.4rem;
-  border-top: 1px solid #242a36;
-  padding-top: 0.8rem;
-}
-@media (max-width: 640px) {
-  .pick-symbol { font-size: 2.3rem; }
-  h1.app-title { font-size: 1.3rem; }
-}
-</style>
-"""
-st.markdown(CSS, unsafe_allow_html=True)
+inject()
 
 
 def _clock():
@@ -222,10 +117,7 @@ def _run(force_mock: bool, scenario: str, nonce: int, overlays: UserOverlays, we
 # ── Sidebar ────────────────────────────────────────────────────────────────
 clock = _clock()
 with st.sidebar:
-    st.markdown(f"<div class='kicker'>{PROTOCOL_SHORT} · v{RULEBOOK_VERSION}</div>", unsafe_allow_html=True)
-    st.markdown(f"**{APP_NAME}**")
-    st.caption(clock.note)
-    st.caption("This replaced the old full desk as the default Streamlit app. Old desk: `python -m streamlit run desk_app.py`")
+    sidebar_brand(PROTOCOL_SHORT, RULEBOOK_VERSION, APP_NAME, clock.note)
 
     data_mode = st.radio(
         "Data",
@@ -286,24 +178,16 @@ with st.sidebar:
 
 
 # ── Header ─────────────────────────────────────────────────────────────────
-st.markdown(
-    f"""
-<div class="hero">
-  <div class="kicker">{PROTOCOL_NAME} · micros only · −$50 to −$100</div>
-  <h1 class="app-title">{APP_NAME}</h1>
-  <p class="tagline">{APP_TAGLINE}</p>
-</div>
-""",
-    unsafe_allow_html=True,
-)
+tape(clock)
+masthead(PROTOCOL_NAME, APP_NAME, APP_TAGLINE)
 
-c_a, c_b, c_c, c_d = st.columns([1.4, 1, 1, 1])
+c_a, c_b, c_c, c_d = st.columns([1.5, 1, 1, 0.9])
 with c_a:
-    analyze = st.button("Refresh / Analyze Today", type="primary", width="stretch")
+    analyze = st.button("Analyze session", type="primary", width="stretch")
 with c_b:
-    st.caption(f"Target RTH **{clock.target_rth.strftime('%a %Y-%m-%d')}**")
+    st.caption(f"RTH  **{clock.target_rth.strftime('%a %d %b')}**")
 with c_c:
-    st.caption(f"Phase **{clock.phase.replace('_', ' ')}**")
+    st.caption(clock.phase.replace("_", " ").upper())
 with c_d:
     st.caption(clock.now.strftime("%H:%M ET"))
 
@@ -337,47 +221,36 @@ with st.spinner("Scoring MES / MNQ / MYM…"):
 
 st.session_state["rec"] = rec
 pick = next(s for s in rec.scores if s.short == rec.pick)
-card_cls = "pick-card"
-if rec.using_mock:
-    card_cls += " demo"
-if rec.sit_out_warning:
-    card_cls += " warn"
-conf_cls = "conf-num low" if rec.confidence < 55 else "conf-num"
 
 chips = [
-    f"<span class='chip gold'>FOCUS {rec.pick}</span>",
-    f"<span class='chip'>GRADE {pick.grade}</span>",
-    f"<span class='chip'>{rec.mode.replace('_', ' ')}</span>",
+    chip(f"Focus {rec.pick}", "gold"),
+    chip(f"Grade {pick.grade}"),
+    chip(rec.mode.replace("_", " ")),
 ]
 if rec.using_mock:
-    chips.append("<span class='chip'>DEMO DATA</span>")
+    chips.append(chip("Demo data"))
 if rec.switch_from_mes:
-    chips.append("<span class='chip green'>SWITCH vs MES DEFAULT</span>")
+    chips.append(chip("Switch vs MES default", "green"))
 else:
-    chips.append("<span class='chip gold'>MES DEFAULT HOLDS</span>")
+    chips.append(chip("MES default holds", "gold"))
 if rec.sit_out_warning:
-    chips.append("<span class='chip red'>SIT-OUT WARNING</span>")
+    chips.append(chip("Sit-out warning", "red"))
 
-st.markdown(
-    f"""
-<div class="{card_cls}">
-  <div class="kicker">Top recommendation · {rec.session_date} · {rec.as_of}</div>
-  <div class="pick-symbol">{rec.pick}</div>
-  <div class="pick-name">{rec.pick_name}</div>
-  <div class="meta-row">{''.join(chips)}</div>
-  <div class="conf-wrap">
-    <div class="conf-label">CONFIDENCE</div>
-    <div class="{conf_cls}">{rec.confidence}<span style="font-size:1rem;color:#8b93a7"> / 100</span></div>
-    <div class="conf-bar"><div style="width:{rec.confidence}%"></div></div>
-  </div>
-  <p class="pick-why">{rec.summary}</p>
-</div>
-""",
-    unsafe_allow_html=True,
+pick_board(
+    pick=rec.pick,
+    name=rec.pick_name,
+    session_date=rec.session_date,
+    as_of=rec.as_of,
+    confidence=rec.confidence,
+    summary=rec.summary,
+    chips=chips,
+    sit_out=rec.sit_out_warning,
+    demo=rec.using_mock,
 )
 
 # ── Comparison + risk ──────────────────────────────────────────────────────
-st.markdown("##### Comparison")
+section("Books")
+book_cards(rec.scores, rec.pick)
 rows = []
 for s in rec.scores:
     by = {f.key: f.raw for f in s.factors}
@@ -420,19 +293,28 @@ st.caption(
     f"trade threshold {MIN_SCORE_TO_TRADE:.0f}"
 )
 
-st.markdown("##### Risk & sizing")
-notes = sizing_notes(rec.pick, rec.hard_stop_usd, pick.suggested_stop_pts)
-risk_html = "<div class='risk-box'>" + "<br>".join(f"• {n}" for n in notes)
-risk_html += (
-    f"<br><br><b>Suggested max:</b> "
-    f"{pick.max_contracts_50} contract @ $50  ·  {pick.max_contracts_100} contract @ $100  "
-    f"(protocol default is <b>1 micro</b>)."
+section("Risk ticket")
+inst = INSTRUMENTS[rec.pick]
+risk_note = (
+    f"Suggested max {pick.max_contracts_50} @ $50  ·  {pick.max_contracts_100} @ $100. "
+    "Protocol default is 1 micro."
 )
 if rec.sit_out_warning:
-    risk_html += "<br><br><b>Sit-out:</b> do not force a limit at the node until value rebuilds."
-risk_html += "</div>"
-st.markdown(risk_html, unsafe_allow_html=True)
+    risk_note = "SIT OUT — do not force a limit at the node until value rebuilds. " + risk_note
+risk_ticket(
+    [
+        ("Contract", f"{rec.pick}  ·  {pick.name}"),
+        ("Tick", f"{inst.tick_size:g} pts = ${inst.tick_value:.2f}   ·   1.00 pt = ${inst.point_value:.2f}"),
+        ("Typical RTH", f"{inst.typical_rth_pts[0]:.0f}–{inst.typical_rth_pts[1]:.0f} pts"),
+        ("Hard stop", f"${rec.hard_stop_usd:.0f} = {rec.hard_stop_usd / inst.point_value:.2f} pts"),
+        ("Structure stop", f"{pick.suggested_stop_pts:.2f} pts  (${pick.suggested_stop_usd:.0f} / contract)"),
+        ("Max size", f"$50 → {pick.max_contracts_50}   ·   $100 → {pick.max_contracts_100}"),
+    ],
+    risk_note,
+    warn=rec.sit_out_warning,
+)
 
+section("Internals")
 m1, m2, m3, m4 = st.columns(4)
 m1.metric("VIX", rec.internals.vix_last if rec.internals.vix_last is not None else "—", rec.internals.vix_change)
 m2.metric("VIX regime", rec.internals.vix_regime)
@@ -442,7 +324,7 @@ m4.metric("QQQ−SPY pp", rec.internals.spread_qqq_spy if rec.internals.spread_q
 # ── Internals / calendar strip ─────────────────────────────────────────────
 hi_cal = [e for e in rec.calendar if e.impact in {"high", "medium"}][:6]
 if hi_cal:
-    st.markdown("##### Calendar (near session)")
+    section("Calendar")
     st.dataframe(
         pd.DataFrame(
             [
@@ -471,12 +353,13 @@ with st.expander("Full score breakdown", expanded=False):
     fig.update_layout(
         barmode="group",
         template="plotly_dark",
-        paper_bgcolor="#0A0C10",
-        plot_bgcolor="#0A0C10",
-        font=dict(color="#E8E0CC", family="IBM Plex Sans"),
+        paper_bgcolor="#0e1624",
+        plot_bgcolor="#0e1624",
+        font=dict(color="#E8EEF6", family="IBM Plex Sans"),
         legend=dict(orientation="h", y=1.12),
         margin=dict(l=10, r=10, t=30, b=10),
-        yaxis=dict(range=[0, 100], gridcolor="#222"),
+        yaxis=dict(range=[0, 100], gridcolor="#1c2a40"),
+        xaxis=dict(gridcolor="#1c2a40"),
         height=340,
     )
     st.plotly_chart(fig, width="stretch")
@@ -590,7 +473,7 @@ with st.expander("Historical (what the simplified model would have picked)", exp
         st.warning("No historical rows (Yahoo daily download empty).")
 
 # ── Notes + export ─────────────────────────────────────────────────────────
-st.markdown("##### Trader notes (override log)")
+section("Trader blotter")
 override = st.text_area(
     "Why you took a different book — saved with the daily log if you click Log.",
     key="override_notes",
@@ -623,14 +506,4 @@ with b3:
 with b4:
     st.caption(f"Logged picks live in `logs/recommendations.jsonl`")
 
-st.markdown(
-    f"""
-<div class="footer">
-  {PROTOCOL_NAME} ({PROTOCOL_SHORT}) · Rulebook {RULEBOOK_VERSION} · {CREATOR}<br>
-  Not personalized financial, investment, or trading advice. You own your decisions, risk, and results.
-  Futures trading involves substantial risk of loss. Yahoo data is delayed and is not CME order flow.
-  Limit entries at HVN/LVN edges still require live delta on your platform.
-</div>
-""",
-    unsafe_allow_html=True,
-)
+footer(PROTOCOL_NAME, PROTOCOL_SHORT, RULEBOOK_VERSION, CREATOR)

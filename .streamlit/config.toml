@@ -7,9 +7,8 @@ gatherUsageStats = false
 
 [theme]
 base = "dark"
-# Retro day-trader floor: mahogany pit + brass gold + amber CRT
 primaryColor = "#C9A84C"
-backgroundColor = "#080a0c"
-secondaryBackgroundColor = "#14100a"
-textColor = "#e8e0cc"
-font = "monospace"
+backgroundColor = "#070B12"
+secondaryBackgroundColor = "#0E1624"
+textColor = "#E8EEF6"
+font = "sans serif"
