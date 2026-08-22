@@ -30,6 +30,10 @@ Desktop.ini
 .vscode/
 *.swp
 
+# Selector daily cache / recommendation log
+cache/
+logs/
+
 # Local caches and backups
 *-ImzCpr.*
 .pytest_cache/

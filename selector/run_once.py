@@ -22,8 +22,6 @@ def main() -> None:
     p.add_argument("--json", action="store_true", help="Print JSON instead of markdown")
     p.add_argument("--mild", action="store_true", help="Allow mild momentum days")
     p.add_argument("--stop", type=float, default=HARD_STOP_DEFAULT_USD)
-    p.add_argument("--alert", action="store_true", help="Accepted for RUNCPRP compatibility (print is the alert)")
-    p.add_argument("--watch", nargs="?", const=60, type=int, help="Ignored; use the dashboard refresh instead")
     args = p.parse_args()
 
     force_mock = args.demo is not None

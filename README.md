@@ -1,10 +1,15 @@
-# Cooper Precision Reversion Protocol — Session Micro Selector
+# CPRP Micro Selector
 
-Personal tool aligned to **Cooper Precision Reversion Protocol (CPRP)**  
-**Official Rulebook v1.6** + **Quick Reference v1.6**  
-*(Multi-Timeframe Hierarchy & Order Flow Clarified · Aug 12, 2026 · Raymon Michael Cooper)*
+Daily MES / MNQ / MYM focus tool for the **Cooper Precision Reversion Protocol (CPRP)**.
 
-Analyzes **MES**, **MNQ**, and **MYM** and recommends which micro to run for the current trading session — with desktop alerts when the pick changes.
+**Local:** [http://localhost:8501](http://localhost:8501)  
+**Launch:** `RUNCPRP` or `Start-Dashboard.bat` or `python -m streamlit run app.py`
+
+The old full desk (login, chat, branding) is saved as `desk_app.py`:
+
+```powershell
+python -m streamlit run desk_app.py --server.port 8503
+```
 
 > *Trade the boundaries. Respect the structure. Control the risk.*
 

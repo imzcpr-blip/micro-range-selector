@@ -1,0 +1,21 @@
+{
+  "description": "Bundled demo sessions live in providers/mock_provider.py. This file documents the three scenarios.",
+  "scenarios": {
+    "mes_default": {
+      "pick_expected": "MES",
+      "why": "Two-sided ES overnight around a peaked POC, VIX 16.8 fadeable, mild Nasdaq lead that is not a squeeze. MNQ overnight is one-way into the highs.",
+      "vix": 16.8
+    },
+    "mnq_clear": {
+      "pick_expected": "MNQ",
+      "why": "NQ rotating in a defined overnight range with dual-side tests; ES leaking value lower. Challenger must still beat MES by the switch margin after the +6 MES bias.",
+      "vix": 18.4
+    },
+    "sitout": {
+      "pick_expected": "MES",
+      "sit_out_warning": true,
+      "why": "CPI-style dump, VIX 27.6, all three books trending. Named book is still MES; conviction is too low to work HVN-edge limits.",
+      "vix": 27.6
+    }
+  }
+}
